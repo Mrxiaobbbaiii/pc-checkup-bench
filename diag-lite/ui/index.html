@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark" data-accent="blue">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>diag 电脑体检台</title>
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">✚</span>
+    <div class="brand-text"><b>diag</b><span>电脑体检台</span></div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-view="wizard">体检向导</button>
+    <button class="tab" data-view="results">结果中心</button>
+    <button class="tab" data-view="repair">修复中心</button>
+  </nav>
+  <div class="top-actions">
+    <button class="icon-btn" id="btn-theme" title="换个样子：明暗 + 强调色">◐ 主题</button>
+    <button class="icon-btn danger" id="btn-close" title="关闭">✕ 关闭</button>
+  </div>
+</header>
+
+<main>
+  <!-- 视图一：体检向导 -->
+  <section class="view active" id="view-wizard">
+    <div class="hero">
+      <h1>给电脑做个全面体检</h1>
+      <p>全程只读：只看、不动你电脑的任何设置</p>
+    </div>
+    <div class="card" id="select-card">
+      <div class="card-title">选择要查的项目</div>
+      <div class="check-grid" id="check-grid">
+        <label class="check-item all" id="chk-all-item">
+          <input type="checkbox" id="chk-all" checked>
+          <span class="box"></span>
+          <span class="txt"><b>全面体检（推荐，查得最全）</b><small id="chk-all-tip">网络、蓝屏、硬件、性能、驱动全部查一遍，出一份合并报告</small></span>
+        </label>
+        <!-- 五棵单树由 app.js 按 /api/meta 注入 -->
+      </div>
+      <label class="check-item fast" id="chk-fast-item">
+        <input type="checkbox" id="chk-fast">
+        <span class="box"></span>
+        <span class="txt"><b>快速模式（查到问题就停，更快）</b><small>默认不勾=全部查完（证据最全）。勾上=查到问题就提前结束，更快但查得少</small></span>
+      </label>
+      <div class="hint" id="sel-hint">选好后点「开始体检」</div>
+      <div class="cta-row">
+        <button class="btn-primary" id="btn-run">开始体检</button>
+      </div>
+    </div>
+    <div class="card hidden" id="run-card">
+      <div class="run-head">
+        <div class="current" id="current-label">选好后点「开始体检」</div>
+        <div class="pct" id="pct-label">0 / 0 项</div>
+      </div>
+      <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="log" id="log-box"></div>
+    </div>
+  </section>
+
+  <!-- 视图二：结果中心 -->
+  <section class="view" id="view-results">
+    <div class="toolbar">
+      <button class="btn" id="btn-browser" disabled>浏览器看完整报告</button>
+      <button class="btn" id="btn-folder">打开报告文件夹</button>
+      <button class="btn" id="btn-again">再跑一次</button>
+    </div>
+    <div class="split">
+      <div class="card tree-card"><div class="tree" id="result-tree"><div class="placeholder">查完的结果会显示在这里</div></div></div>
+      <div class="detail">
+        <h2 id="sel-title">查完的结果会显示在这里</h2>
+        <div class="detail-label">检查依据（原始记录）</div>
+        <pre class="ev" id="ev-box"></pre>
+        <div class="detail-label">怎么修（工具只给步骤，不会替你改电脑）</div>
+        <pre class="sug" id="sug-box"></pre>
+        <button class="btn" id="btn-copy" disabled>复制修复方法</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 视图三：修复中心（v0.8 占位：只有安全规则说明+本轮问题清单，无代跑动作） -->
+  <section class="view" id="view-repair">
+    <div class="hero small">
+      <h1>修复中心</h1>
+      <p>查出问题以后，在这里看一步一步的修法（自动修复还在建设中）</p>
+    </div>
+    <div class="card">
+      <div class="card-title">安全规则（先说清楚，再动手）</div>
+      <div class="safe-grid">
+        <div class="safe green"><b>绿色 · 可以自动修</b><span>完全可逆的小动作，比如刷新 DNS 缓存——建成后工具可以直接代跑</span></div>
+        <div class="safe yellow"><b>黄色 · 你确认后才动</b><span>可撤销但有中断的操作，会先自动准备「撤销包」，你逐项确认才执行</span></div>
+        <div class="safe red"><b>红色 · 永远只给步骤</b><span>删驱动 / 改注册表 / 动磁盘这类，工具永远不代跑，只给分步指南和回滚方法</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">这轮查出来的问题</div>
+      <div id="repair-list"><div class="placeholder">还没有检查结果——先去「体检向导」跑一轮体检</div></div>
+    </div>
+  </section>
+</main>
+
+<footer class="statusbar">
+  <span id="status-left">就绪</span>
+  <span id="status-right">diag v0.8</span>
+</footer>
+
+<!-- 关闭确认弹层（网页内弹层，不用同步模态框） -->
+<div class="overlay hidden" id="overlay">
+  <div class="modal">
+    <div class="modal-title">体检没跑完，确定退出？</div>
+    <div class="modal-sub">退出会停掉正在跑的检查，这一轮不会出报告。</div>
+    <div class="modal-btns">
+      <button class="btn-primary" id="modal-stay">继续检查</button>
+      <button class="btn danger" id="modal-exit">退出</button>
+    </div>
+  </div>
+</div>
+
+<!-- 主题选择弹层 -->
+<div class="overlay hidden" id="theme-overlay">
+  <div class="modal">
+    <div class="modal-title">换个样子</div>
+    <div class="theme-row"><span class="theme-label">明暗</span>
+      <button class="theme-opt" data-theme-opt="dark">深色</button>
+      <button class="theme-opt" data-theme-opt="light">浅色</button>
+    </div>
+    <div class="theme-row"><span class="theme-label">强调色</span><div id="accent-row"></div></div>
+    <div class="modal-btns"><button class="btn-primary" id="theme-done">好了</button></div>
+  </div>
+</div>
+
+<!-- 收尾告别层（服务已停、窗口待关时兜底显示） -->
+<div class="overlay hidden" id="bye-overlay">
+  <div class="modal">
+    <div class="modal-title">已退出</div>
+    <div class="modal-sub">体检服务已停止，后台没有留下任何进程。这个窗口现在可以关掉了。</div>
+    <div class="modal-btns"><button class="btn-primary" id="bye-ok">好的</button></div>
+  </div>
+</div>
+</body>
+</html>
