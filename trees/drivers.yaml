@@ -1,0 +1,28 @@
+﻿{
+  "_comment": "diag 驱动排查树 v0.5。JSON 语法=合法 YAML 1.2 子集（零依赖断网可用，同 network/bluescreen/hardware/performance）。驱动树=三层聚合取证型：FAIL≠当前故障断点，而是「发现驱动域隐患」，建议配 -Full 跑满三层攒证据（驱动体检.bat 已带 -Full）。bs_suspect_drivers 跨树复用（checks 零改动）。SKIP≠PASS：枚举失败/cmdlet 不可用/日志不可读=看不到，不是没问题。",
+  "tree": "drivers",
+  "version": "0.5",
+  "report_name": "驱动体检报告",
+  "verdict_title": "驱动隐患结论",
+  "layers": [
+    {
+      "name": "integrity",
+      "title": "签名与年代（来路正不正）",
+      "checks": ["dv_driver_signature", "dv_driver_age"],
+      "verdict_fail": "签名与年代层有隐患：无签名/损坏签名或 Win7 时代古董驱动正在内核运行——驱动来路不正=蓝屏高发源。"
+    },
+    {
+      "name": "stack",
+      "title": "叠加体量（第三方过滤链）",
+      "checks": ["dv_thirdparty_inventory", "dv_network_filters"],
+      "verdict_fail": "叠加体量层过厚：第三方驱动或网络过滤链叠了太多层——全家桶/加速器各挂一层，断网与卡顿双隐患。"
+    },
+    {
+      "name": "suspect",
+      "title": "点名证据（系统点名与嫌疑名单）",
+      "checks": ["dv_device_errors", "dv_driver_load_failures", "bs_suspect_drivers"],
+      "verdict_fail": "点名证据层有实锤：设备黄三角、驱动加载失败史或已知嫌疑驱动在跑——系统自己点名的处理对象。"
+    }
+  ],
+  "verdict_all_pass": "签名年代、叠加体量、点名证据三层均未发现驱动域隐患（SKIP 项=本机未暴露该项数据，非无问题）。体感仍异常的方向：设备管理器人工复核（Win+R 输入 devmgmt.msc 回车，带黄三角设备右键查看）。"
+}

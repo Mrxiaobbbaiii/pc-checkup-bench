@@ -1,0 +1,33 @@
+{
+  "_comment": "diag 网络排查树 v0.1。JSON 语法=合法 YAML 1.2 子集：本机未装 powershell-yaml 模块，diag 必须断网可用（零依赖），故用内置 ConvertFrom-Json 解析；未来装了 powershell-yaml 可平滑迁到自由 YAML 缩进写法。",
+  "tree": "network",
+  "version": "0.1",
+  "probe_domain": "www.qq.com",
+  "layers": [
+    {
+      "name": "link",
+      "title": "链路层（网卡/连线/地址）",
+      "checks": ["net_adapter_list", "net_ip_dhcp"],
+      "verdict_fail": "断点在链路层：网卡没连上（WiFi/网线）或拿不到地址。先修物理连接，别的都白搭。"
+    },
+    {
+      "name": "gateway",
+      "title": "网关/路由层（电脑到路由器）",
+      "checks": ["net_gateway_conflict", "net_gateway_ping"],
+      "verdict_fail": "断点在网关层：电脑与路由器之间不通，或路由表有冲突出口（时通时断型故障的典型元凶）。"
+    },
+    {
+      "name": "wan",
+      "title": "WAN 层（路由器到公网）",
+      "checks": ["net_public_ping"],
+      "verdict_fail": "断点在路由器 WAN 侧：网关通但出不了公网——光猫/线路/欠费，只能物理排查或报修运营商。"
+    },
+    {
+      "name": "dns",
+      "title": "DNS 层（域名解析）",
+      "checks": ["net_dns_deadaddr", "net_dns_default", "net_dns_gateway_proxy", "net_dns_public"],
+      "verdict_fail": "断点在 DNS 层：公网通了但域名解不出（死地址/劫持/DNS 服务挂）。改用可达的 DNS 通常立即可修。"
+    }
+  ],
+  "verdict_all_pass": "网络栈全通（网卡→网关→公网→DNS 四层全绿）。若浏览器仍打不开网页 → 嫌疑在应用层：代理设置/hosts 文件/浏览器自身。排查顺序：1) 关浏览器代理插件试试；2) 检查系统代理【命令请自己执行】netsh winhttp show proxy；3) 查 hosts 剔除异常行【命令请自己执行】type C:\\Windows\\System32\\drivers\\etc\\hosts"
+}

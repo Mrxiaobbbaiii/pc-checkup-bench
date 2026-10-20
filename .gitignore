@@ -1,0 +1,10 @@
+# 真实体检报告（隐私+体积）
+reports/diag-*
+# 版权背景图（不入库防将来误推公开库；登记表文字保留）
+assets/bg.jpg
+assets/bg-candidates/*.png
+assets/bg-candidates/*.jpg
+# 历史归档与工作区
+archive/
+guicheck_tmp/
+*.zip

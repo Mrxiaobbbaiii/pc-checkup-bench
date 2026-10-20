@@ -1,0 +1,6 @@
+﻿{
+  "_comment": "diag 性能树嫌疑自启名单 v0.4（数据与代码分离，实证收录制同 bs_suspects 先例）。收录标准：本机实证或权威公开案例，宁缺毋滥不道听途说。v0.4 初始空名单：无实证样本，先立框架；命中判定后进 FAIL（label+advice 随名单走）。pattern 对 Win32_StartupCommand 的 Name/Command 做包含匹配。",
+  "version": "0.4",
+  "updated": "2026-10-20",
+  "suspects": []
+}
