@@ -8,8 +8,10 @@ diag web server v0.8 —— Edge 壳本地服务（design 第四节；判定零�
 架构：HttpListener 绑 loopback 随机端口（免防火墙弹窗；127.0.0.1 前缀被拒自动降级 localhost 前缀）
       + 静态 ui/ + REST API（/api/meta /api/start /api/events /api/cancel /api/report /api/heartbeat
       /api/open-reports /api/shutdown + /reports/<文件> 报告下发）。
-生命周期：server 起 Edge --app 独立窗 → 页面每秒心跳（任意请求也算心跳）→ 窗关=心跳断
-      → 2.5 秒内杀引擎（taskkill /T /F）→ server 自杀。引擎子进程=-ProgressFile/-JsonReport B 案（v0.6 已验）。
+生命周期：server 起 Edge --app 独立窗 → 关窗时页面 sendBeacon('/api/bye')（pagehide 必达）
+      → server 2 秒内确认无回连→杀引擎→自杀（窗关→3 秒内杀引擎达标）。
+      心跳=兜底信号（页面后台化时 Chromium 会把定时器节流到 ~1 次/分钟，禁用短超时）：
+      非跑批态 60 秒无任何请求=页面已弃→自杀；跑批中不判心跳死（引擎跑完自然收敛）。
 只读铁律：server 唯一"动"的动作=杀自己派生的引擎进程树+开资源管理器（用户点按钮）+删自己的临时进度文件。
 #>
 param(
@@ -27,13 +29,17 @@ $reportsDir = Join-Path $root 'reports'
 $webVersion = 'v0.8'
 $diagPs = (Get-Process -Id $PID).Path
 
-# ---------- 子进程 stdout 排水器（C# 空回调：scriptblock delegate 无 runspace 回调线程会炸进程；v0.6 已验机制照搬） ----------
+# ---------- 子进程 stdout 排水器（C# 空回调：scriptblock delegate 无 runspace 回调线程会炸进程；v0.6 已验机制照搬）
+# stderr 同时落盘 temp 日志（隐藏窗无控制台，引擎报错可诊断；纯 .NET 回调无 runspace 依赖）
 Add-Type -TypeDefinition @'
 using System.Diagnostics;
+using System.IO;
 public static class DiagDrain {
-    public static void Wire(Process p) {
+    public static void Wire(Process p, string errLog) {
         p.OutputDataReceived += (s, e) => { };
-        p.ErrorDataReceived += (s, e) => { };
+        p.ErrorDataReceived += (s, e) => {
+            if (e.Data != null) { try { File.AppendAllText(errLog, e.Data + "\r\n"); } catch { } }
+        };
         p.BeginOutputReadLine();
         p.BeginErrorReadLine();
     }
@@ -122,15 +128,25 @@ $script:runStamp = Get-Date
 $script:stopRequested = $false
 $script:runTree = 'all'
 $script:runFull = $true
+$script:engineErrLog = Join-Path ([System.IO.Path]::GetTempPath()) 'diag-web-engine-stderr.log'
+$script:byeAt = $null
 $script:lastBeat = Get-Date
 $script:gotBeat = $false
 $script:startAt = Get-Date
 $script:beatGraceMs = 25000   # 浏览器首次加载宽限（Edge 冷启动慢）
-$script:beatTimeoutMs = 2500  # 心跳断判定线（窗关→3 秒内杀引擎的预算）
+$script:byeGraceMs = 2000     # beacon 宽限：F5 重载会在 2 秒内回连，真关窗不会
+$script:beatTimeoutMs = 60000 # 心跳兜底线（页面后台节流容忍 1 次/分钟；仅非跑批态生效）
 
-function Test-HeartbeatDead {
-    if ($script:gotBeat) { return (((Get-Date) - $script:lastBeat).TotalMilliseconds -gt $script:beatTimeoutMs) }
-    return (((Get-Date) - $script:startAt).TotalMilliseconds -gt $script:beatGraceMs)
+function Test-ShouldStop {
+    if ($null -ne $script:byeAt) {
+        if (((Get-Date) - $script:byeAt).TotalMilliseconds -gt $script:byeGraceMs) { return 'bye' }
+        return $null
+    }
+    if ($script:state -eq 'running') { return $null }
+    if ($script:gotBeat) {
+        if (((Get-Date) - $script:lastBeat).TotalMilliseconds -gt $script:beatTimeoutMs) { return 'beat' }
+    } elseif (((Get-Date) - $script:startAt).TotalMilliseconds -gt $script:beatGraceMs) { return 'grace' }
+    return $null
 }
 
 function Stop-EngineTree {
@@ -144,22 +160,36 @@ function Stop-EngineTree {
     }
 }
 
-# ---------- 引擎事件流增量读（B 案；与 GUI Read-NewEvents 同构） ----------
+# ---------- 引擎事件流增量读（B 案；与 GUI Read-NewEvents 同构）
+# 读取用 FileShare.ReadWrite 显式共享写（Get-Content 默认共享模式会在 mock 高频追加下与 engine Add-Content 抢锁，
+# engine Stop 偏好下锁冲突=终止错误中途退出——实测 mock 全流程死于第 15 项的根因）；末行解析失败=撕裂行，留待下轮重读 ----------
 function Read-NewEvents {
     if ($script:progressFile -eq '' -or -not (Test-Path -LiteralPath $script:progressFile)) { return }
-    $all = @(Get-Content -LiteralPath $script:progressFile -Encoding UTF8 -ErrorAction SilentlyContinue | Where-Object { $_.Trim() -ne '' })
+    $content = ''
+    try {
+        $fs = New-Object System.IO.FileStream ($script:progressFile), ([System.IO.FileMode]::Open), ([System.IO.FileAccess]::Read), ([System.IO.FileShare]::ReadWrite)
+        $sr = New-Object System.IO.StreamReader ($fs, [System.Text.Encoding]::UTF8)
+        $content = $sr.ReadToEnd()
+        $sr.Close(); $fs.Close()
+    } catch { return }
+    if ([string]::IsNullOrWhiteSpace($content)) { return }
+    $all = @($content -split "`r?`n" | Where-Object { $_.Trim() -ne '' })
     if ($all.Count -le $script:progLinesRead) { return }
-    foreach ($line in $all[$script:progLinesRead..($all.Count - 1)]) {
-        try {
-            $ev = $line | ConvertFrom-Json
-            $script:events += [ordered]@{ seq = $script:events.Count + 1; ev = $ev }
-            if ($ev.event -eq 'done') {
-                if ($ev.htmlReport) { $script:htmlReport = [string]$ev.htmlReport }
-                if ($ev.jsonReport) { $script:jsonReport = [string]$ev.jsonReport }
-            }
-        } catch { continue }
+    for ($i = $script:progLinesRead; $i -lt $all.Count; $i++) {
+        $line = $all[$i]
+        $ev = $null
+        try { $ev = $line | ConvertFrom-Json } catch { $ev = $null }
+        if ($null -eq $ev) {
+            if ($i -eq $all.Count - 1) { break }   # 撕裂的末行：不算已读，下轮重读
+            continue                                 # 中间坏行：跳过
+        }
+        $script:events += [ordered]@{ seq = $script:events.Count + 1; ev = $ev }
+        if ($ev.event -eq 'done') {
+            if ($ev.htmlReport) { $script:htmlReport = [string]$ev.htmlReport }
+            if ($ev.jsonReport) { $script:jsonReport = [string]$ev.jsonReport }
+        }
+        $script:progLinesRead = $i + 1
     }
-    $script:progLinesRead = $all.Count
 }
 
 # ---------- 引擎退出收敛（与 GUI On-EngineExited 同构） ----------
@@ -212,7 +242,7 @@ function Start-Engine([string]$treeArg, [bool]$full) {
     if ($psi.PSObject.Properties['StandardOutputEncoding']) { $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8 }
     if ($psi.PSObject.Properties['StandardErrorEncoding']) { $psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8 }
     try { $script:proc = [System.Diagnostics.Process]::Start($psi) } catch { return @{ ok = $false; error = '启动失败：' + $_.Exception.Message } }
-    [DiagDrain]::Wire($script:proc)
+    [DiagDrain]::Wire($script:proc, $script:engineErrLog)
     $script:state = 'running'
     $script:progLinesRead = 0
     $script:events = @()
@@ -260,9 +290,14 @@ $staticMap = @{ '/' = @('index.html', 'text/html; charset=utf-8'); '/index.html'
 
 function Invoke-Route($ctx) {
     $req = $ctx.Request; $res = $ctx.Response
-    $script:lastBeat = Get-Date
-    $script:gotBeat = $true
     $path = $req.Url.AbsolutePath
+    if ($path -ne '/api/bye') {
+        # 只有「新页面加载」信号（静态资源/meta）才撤销 bye 判定——F5 重载会先拉静态文件；
+        # 心跳/事件轮询不清 bye（pagehide beacon 与在途心跳赛跑时，后者后到会把 bye 冲掉退化为 60 秒兜底，Edge 复测实锤）
+        if ($staticMap.ContainsKey($path) -or $path -eq '/api/meta') { $script:byeAt = $null }
+        $script:lastBeat = Get-Date
+        $script:gotBeat = $true
+    }
     try {
         if ($staticMap.ContainsKey($path)) {
             Send-Static $res $staticMap[$path][0] $staticMap[$path][1]
@@ -273,6 +308,12 @@ function Invoke-Route($ctx) {
             return
         }
         if ($path -eq '/api/heartbeat') {
+            Send-Json $res @{ ok = $true }
+            return
+        }
+        if ($path -eq '/api/bye') {
+            # 关窗 beacon（pagehide 必达；2 秒宽限内无回连=真关窗→杀引擎自杀）
+            $script:byeAt = Get-Date
             Send-Json $res @{ ok = $true }
             return
         }
@@ -363,13 +404,12 @@ function Invoke-Route($ctx) {
     }
 }
 
-# ---------- 主循环（BeginGetContext + 250ms 看门狗：窗关→3 秒内杀引擎→自杀） ----------
+# ---------- 主循环（BeginGetContext + 250ms 看门狗：关窗 beacon→2 秒宽限→杀引擎自杀；心跳 60 秒兜底） ----------
 try {
     while (-not $script:stopRequested) {
         $ar = $listener.BeginGetContext($null, $null)
         while (-not $ar.AsyncWaitHandle.WaitOne(250)) {
-            if (Test-HeartbeatDead) { $script:stopRequested = $true; break }
-            if ($script:stopRequested) { break }
+            if ((Test-ShouldStop)) { $script:stopRequested = $true; break }
         }
         if ($script:stopRequested) {
             try { $ar.AsyncWaitHandle.Close() } catch { }
@@ -378,8 +418,7 @@ try {
         $ctx = $listener.EndGetContext($ar)
         Invoke-Route $ctx
         try { $ctx.Response.OutputStream.Close() } catch { }
-        # 心跳已死则不再接新请求，直接收口
-        if (Test-HeartbeatDead) { $script:stopRequested = $true; break }
+        if ((Test-ShouldStop)) { $script:stopRequested = $true; break }
     }
 } catch {
     Write-CrashLog ('main loop: ' + $_.Exception.Message)

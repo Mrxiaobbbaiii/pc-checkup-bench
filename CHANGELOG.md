@@ -1,5 +1,19 @@
 # diag CHANGELOG
 
+## 2026-10-21 v0.8 Edge 壳+HTML 界面片（第十一切片；10-20 深夜开工跨零点收尾）
+
+- 目标：design 第四节 v0.8 落地——Edge --app 独立窗+本地 server+纯 HTML/CSS/JS 三视图，功能对齐 v0.7.1，本片零修复动作。**判定零改动铁律兑现：engine/checks/trees/tests 一字未动，135/135 改动前基线与交付后终验双版本全绿**（5.1+pwsh7 各 135/135）。
+- **server.ps1（新增，5.1/7 双兼容，BOM）**：HttpListener 绑 loopback 随机端口（TcpListener 探空端口→释放→绑；127.0.0.1 前缀被拒自动降级 localhost 前缀，免防火墙弹窗）+静态 ui/（index/app.js/style.css 白名单下发）+REST（/api/meta /api/start /api/events /api/cancel /api/report /api/heartbeat /api/bye /api/open-reports /api/shutdown + /reports/<diag-*> 报告下发带文件名白名单正则）；引擎子进程沿用 B 案 -ProgressFile/-JsonReport（engine 零改动）；DiagDrain C# 排水照搬+stderr 落盘 temp 日志（隐藏窗可诊断）；开发/测试参数 -MockDir/-NoBrowser/-PortFile 默认关（lite 行为=真跑）。
+- **生命周期（v0.8 的灵魂件，两次返工后定稿）**：关窗主信号=页面 pagehide sendBeacon('/api/bye')→server 2 秒宽限（F5 重载先拉静态文件即撤销）→杀引擎（taskkill /T/F try/catch）→自杀——Edge 真窗两连测 2 秒自杀+零残留达标「窗关→3 秒内」。心跳=兜底而非主判（**Chromium 后台页定时器节流到 ~1 次/分钟，2.5 秒心跳超时会把最小化的活窗误杀——真机实锤**）：非跑批态 60 秒无请求=页面已弃→自杀，跑批中不判（引擎跑完自然收敛）；**beacon 与在途心跳的赛跑**（bye 后到的心跳把 bye 冲掉退化 60 秒）修=只有静态资源//api/meta（真页面加载信号）才撤销 bye，心跳/事件轮询不撤销——Edge 复测第二次抓到、修后两连过。
+- **ui/ 三视图（纯 HTML/CSS/JS 零构建零 CDN 断网可用）**：体检向导（勾选卡+跑批进度卡）/结果中心（左树右详情+复制）/修复中心（占位：绿黄红三色安全规则卡+本轮 FAIL 清单带复制，v0.8 无任何代跑动作）；深色科技感（参考 Fluent 2 暗色面板+shadcn 卡片语言：CSS 变量色板+1px 边框卡片+径向渐变底+强调色辉光点）；**用户可自定义主题**（右上「◐ 主题」：深/浅色+六强调色，localStorage 持久化）；文案对照表逐字沿用第十四节（✓ 正常/✗ 有问题/– 没查成、正在查：xxx（第 N 步，共 M 步）、只支持查一项或全部——勾 2 到 4 项不行、已取消，本次没有报告 等）；F5 刷新恢复（server 侧事件缓冲 since=0 重放+跑完态静默拉报告）。
+- **「全面体检（网页版）.bat」（第八启动器，diag-lite；ASCII+CRLF 无 BOM 验字节；现有七 bat 一字不动）**：start powershell -WindowStyle Hidden -File server.ps1，server 绑定后自拉 msedge --app（三路径探测+默认浏览器降级兜底）。
+- **功能对齐 v0.7.1 验收面（全过）**：树勾选（全勾联动禁用单改/单勾/勾 2-4 禁用+状态栏提示）✓ 进度真值+当前层文案 ✓ 日志三态着色+秒耗时 ✓ 结果树四级（报告/树/①②③层/检查项）+选中详情（evidence/suggestion/层说明/树结论/总结论五型）✓ FAIL 复制（clipboard API+execCommand+**选中文本弹层 Ctrl+C 三级兜底**——失焦环境自动复制失败时文字已选好，实测 248 字符全选）✓ 取消（UI 点取消→cancelled 文案+引擎零残留）✓ 关闭确认（**网页内弹层**「体检没跑完，确定退出？」继续检查=不打断+退出=杀引擎+告别层；OS X 关窗=beforeunload 原生确认+beacon 生命周期）✓ 浏览器看完整报告（/reports/ 下发 v0.2.1 渲染不回归）✓。
+- **自动化验收三通道**（test_xclose.ps1 的网页版后继；UIA 直驱 Edge 树弃用=Chromium UIA 走 CDP/浏览器自动化更稳，如实记）：①**guicheck_tmp/test_webclose.ps1 20/20**=mock 全流程（meta/静态/start/events 事件序/report/报告下发）+真跑取消零残留+beacon 关窗自杀+双开 409 拒+弃页 60 秒兜底；②**浏览器自动化全交互流**（真机 server 实跑：全面体检 35 项真跑 33 秒/网络树快速断点链/结果树真读数与历代 CLI 实证一致=DNS 死地址断点+蓝屏 0x139×3+nnndisfilter+内存诊断史全命中；复制/主题换肤/F5×3 不误杀）；③**test_edge_app.ps1 真窗链**=bat→Edge 窗（标题=diag 电脑体检台）→截窗图→CloseMainWindow→2 秒自杀→三零残留（两连测）。
+- **三查返工实锤（guicheck-flash 首轮 4 FAIL→修→复审）**：①日志框 1.75 行高不能整除产半行切割+状态栏贴边→修=整 22px 行高+308px 框高+状态栏加高；②结果树「层级错位」实为树卡片滚动裁切边界误读→修=滚动条加宽+可见轨道+自动滚顶；③修复建议 netsh 参数行中硬切→修=word-break:break-all 换 overflow-wrap:anywhere（命令折行优先在边界断）；④Edge 窗右缘截断=窗口生长瞬态截图+窗口尺寸复测稳定（1010x1084，Edge 对 --window-size 高度有自己的恢复策略，内容无横向溢出 scrollWidth==clientWidth 程序级证明）。复审结论见当轮回执。
+- **两处实况坑（真机抓掉，如实记）**：①**事件流并发读抢锁杀死引擎**——server Get-Content 轮询与 engine Add-Content 追加写抢文件锁，engine Stop 偏好下锁冲突=终止错误 exit 1（mock 高频追加必撞、真跑稀疏从没撞过=历代 GUI 无此史）；修=读方 FileStream(FileShare.ReadWrite) 显式共享写+末行撕裂容忍（解析失败的末行不算已读下轮重读），三连压测 17/17→20/20；②**IAB 自动化环境 document 失焦致 clipboard API 拒绝**=自动复制必失败——产品级修=三级复制兜底（弹选中文本层），真机 Edge 前台窗+真实点击不受影响（secure context+clipboard API 存在程序级证明）。
+- lite v0.8 同步：server.ps1+ui/ 三件复制进 diag-lite/（BOM 逐验）；本片不打 zip（build.ps1 双出口=lite zip+Inno Setup 安装器留 v1.0 切片，发群口径不变）。
+- 拍板与待用户裁定（夜间自治，保守默认）：修复中心占位文案=三色规则说明+FAIL 清单（无代跑）；Edge 缺失时降级默认浏览器（窗口形态降级非功能损失）；--window-size 高度 Edge 自主恢复（宽度 1000 生效）未强制锁窗高。
+
 ## 2026-10-20 v0.7/v0.7.1 WPF 重写壳层+美化收尾片（第十切片）
 
 - 目标：design 第十四节落地（WinForms 壳退役换 WPF/XAML；路线=1020 用户拍板「WPF 重写壳层（推荐）」；触发=用户实锤「右上角截断+文案不小白+观感廉价」+guicheck 坐实 P1-P9）。**纯呈现层重写：判定逻辑、检查项、树、engine、bat 启动器零改动**（135 既有用例零改动全绿为回归锚）；功能面 F1-F8 规格零变化。

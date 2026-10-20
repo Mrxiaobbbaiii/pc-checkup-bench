@@ -132,6 +132,16 @@
   </div>
 </div>
 
+<!-- 复制兜底弹层（自动复制失败的极端环境：文字已选好，按 Ctrl+C 即可） -->
+<div class="overlay hidden" id="copy-overlay">
+  <div class="modal">
+    <div class="modal-title">复制修复方法</div>
+    <div class="modal-sub">自动复制没成功。下面的文字已经替你选好了——按 Ctrl+C 复制，再点「好了」。</div>
+    <textarea id="copy-ta" readonly rows="9"></textarea>
+    <div class="modal-btns"><button class="btn-primary" id="copy-ok">好了</button></div>
+  </div>
+</div>
+
 <!-- 收尾告别层（服务已停、窗口待关时兜底显示） -->
 <div class="overlay hidden" id="bye-overlay">
   <div class="modal">

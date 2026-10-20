@@ -164,6 +164,7 @@ function enterRunningUi(treeArg) {
   $('#pct-label').textContent = '0 / ' + S.expectSeq.length + ' 项';
   $('#run-card').classList.remove('hidden');
   $('#run-card').closest('.view').classList.add('running');
+  setTimeout(() => { $('#run-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60);
   $('#select-card').classList.add('disabled');
   document.querySelectorAll('#select-card input').forEach((i) => (i.disabled = true));
   const btn = $('#btn-run');
@@ -364,6 +365,8 @@ function buildResultTree() {
   });
   root.appendChild(children);
   tree.appendChild(root);
+  const treeCard = document.querySelector('.tree-card');
+  if (treeCard) treeCard.scrollTop = 0;
   selectNode(root);
 }
 
@@ -394,13 +397,20 @@ function buildTreeSection(t) {
 function buildLayerNode(t, l, idx) {
   const det = document.createElement('details');
   const sum = document.createElement('summary');
-  let mark, color;
-  if (l.state === 'BREAK') { mark = ' —— 有问题'; color = 'var(--fail)'; }
-  else if ((l.state || '').indexOf('SKIPPED') === 0) { mark = '（快速模式未查）'; color = 'var(--skip)'; }
-  else { mark = ' ✓'; color = 'var(--pass)'; }
+  let mark, mcls;
+  if (l.state === 'BREAK') { mark = '—— 有问题'; mcls = 'fail'; }
+  else if ((l.state || '').indexOf('SKIPPED') === 0) { mark = '（快速模式未查）'; mcls = 'skip'; }
+  else { mark = '✓'; mcls = 'pass'; }
   const num = idx < LAYER_NUM.length ? LAYER_NUM[idx] : '第' + (idx + 1);
-  sum.style.color = color;
-  sum.appendChild(document.createTextNode(num + ' ' + l.title + mark));
+  const tSpan = document.createElement('span');
+  tSpan.className = 't';
+  tSpan.textContent = num + ' ' + l.title;
+  const markSpan = document.createElement('span');
+  markSpan.className = 'mark ' + mcls;
+  markSpan.textContent = mark;
+  sum.style.color = mcls === 'fail' ? 'var(--fail)' : mcls === 'skip' ? 'var(--skip)' : 'var(--pass)';
+  sum.appendChild(tSpan);
+  sum.appendChild(markSpan);
   det.appendChild(sum);
   det.__data = { type: 'layer', data: l, treeName: t.report_name };
   sum.addEventListener('click', (e) => { e.stopPropagation(); selectNode(sum.parentElement); });
@@ -494,9 +504,10 @@ function resetToIdle() {
   updateSelUi();
 }
 
-/* ---------- 复制（localhost=安全上下文，clipboard API 可用；execCommand 兜底） ---------- */
+/* ---------- 复制（localhost=安全上下文，clipboard API 可用；execCommand 兜底；
+   都失败=极端环境（页面失焦/无手势），弹选中文本层让用户 Ctrl+C，永不留死路） ---------- */
 async function copyText(t) {
-  try { await navigator.clipboard.writeText(t); return true; } catch (e) {
+  try { window.focus(); await navigator.clipboard.writeText(t); return true; } catch (e) {
     try {
       const ta = document.createElement('textarea');
       ta.value = t;
@@ -509,12 +520,26 @@ async function copyText(t) {
     } catch (e2) { return false; }
   }
 }
-$('#btn-copy').addEventListener('click', async () => {
+function showCopyFallback(text) {
+  const ta = $('#copy-ta');
+  ta.value = text;
+  $('#copy-overlay').classList.remove('hidden');
+  ta.focus();
+  ta.select();
+}
+async function doCopy(text, btn, resetLabel) {
+  const ok = await copyText(text);
+  if (ok) {
+    btn.textContent = '已复制 ✓';
+    setTimeout(() => { btn.textContent = resetLabel; }, 1200);
+  } else {
+    showCopyFallback(text);
+    btn.textContent = resetLabel;
+  }
+}
+$('#btn-copy').addEventListener('click', () => {
   if (!S.currentSuggestion) return;
-  const ok = await copyText(S.currentSuggestion);
-  const btn = $('#btn-copy');
-  btn.textContent = ok ? '已复制 ✓' : '复制失败，手动选择文字复制';
-  setTimeout(() => { btn.textContent = '复制修复方法'; }, 1200);
+  doCopy(S.currentSuggestion, $('#btn-copy'), '复制修复方法');
 });
 
 /* ---------- 修复中心（v0.8 占位：只列 FAIL+给步骤文本，零代跑） ---------- */
@@ -546,11 +571,7 @@ function buildRepairList() {
     const cp = document.createElement('button');
     cp.className = 'btn';
     cp.textContent = '复制修复方法';
-    cp.addEventListener('click', async () => {
-      const ok = await copyText(f.sug);
-      cp.textContent = ok ? '已复制 ✓' : '复制失败';
-      setTimeout(() => { cp.textContent = '复制修复方法'; }, 1200);
-    });
+    cp.addEventListener('click', () => { doCopy(f.sug, cp, '复制修复方法'); });
     head.appendChild(ti); head.appendChild(cp);
     const pre = document.createElement('pre');
     pre.textContent = f.sug;
@@ -576,9 +597,14 @@ async function doShutdown() {
   setTimeout(() => { $('#bye-overlay').classList.remove('hidden'); }, 350);
 }
 $('#bye-ok').addEventListener('click', () => { window.close(); });
+$('#copy-ok').addEventListener('click', () => $('#copy-overlay').classList.add('hidden'));
 
 window.addEventListener('beforeunload', (e) => {
   if (S.appState === 'running') { e.preventDefault(); e.returnValue = ''; }
+});
+// 关窗/关标签时必达的告别信标（pagehide 兜底必发；后台节流不影响 sendBeacon）
+window.addEventListener('pagehide', () => {
+  try { navigator.sendBeacon('/api/bye'); } catch (e) {}
 });
 
 /* ---------- 主题（CSS 变量；localStorage 记住） ---------- */
@@ -654,6 +680,17 @@ function esc(s) {
       btn.textContent = '取消'; btn.disabled = false; btn.classList.add('running');
       startPolling(); startElapsed();
       setStatus('正在检查…（页面刷新过，接着显示）', '');
+    }
+  } catch (e) {}
+  // server 侧已跑完（页面刷新过）：静默拉报告，结果中心/修复中心保持有数据
+  try {
+    const r0 = await fetch('/api/events?since=0', { cache: 'no-store' });
+    const p0 = await r0.json();
+    if (p0.state === 'done') {
+      S.appState = 'done';
+      S.htmlUrl = p0.htmlUrl || '';
+      await loadReport();
+      $('#btn-run').textContent = '再跑一次';
     }
   } catch (e) {}
 })();
