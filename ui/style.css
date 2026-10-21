@@ -110,7 +110,6 @@ body {
 /* ---------- 主区与视图 ---------- */
 main { flex: 1; overflow: hidden; position: relative; }
 .view { position: absolute; inset: 0; overflow: auto; padding: 22px 26px 30px; display: none; }
-body { min-width: 700px; }
 .view.active { display: block; }
 .view::-webkit-scrollbar { width: 10px; }
 .view::-webkit-scrollbar-thumb { background: var(--line-hi); border-radius: 6px; }

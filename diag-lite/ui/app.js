@@ -164,7 +164,7 @@ function enterRunningUi(treeArg) {
   $('#pct-label').textContent = '0 / ' + S.expectSeq.length + ' 项';
   $('#run-card').classList.remove('hidden');
   $('#run-card').closest('.view').classList.add('running');
-  setTimeout(() => { $('#run-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60);
+  setTimeout(() => { $('#run-card').scrollIntoView({ behavior: 'auto', block: 'nearest' }); }, 60);
   $('#select-card').classList.add('disabled');
   document.querySelectorAll('#select-card input').forEach((i) => (i.disabled = true));
   const btn = $('#btn-run');
@@ -645,6 +645,14 @@ function esc(s) {
 }
 
 /* ---------- 启动 ---------- */
+// 探针（仅 ?probe 出现时激活）：视口实测写进窗口标题，UIA/Get-Process 可读（自动化诊断用，产品态零影响）
+if (/[?&]probe/.test(location.search)) {
+  const updProbe = () => {
+    document.title = 'PROBE iw=' + window.innerWidth + ' sw=' + document.documentElement.scrollWidth + ' dpr=' + window.devicePixelRatio;
+  };
+  updProbe();
+  window.addEventListener('resize', updProbe);
+}
 (async function init() {
   initTheme();
   try {
