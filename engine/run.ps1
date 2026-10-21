@@ -74,7 +74,16 @@ function Write-ProgressEvent {
     foreach ($k in $order) {
         if ($Fields -and $Fields.ContainsKey($k) -and $null -ne $Fields[$k] -and ([string]$Fields[$k] -ne '')) { $o[$k] = $Fields[$k] }
     }
-    Add-Content -LiteralPath $ProgressFile -Value ([string]($o | ConvertTo-Json -Compress)) -Encoding UTF8
+    # 1021 竞态收口：PS5.1 Add-Content 不容忍并发读句柄（GUI/网页壳轮询读进度文件时偶发撞车），
+    # Stop 偏好下单次撞车=引擎中途退出。重试 5 次；全部失败=丢这一条事件（丢事件只影响进度显示，好过整树暴毙）。
+    # 判定与 stdout 零改动（135 基线前后双跑证明）。
+    $written = $false
+    for ($i = 0; $i -lt 5 -and -not $written; $i++) {
+        try {
+            Add-Content -LiteralPath $ProgressFile -Value ([string]($o | ConvertTo-Json -Compress)) -Encoding UTF8
+            $written = $true
+        } catch { Start-Sleep -Milliseconds 40 }
+    }
 }
 
 # ---------- 单检查项执行（子进程+总超时；经 Start-Job 数组传参，规避命令行空格/转义） ----------
@@ -451,13 +460,15 @@ function New-JsonPayload {
     return [ordered]@{ engine = 'diag v0.6'; host = $HostName; time = $Ts; trees = $trees }
 }
 
-# ---------- reports/ 保留策略（拍板 11：diag-* 的 .html/.txt/.md/.json 按文件名时间戳降序保留最新 50 份） ----------
+# ---------- reports/ 保留策略（拍板 11：diag-* 的 .html/.txt/.md/.json 保留最新 50 份） ----------
 function Trim-Reports {
     $repDir = Join-Path $root 'reports'
     if (-not (Test-Path $repDir)) { return }
+    # 1021 修正：按文件名内嵌时间戳排序，不能按整名字典序——跨树前缀时 diag-all-*（字母 a）
+    # 恒排"最旧"，目录到 50 上限时合并报告会被先裁掉（真机实锤：写完即被删→下载 404）。
     $files = @(Get-ChildItem -LiteralPath $repDir -File -Filter 'diag-*' -ErrorAction SilentlyContinue |
         Where-Object { $_.Extension -in '.html', '.txt', '.md', '.json' } |
-        Sort-Object Name -Descending)
+        Sort-Object -Descending -Property @{e = { if ($_.Name -match '^diag-[A-Za-z0-9_]+-(\d{8}-\d{6})\.(html|txt|md|json)$') { $Matches[1] } else { '00000000-000000' } }}, @{e = { $_.Name }})
     $old = @($files | Select-Object -Skip 50)
     if ($old.Count -gt 0) {
         foreach ($f in $old) { Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue }
