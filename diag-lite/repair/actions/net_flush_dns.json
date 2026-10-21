@@ -1,0 +1,18 @@
+{
+  "id": "net_flush_dns",
+  "name": "刷新 DNS 缓存",
+  "level": "green",
+  "desc": "清掉电脑里记的「网址→IP」小本本，下次打开网页时重新查一遍。适合：微信 QQ 能上但网页打不开、个别网站打不开、刚换过 DNS。",
+  "affect": "只清缓存记录，不改任何设置；清完头一两次打开网页可能慢半秒，之后自动恢复。",
+  "undo": "不用撤销——小本本会随着上网自动重新记满。",
+  "requires_admin": true,
+  "prechecks": [],
+  "steps": [
+    { "exe": "ipconfig.exe", "args": ["/flushdns"], "desc": "刷新 DNS 解析缓存" }
+  ],
+  "rollback": [],
+  "rollback_note": "无需回滚：缓存会自动重建",
+  "timeout_sec": 20,
+  "match_checks": ["net_dns_default", "net_dns_public", "net_dns_deadaddr", "net_dns_gateway_proxy"],
+  "verify_checks": ["net_dns_public", "net_dns_deadaddr"]
+}

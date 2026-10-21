@@ -19,6 +19,9 @@ const S = {
   pollTimer: null,
   elapsedTimer: null,
   beatFail: 0,
+  repairActions: null,   // v0.8.1 /api/repair/list 缓存（null=还没拿到）
+  repairBusy: false,     // 本地镜像：修复进行中（禁其他修复/按钮态）
+  repairDoneIds: {},     // 已执行过的动作 id → 结果（防重复渲染）
 };
 
 const STATUS_WORD = { PASS: '✓ 正常', FAIL: '✗ 有问题', SKIP: '– 没查成' };
@@ -313,12 +316,12 @@ function startElapsed() {
     const s = Math.floor((Date.now() - S.runStartAt) / 1000);
     const mm = String(Math.floor(s / 60)).padStart(2, '0');
     const ss = String(s % 60).padStart(2, '0');
-    $('#status-right').textContent = 'diag v0.8 · 用时 ' + mm + ':' + ss;
+    $('#status-right').textContent = 'diag v0.8.1 · 用时 ' + mm + ':' + ss;
   }, 1000);
 }
 function stopElapsed() {
   if (S.elapsedTimer) { clearInterval(S.elapsedTimer); S.elapsedTimer = null; }
-  $('#status-right').textContent = 'diag v0.8';
+  $('#status-right').textContent = 'diag v0.8.1';
 }
 
 /* ---------- 报告与结果树（数据源=/api/report → engine JSON 报告，B 案） ---------- */
@@ -542,7 +545,22 @@ $('#btn-copy').addEventListener('click', () => {
   doCopy(S.currentSuggestion, $('#btn-copy'), '复制修复方法');
 });
 
-/* ---------- 修复中心（v0.8 占位：只列 FAIL+给步骤文本，零代跑） ---------- */
+/* ---------- 修复中心（v0.8.1：按报告 FAIL 项匹配动作；绿=可代跑，黄=确认弹层，红=指南页） ---------- */
+const LV_META = {
+  green: { word: '绿色 · 安全可撤销', cls: 'green' },
+  yellow: { word: '黄色 · 要你确认', cls: 'yellow' },
+  red: { word: '红色 · 只给步骤', cls: 'red' },
+};
+const CMD_MAP = {
+  'ipconfig.exe /flushdns': 'ipconfig /flushdns',
+  'arp.exe -d *': 'arp -d *',
+  'ipconfig.exe /registerdns': 'ipconfig /registerdns',
+};
+function stepCmdText(st) {
+  const raw = st.exe + ' ' + (st.args || []).join(' ');
+  return CMD_MAP[raw] || raw;
+}
+
 function buildRepairList() {
   const box = $('#repair-list');
   if (!box) return;
@@ -573,11 +591,273 @@ function buildRepairList() {
     cp.textContent = '复制修复方法';
     cp.addEventListener('click', () => { doCopy(f.sug, cp, '复制修复方法'); });
     head.appendChild(ti); head.appendChild(cp);
+    item.appendChild(head);
+
+    const matched = (S.repairActions || []).filter((a) => (a.match_checks || []).indexOf(f.check) >= 0);
+    matched.forEach((a) => { item.appendChild(buildActionCard(a)); });
+
     const pre = document.createElement('pre');
     pre.textContent = f.sug;
-    item.appendChild(head); item.appendChild(pre);
+    item.appendChild(pre);
     box.appendChild(item);
   });
+}
+
+function buildActionCard(a) {
+  const card = document.createElement('div');
+  card.className = 'action-card lv-' + (LV_META[a.level] ? a.level : 'green');
+  const badge = document.createElement('div');
+  badge.className = 'ac-badge';
+  const bm = LV_META[a.level] || LV_META.green;
+  badge.innerHTML = '<b>' + esc(a.name) + '</b><span class="lv-tag ' + bm.cls + '">' + bm.word + '</span>';
+  card.appendChild(badge);
+
+  const rows = [['做什么', a.desc], ['影响什么', a.affect], ['怎么撤销', a.undo]];
+  rows.forEach(([k, v]) => {
+    if (!v) return;
+    const row = document.createElement('div');
+    row.className = 'ac-row';
+    const kEl = document.createElement('span');
+    kEl.className = 'ac-key';
+    kEl.textContent = k;
+    const vEl = document.createElement('span');
+    vEl.className = 'ac-val';
+    vEl.textContent = v;
+    row.appendChild(kEl); row.appendChild(vEl);
+    card.appendChild(row);
+  });
+
+  const steps = document.createElement('div');
+  steps.className = 'ac-steps';
+  (a.steps || []).forEach((st) => {
+    const line = document.createElement('div');
+    line.textContent = '· ' + (st.desc || '') + '（' + stepCmdText(st) + '）';
+    steps.appendChild(line);
+  });
+  card.appendChild(steps);
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'ac-btns';
+  const btn = document.createElement('button');
+  btn.className = 'btn act-run';
+  btn.dataset.actionId = a.id;
+  if (a.level === 'green') {
+    btn.textContent = a.requires_admin ? '执行（会弹管理员确认）' : '执行';
+    btn.addEventListener('click', () => onGreenRun(a, btn, card));
+  } else if (a.level === 'yellow') {
+    btn.textContent = '看步骤与撤销法';
+    btn.addEventListener('click', () => showYellowModal(a));
+  } else {
+    btn.textContent = '看分步指南';
+    btn.addEventListener('click', (e) => onRedArm(e, a));
+  }
+  btnRow.appendChild(btn);
+  card.appendChild(btnRow);
+
+  if (S.repairDoneIds[a.id]) {
+    const done = document.createElement('div');
+    done.className = 'ac-result';
+    renderRepairResult(done, S.repairDoneIds[a.id]);
+    card.appendChild(done);
+  }
+  return card;
+}
+
+/* 绿级执行流：需管理员→先弹预告确认；POST run →轮询 status→渲染五段结果 */
+function onGreenRun(a, btn, card) {
+  if (S.repairBusy || S.appState === 'running') {
+    setStatus(S.appState === 'running' ? '正在检查中，请等这轮结束再修复' : '正在修复中，请等它结束', 'err');
+    return;
+  }
+  if (a.requires_admin) {
+    showGreenConfirmModal(a, () => startRepairRun(a, btn, card));
+  } else {
+    startRepairRun(a, btn, card);
+  }
+}
+function showGreenConfirmModal(a, onGo) {
+  const sub = document.getElementById('rm-sub');
+  sub.textContent = '这个动作要用 Windows 管理员权限——点「执行」后 Windows 会弹一个确认框（蓝色的），点「是」才会真正跑；点「否」就什么都不动。';
+  fillModalRows(a);
+  const go = document.getElementById('rm-go');
+  go.textContent = '执行';
+  go.onclick = () => { hideRepairModal(); onGo(); };
+  document.getElementById('rm-cancel').onclick = hideRepairModal;
+  document.getElementById('repair-modal').classList.remove('hidden');
+}
+function showYellowModal(a) {
+  const sub = document.getElementById('rm-sub');
+  sub.textContent = '黄色级动作要「逐项确认 + 自动撤销包」，下一版才上线。现在可以先看它打算做什么、怎么撤销——照着步骤自己在管理员窗口操作也可以。';
+  fillModalRows(a);
+  const go = document.getElementById('rm-go');
+  go.textContent = '知道了';
+  go.onclick = hideRepairModal;
+  document.getElementById('rm-cancel').onclick = hideRepairModal;
+  document.getElementById('repair-modal').classList.remove('hidden');
+}
+function fillModalRows(a) {
+  document.getElementById('rm-title').textContent = a.name || '修复动作';
+  const rows = document.getElementById('rm-rows');
+  rows.innerHTML = '';
+  [['做什么', a.desc], ['影响什么', a.affect], ['怎么撤销', a.undo || a.rollback_note]].forEach(([k, v]) => {
+    if (!v) return;
+    const row = document.createElement('div');
+    row.className = 'ac-row';
+    row.innerHTML = '<span class="ac-key">' + k + '</span><span class="ac-val">' + esc(v) + '</span>';
+    rows.appendChild(row);
+  });
+  const steps = document.createElement('div');
+  steps.className = 'ac-steps';
+  (a.steps || []).forEach((st) => {
+    const line = document.createElement('div');
+    line.textContent = '· ' + (st.desc || '') + '（' + stepCmdText(st) + '）';
+    steps.appendChild(line);
+  });
+  if (a.rollback_note) {
+    const rb = document.createElement('div');
+    rb.textContent = '撤销包：' + a.rollback_note;
+    steps.appendChild(rb);
+  }
+  rows.appendChild(steps);
+}
+function hideRepairModal() { document.getElementById('repair-modal').classList.add('hidden'); }
+
+/* 红级二次确认：第一次点击=警示预告，4 秒内再点才开指南页 */
+function onRedArm(e, a) {
+  const btn = e.target;
+  if (btn.dataset.armed === '1') { btn.dataset.armed = ''; showRedGuide(a); return; }
+  btn.dataset.armed = '1';
+  const old = btn.textContent;
+  btn.textContent = '有风险——再点一次查看';
+  setTimeout(() => { if (btn.dataset.armed === '1') { btn.dataset.armed = ''; btn.textContent = old; } }, 4000);
+}
+function showRedGuide(a) {
+  a = a || {};
+  document.getElementById('gd-sub').textContent = (a.desc || '') + ' 这类操作弄错可能开不了机或丢数据——工具永远不会代跑。下面每一步都请看清楚再做，做之前先看「怎么撤销」。';
+  const rows = document.getElementById('gd-rows');
+  rows.innerHTML = '';
+  [['影响什么', a.affect], ['怎么撤销', a.undo || a.rollback_note]].forEach(([k, v]) => {
+    if (!v) return;
+    const row = document.createElement('div');
+    row.className = 'ac-row';
+    row.innerHTML = '<span class="ac-key">' + k + '</span><span class="ac-val">' + esc(v) + '</span>';
+    rows.appendChild(row);
+  });
+  const steps = document.createElement('div');
+  steps.className = 'ac-steps';
+  (a.steps || []).forEach((st, i) => {
+    const line = document.createElement('div');
+    line.textContent = (i + 1) + '. ' + (st.desc || '') + '（' + stepCmdText(st) + '）';
+    steps.appendChild(line);
+  });
+  rows.appendChild(steps);
+  document.getElementById('guide-overlay').classList.remove('hidden');
+}
+document.getElementById('gd-ok').addEventListener('click', () => {
+  document.getElementById('guide-overlay').classList.add('hidden');
+});
+
+async function startRepairRun(a, btn, card) {
+  setRepairBusy(true, btn);
+  setStatus('正在修复：' + a.name + ' …', '');
+  let slot = card.querySelector('.ac-result');
+  if (!slot) { slot = document.createElement('div'); slot.className = 'ac-result'; card.appendChild(slot); }
+  slot.innerHTML = '<div class="stage-line st-dim">修复中…（要做的事：' + esc((a.steps || []).map((s) => s.desc).join('；')) + '）</div>';
+  try {
+    const r = await fetch('/api/repair/run', {
+      method: 'POST', cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: a.id }),
+    });
+    const j = await r.json();
+    if (!j.ok) { renderRepairResult(slot, { ok: false, human: j.error || '启动失败' }); return; }
+    for (let i = 0; i < 200; i++) {
+      await new Promise((res) => setTimeout(res, 700));
+      let st;
+      try { st = await (await fetch('/api/repair/status', { cache: 'no-store' })).json(); }
+      catch (e) { continue; }
+      if (st.state === 'done' && st.result) { S.repairDoneIds[a.id] = st.result; renderRepairResult(slot, st.result); return; }
+      if (st.state === 'idle') { renderRepairResult(slot, { ok: false, human: '修复状态丢失，请重试' }); return; }
+    }
+    renderRepairResult(slot, { ok: false, human: '修复等太久了（超时），请重试' });
+  } catch (e) {
+    renderRepairResult(slot, { ok: false, human: '连接不上本地服务，请关掉窗口重新打开' });
+  } finally {
+    setRepairBusy(false, btn);
+    setStatus('就绪', '');
+  }
+}
+function setRepairBusy(busy, btn) {
+  S.repairBusy = busy;
+  if (busy) { document.querySelectorAll('.act-run').forEach((b) => { b.dataset.origLabel = b.textContent; b.disabled = true; }); if (btn) btn.textContent = '修复中…'; }
+  else { document.querySelectorAll('.act-run').forEach((b) => { b.disabled = false; if (b.dataset.origLabel) b.textContent = b.dataset.origLabel; }); }
+}
+function renderRepairResult(slot, res) {
+  slot.innerHTML = '';
+  if (!res || !res.stages) {
+    const l = document.createElement('div');
+    l.className = 'stage-line st-fail';
+    l.textContent = '✗ ' + ((res && res.human) || '没有拿到修复结果');
+    slot.appendChild(l);
+    return;
+  }
+  const okLine = document.createElement('div');
+  okLine.className = 'stage-line ' + (res.ok ? 'st-pass' : 'st-fail');
+  okLine.textContent = (res.ok ? '✓ ' : '✗ ') + (res.human || '');
+  slot.appendChild(okLine);
+  const st = res.stages;
+  const pre = st.precheck;
+  if (pre) {
+    const l = document.createElement('div');
+    l.className = 'stage-line ' + (pre.ok ? 'st-pass' : 'st-fail');
+    l.textContent = (pre.ok ? '✓ ① 预检通过' : '✗ ① 预检没过：' + (pre.notes || []).join('；'));
+    slot.appendChild(l);
+  }
+  if (st.exec) {
+    (st.exec.steps || []).forEach((s) => {
+      const l = document.createElement('div');
+      l.className = 'stage-line ' + (s.exit === 0 && !s.timed_out ? 'st-pass' : 'st-fail');
+      l.textContent = (s.exit === 0 && !s.timed_out ? '✓ ② ' : '✗ ② ') + (s.desc || '') +
+        (s.timed_out ? '：超时被停' : (s.exit !== 0 ? '：没跑成（退出码 ' + s.exit + '）' : '（' + (s.ms || 0) + ' 毫秒）'));
+      slot.appendChild(l);
+      if (s.out_head) {
+        const o = document.createElement('div');
+        o.className = 'stage-out';
+        o.textContent = s.out_head;
+        slot.appendChild(o);
+      }
+    });
+    if (!(st.exec.steps || []).length && st.exec.note) {
+      const l = document.createElement('div');
+      l.className = 'stage-line st-skip';
+      l.textContent = '– ② ' + st.exec.note;
+      slot.appendChild(l);
+    }
+  }
+  const vf = st.verify;
+  if (vf) {
+    if ((vf.checks || []).length) {
+      (vf.checks || []).forEach((c) => {
+        const l = document.createElement('div');
+        l.className = 'stage-line ' + (c.status === 'PASS' ? 'st-pass' : c.status === 'FAIL' ? 'st-fail' : 'st-skip');
+        l.textContent = (c.status === 'PASS' ? '✓ ③ 复查 ' : c.status === 'FAIL' ? '✗ ③ 复查 ' : '– ③ 复查 ') +
+          c.name + (c.status === 'PASS' ? '：正常' : c.status === 'FAIL' ? '：仍有问题（看下面建议）' : '：没查成');
+        slot.appendChild(l);
+      });
+    } else if (vf.note) {
+      const l = document.createElement('div');
+      l.className = 'stage-line st-skip';
+      l.textContent = '– ③ ' + vf.note;
+      slot.appendChild(l);
+    }
+  }
+  const lg = st.log;
+  if (lg) {
+    const l = document.createElement('div');
+    l.className = 'stage-line ' + (lg.ok ? 'st-dim' : 'st-fail');
+    l.textContent = lg.ok ? '✓ ④ 已记入修复台账（reports/repair-log.json）' : '✗ ④ 台账没写上：' + (lg.err || '');
+    slot.appendChild(l);
+  }
 }
 
 /* ---------- 关闭确认（网页内弹层；跑批中才拦） ---------- */
@@ -664,6 +944,12 @@ if (/[?&]probe/.test(location.search)) {
   }
   buildChecks();
   updateSelUi();
+  // v0.8.1 修复动作清单（失败不致命：修复中心只是少了代跑卡片）
+  try {
+    const rr = await fetch('/api/repair/list', { cache: 'no-store' });
+    const rj = await rr.json();
+    if (rj.ok) S.repairActions = rj.actions || [];
+  } catch (e) {}
   // 页面刷新恢复：server 侧若正在跑，重放事件接着显示
   try {
     const r = await fetch('/api/events?since=0', { cache: 'no-store' });

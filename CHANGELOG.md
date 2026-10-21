@@ -1,5 +1,34 @@
 # diag CHANGELOG
 
+## 2026-10-21 v0.8.1 修复中心片（第十二切片；修复中心框架+绿级动作+真机演练+三查+lite 同步收口；engine 判定层零改动）
+
+- **范围与铁律兑现**：v0.8.1 全片=repair/ 域新增+server 三修复路由+ui 修复中心+测试第 4 节；**engine/checks/trees 一字未动判定逻辑**，两处引擎修复均为判定无关竞态（见下）；改前基线 135/135、改后 **144/144 双版本全绿**（guicheck_tmp/final2-51.txt、final2-7.txt 实档），生命周期 **20/20×3**。
+- **repair/ 域（五段执行器）**：load→precheck→exec（每步超时受控）→verify（复跑 match 的检查项）→log（reports/repair-log.json 追加行，JSONL）；绿级动作 3 条选型=刷新 DNS 缓存（ipconfig /flushdns）/ARP 缓存刷新（arp -d *）/DHCP 重新注册（ipconfig /renew），动作 JSON 自描述五段（desc/affect/undo 三行文案+steps+rollback+match_checks+verify_checks）；黄/红级只留框架位（黄=逐项确认+回滚包先行 v0.9 上线，红=永不代跑仅分步指南）。**提权机制**：需管理员动作由执行器内部一次性 RunAs 拉起自身（本机 UAC=0 静默过，用户真机弹蓝框点「是」）；PS5.1 三坑如实记=大小写不敏感变量名互撞（$r/$R 同名炸）、快速退出进程 ExitCode 为 null、ConvertFrom-Json 数组嵌套需包 @() 。
+- **server 修复三路由**：/api/repair/list（启动时只读 repair/actions/*.json，坏 JSON 跳过不炸）/run（POST id→子进程拉 repair.ps1）/status（轮询）；跑批与修复互斥双向 409；关窗/bye 时 repair 子进程随杀。
+- **ui 修复中心（真框架替换 v0.8 占位）**：本轮 FAIL 项逐条列卡（复制修复方法保留），match_checks 命中的动作卡内嵌（色徽章+三行文案+步骤命令行）；绿=执行按钮→管理员预告弹层（「Windows 会弹蓝色确认框」口径）→五段结果就地渲染（预检/执行含命令输出回显/复查逐项/留痕）；黄=「看步骤与撤销法」弹层（注明下一版上线+步骤可自己照做）；红=二次确认（首点变「有风险——再点一次查看」，4 秒内再点才开）→全屏指南页（警示头+影响/撤销+编号步骤）。
+- **测试第 4 节（9 用例，135→144）**：动作 schema 契约、命令序列/回滚序列/超时负例/权限负例（含 admin-block 分支）fixture、3 条真动作全链真跑（静默提权上下文分支）。
+- **引擎两处判定无关修复（dac2fe6，证据链）**：①Write-ProgressEvent Add-Content 加 5 次重试——对照实验=v0.8 worktree 同样挂（排除 v0.8.1 新代码引入）；单发复现=双进程并发写 1/200 撞车（v0.8 读方共享句柄修复只降概率不归零，单次撞车即杀引擎）；②Trim-Reports 按内嵌时间戳排序——原按文件名词Lexical 排，diag-all-* 恒排最旧，新写合并报告到 50 上限即被删→404；修复后生命周期压测 **20/20×3**。
+- **真机演练（施工单第 5 条，全链过）**：真跑 server→浏览器单勾网络体检（本机 net_dns_deadaddr 真实 FAIL）→修复中心出「刷新 DNS 缓存」绿卡→执行→管理员预告弹层→五段结果渲染（ipconfig 输出回显「已成功刷新 DNS 解析缓存」、复查 SKIP/FAIL 如实呈现）→**reports/repair-log.json 追加行核对（15:11:23 net_flush_dns ok=true ms=33）**。演练坑如实记：勾选框被装饰 span.box 挡 actionability→evaluate 设 checked+派 change；server 起后 25 秒无页自杀两次踩中（读文档超时）→端口文件等待与连页合并一步。
+- **guicheck 三查（17 PASS / 0 FAIL / 0 UNCLEAR，可验收）**：修复中心深/浅/窄视口（500px）+黄红 fixture 渲染（临时塞 zz-fixture-yellow/red.json，match_checks 指 net_dns_deadaddr，验毕删净还原 3 文件）；证据=guicheck_tmp/gc-repair-{dark,light,narrow,yellow-modal,red-armed,red-guide}.png 六图；两条观感级提示不阻验收=浅色黄徽章对比度偏淡、窄视口导航按钮逐字断行（v0.9.x 打磨片候选）。演练工具坑：fullPage 截图对 fixed 背景产拼贴伪影→改拉高视口截 viewport；红级 4 秒武装窗口跨自动化调用会过期→两连击须同调用内。
+- **lite v0.8.1 同步**：repair/ 整目录+server.ps1+ui/ 三件拷进 diag-lite/，BOM 逐验（.ps1 带 BOM、JSON/JS/CSS/HTML 无 BOM）+与主目录逐字节 diff ALL-IDENTICAL；本片不打 zip（双出口留 v1.0）。
+
+## 2026-10-21 壁纸支线·定稿上墙（接下节「候选扩充+对比图」；主线 v0.8.1 不动，engine/checks/trees/tests/ui 零触及）
+
+- **用户拍板**：候选 image.png（2048×951）+裁切构图 B 正中 focusX=361 +输出放大档 1840×1320。拍板件=bg-candidates/裁切草稿对比-1021.png（A180 偏左/B361 正中/C550 偏右三稿拼图）+放大对照-1021.png（原生 vs Lanczos 1.39×，目检放大不糊，且窗口大于图时 WPF 运行时拉伸质量不如预放大）。
+- **定稿管线落盘 assets/bg.jpg**（1840×1320 JPEG q88，367KB）：B 窗口 1326×951 裁切 → Lanczos 放大 → 压暗 40%（#0F3D66 叠层 α=102；v0.7.1「黑蓝叠层」原色值无存档，按主题回退色同源执行，可读性由 guicheck 把关）→ q88；写盘后回读断言尺寸/格式/压暗角点 maxdiff=1。**实况修正：覆盖时 assets/bg.jpg 本不存在（v0.7.1 旧图 fan1 已随清理删除，GUI 此前一直纯色回退态）→「覆盖前备份旧图」空转，无备份产物**。
+- **纯色回退实测过**：bg.jpg 改名离位→GUI 正常起窗，无面板遮挡带 187/187 px=纯色 #0F3D66（面板下透出=理论混合值 0.8×#0B2E4D+0.2×#0F3D66 吻合）→还原后同带采样恰为 bg.jpg 压暗灰底值 (116,133,151) 交叉吻合；两态客户区平均绝对差 14.2=背景图真实渲染。
+- **guicheck-flash 四项复核全 PASS**（证据=guicheck_tmp/bg-new-withimg.png，1150×825 DPI 感知）：截断/布局/小白友好/图上文字可读性；边缘数像素桌面残影=截窗含 DWM 隐形边框非应用缺陷。窗口版本串仍 v0.7.1（观感支线不升版本）。
+- **待用户补一行**：image.png 画师/来源页缺失（唯一候选拍板时未带三件套），需补进使用说明【背景图版权】段；补不出=「自用非商用」口径兜底。
+- 证据留存：草稿/对照图在 bg-candidates/，验收截图 bg-new-withimg.png、bg-fallback-test.png 在 guicheck_tmp/。
+- **1021 收官用户裁定（口径最终版）**：image.png 原图即定稿背景主题图；上墙与面板观感改造（用户不满面板挡脸效果）**挂起至最终版本落盘后再议**；assets/bg.jpg 仅 legacy WPF GUI 读取（v0.8 HTML 壳不受影响），现存即裸用 v0.7.1 管线产物，不再迭代。同轮发起 diag 过期流水清理：v0.7.1 旧 zip/截图、支线棒、guicheck_tmp 被迭代调试件（≈8.5M 截图+13 个一次性脚本）移 archive/过期流水-1021清理/（索引随附），10-21 当天件与 v0.8.1 测试基建零触及。
+
+## 2026-10-21 壁纸支线·候选扩充+对比图（接力棒=交接棒-壁纸支线-v0.1.md；主线 v0.8.1 不动，engine/checks/trees/tests/ui 零触及）
+
+- **扩候选 25 张全带社区数值**：zerochan 20 张——requests 直连被「Checking browser」JS 挑战拦（JSON 接口同 503），转 IAB 浏览器路线过挑战后页内 fetch+DOMParser 翻页；`Ronova?s=fav` 收藏降序 3 页 136 条（第 4 页免登录拿空=深度到顶），横图 28 张收 fav≥9 的 20 张，fav=站内收藏当天实测，原图 static 直链下载零失败；bilibili 5 张——按收藏降序取「若娜瓦 壁纸」前 5 的视频封面，view API 风控返非 JSON，改抓视频页 HTML `"pic"` 字段成功（封面已下载，如选 b 类定稿前可再提高清截帧）；lofter 跳过（tag 页免登录被重定向 /front/login，browser 实测）；米游社跳过（旧端点 404 勿重探，沿侦察结论）。单站请求量：zerochan 浏览器侧 ≤10 次+下载 20 次，bilibili ≤13 次，均在 ≤40 红线内。
+- **登记表重写**（assets/bg-candidates/登记表.md）：全表加「社区数值」列（fan1-6 标未取数）；新增 25 行（z01-z20 + b1-b5），画师/来源 URL/直链/尺寸/fav 或收藏播放五件齐；25 个文件落 bg-candidates/（zc<id>.* 与 bili-<bvid>.jpg），尺寸 PIL 回读与登记值逐张比对一致。
+- **对比图 sheet-1021.jpg**（2472×2204，26 格=编号+画师+社区数+尺寸标注，含现役 fan1 对照格；msyh 字体渲染目检清晰）。**停下等用户拍板选图——拍板前未做任何图片处理、未动 assets/bg.jpg**（施工单第 3 条红线兑现）。
+- 临时件清理：zerochan 挑战页探针临时 html 已删；bg-candidates/ 留 zc-meta.json/bili-meta.json 两个数据源小件（登记表依据，定稿后可删）。
+
 ## 2026-10-21 v0.8 Edge 壳+HTML 界面片（第十一切片；10-20 深夜开工跨零点收尾）
 
 - 目标：design 第四节 v0.8 落地——Edge --app 独立窗+本地 server+纯 HTML/CSS/JS 三视图，功能对齐 v0.7.1，本片零修复动作。**判定零改动铁律兑现：engine/checks/trees/tests 一字未动，135/135 改动前基线与交付后终验双版本全绿**（5.1+pwsh7 各 135/135）。

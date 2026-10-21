@@ -287,6 +287,47 @@ pre.sug { max-height: 244px; }
   white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow-y: auto;
 }
 
+/* ---------- 修复动作卡（v0.8.1：绿/黄/红三级通用） ---------- */
+.action-card {
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--panel); padding: 12px 14px; margin: 0 0 10px 0;
+}
+.action-card.lv-green  { border-left: 3px solid var(--pass); }
+.action-card.lv-yellow { border-left: 3px solid #ffd166; }
+.action-card.lv-red    { border-left: 3px solid var(--fail); }
+.ac-badge { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.ac-badge b { font-size: 13.5px; }
+.lv-tag {
+  font-size: 11.5px; font-weight: 600; border-radius: 5px; padding: 1px 8px;
+  border: 1px solid var(--line); color: var(--dim); background: var(--panel-2);
+}
+.lv-tag.green  { color: var(--pass); border-color: color-mix(in srgb, var(--pass) 45%, var(--line)); }
+.lv-tag.yellow { color: #ffd166; border-color: color-mix(in srgb, #ffd166 45%, var(--line)); }
+.lv-tag.red    { color: var(--fail); border-color: color-mix(in srgb, var(--fail) 45%, var(--line)); }
+.ac-row { display: flex; gap: 8px; margin: 4px 0; align-items: baseline; }
+.ac-key {
+  flex: none; width: 58px; font-size: 11.5px; color: var(--dim);
+  text-align: right; padding-top: 1px;
+}
+.ac-val { flex: 1; font-size: 12.5px; line-height: 1.55; color: var(--text); overflow-wrap: anywhere; }
+.ac-steps {
+  margin-top: 8px; padding: 8px 10px; border-radius: 8px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  font-family: Consolas, "Microsoft YaHei UI", monospace; font-size: 12px; line-height: 20px;
+  color: var(--dim); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.ac-btns { margin-top: 10px; display: flex; gap: 8px; justify-content: flex-end; }
+.ac-btns .btn { padding: 7px 16px; font-size: 13px; }
+.ac-result {
+  margin-top: 10px; padding: 10px 12px; border-radius: 8px;
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.stage-line { font-size: 12.5px; line-height: 21px; font-family: Consolas, "Microsoft YaHei UI", monospace; overflow-wrap: anywhere; }
+.stage-out { font-size: 11.5px; line-height: 18px; color: var(--faint); padding-left: 18px; overflow-wrap: anywhere; }
+#rm-rows .ac-steps, #gd-rows .ac-steps { margin-top: 6px; }
+.warn-title { color: var(--fail); }
+.guide-modal { border-color: color-mix(in srgb, var(--fail) 50%, var(--line-hi)); }
+
 /* ---------- 状态栏 ---------- */
 .statusbar {
   flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px;

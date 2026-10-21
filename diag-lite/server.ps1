@@ -1,18 +1,22 @@
 ﻿#Requires -Version 5.1
 <#
-diag web server v0.8 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用）
+diag web server v0.8.1 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用）
 用法（bat 启动器代跑）：powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File server.ps1
       开发/测试附加参数：-MockDir <dir>（透传 engine 模拟模式，自动化测试专用，默认关=真跑）
                           -NoBrowser（不拉 Edge，配合 -PortFile 供自动化测试读端口）
                           -PortFile <file>（把实际绑定端口写进该文件，自动化测试用）
 架构：HttpListener 绑 loopback 随机端口（免防火墙弹窗；127.0.0.1 前缀被拒自动降级 localhost 前缀）
       + 静态 ui/ + REST API（/api/meta /api/start /api/events /api/cancel /api/report /api/heartbeat
-      /api/open-reports /api/shutdown + /reports/<文件> 报告下发）。
+      /api/bye /api/open-reports /api/shutdown + v0.8.1 修复三接口 /api/repair/list /api/repair/run
+      /api/repair/status + /reports/<文件> 报告下发）。
+v0.8.1 修复中心：绿级动作子进程代跑（repair/repair.ps1 五段执行器；需提权时执行器内部一次性 RunAs）；
+      黄/红级只回向导数据永不执行；跑批中禁修复、修复中禁跑批（双向 409）；关窗自杀连带杀修复子进程。
 生命周期：server 起 Edge --app 独立窗 → 关窗时页面 sendBeacon('/api/bye')（pagehide 必达）
       → server 2 秒内确认无回连→杀引擎→自杀（窗关→3 秒内杀引擎达标）。
       心跳=兜底信号（页面后台化时 Chromium 会把定时器节流到 ~1 次/分钟，禁用短超时）：
       非跑批态 60 秒无任何请求=页面已弃→自杀；跑批中不判心跳死（引擎跑完自然收敛）。
-只读铁律：server 唯一"动"的动作=杀自己派生的引擎进程树+开资源管理器（用户点按钮）+删自己的临时进度文件。
+只读铁律：server 唯一"动"的动作=杀自己派生的引擎/修复进程树+开资源管理器（用户点按钮）+删自己的临时进度文件
+      +派生绿级修复子进程（动作库自描述，仅绿级，五段式带预检/验证/留痕）。
 #>
 param(
     [string]$MockDir = '',
@@ -26,7 +30,7 @@ $root = $PSScriptRoot
 $engineScript = Join-Path $root 'engine\run.ps1'
 $uiDir = Join-Path $root 'ui'
 $reportsDir = Join-Path $root 'reports'
-$webVersion = 'v0.8'
+$webVersion = 'v0.8.1'
 $diagPs = (Get-Process -Id $PID).Path
 
 # ---------- 子进程 stdout 排水器（C# 空回调：scriptblock delegate 无 runspace 回调线程会炸进程；v0.6 已验机制照搬）
@@ -74,6 +78,20 @@ foreach ($t in $menuOrder) {
         id = $t; name = $menuNames[$t]; desc = $menuDesc[$t]
         tip = '查：' + (@($td.layers | ForEach-Object { $_.title }) -join ' → ')
         layers = $layers; total = $total
+    }
+}
+
+# ---------- 修复动作知识（启动时只读 repair/actions/*.json；v0.8.1 只收绿级，黄/红留框架位） ----------
+$repairDefs = @()
+$repairScript = Join-Path $root 'repair\repair.ps1'
+$repairActionsDir = Join-Path $root 'repair\actions'
+if (Test-Path -LiteralPath $repairActionsDir) {
+    foreach ($af in (Get-ChildItem -LiteralPath $repairActionsDir -File -Filter '*.json' | Sort-Object Name)) {
+        try {
+            $a = Get-Content -LiteralPath $af.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ([string]$a.id -and [string]$a.level -and @($a.steps).Count) { $repairDefs += $a }
+            else { Write-CrashLog ('repair action skipped (no id/level/steps): ' + $af.Name) }
+        } catch { Write-CrashLog ('repair action json bad: ' + $af.Name + ' : ' + $_.Exception.Message) }
     }
 }
 
@@ -136,6 +154,12 @@ $script:startAt = Get-Date
 $script:beatGraceMs = 25000   # 浏览器首次加载宽限（Edge 冷启动慢）
 $script:byeGraceMs = 2000     # beacon 宽限：F5 重载会在 2 秒内回连，真关窗不会
 $script:beatTimeoutMs = 60000 # 心跳兜底线（页面后台节流容忍 1 次/分钟；仅非跑批态生效）
+$script:repairProc = $null    # v0.8.1 修复子进程（repair/repair.ps1；跑批/修复互斥）
+$script:repairOutFile = ''
+$script:repairResult = $null
+$script:repairId = ''
+$script:repairState = 'idle'  # idle | running | done
+$script:repairErrLog = Join-Path ([System.IO.Path]::GetTempPath()) 'diag-web-repair-stderr.log'
 
 function Test-ShouldStop {
     if ($null -ne $script:byeAt) {
@@ -154,6 +178,13 @@ function Stop-EngineTree {
         try { & taskkill.exe /PID $script:proc.Id /T /F 2>&1 | Out-Null } catch { }
         try { $script:proc.WaitForExit(3000) | Out-Null } catch { }
         $script:proc = $null
+    }
+    # v0.8.1：修复子进程同待遇（外层非提权可杀；其提权内层杀不动=秒级自灭的绿级命令，无害）
+    if ($script:repairProc) {
+        try { & taskkill.exe /PID $script:repairProc.Id /T /F 2>&1 | Out-Null } catch { }
+        try { $script:repairProc.WaitForExit(2000) | Out-Null } catch { }
+        $script:repairProc = $null
+        $script:repairState = 'idle'
     }
     if ($script:progressFile -ne '' -and (Test-Path -LiteralPath $script:progressFile)) {
         Remove-Item -LiteralPath $script:progressFile -Force -ErrorAction SilentlyContinue
@@ -326,6 +357,7 @@ function Invoke-Route($ctx) {
             $valid = ($treeArg -eq 'all') -or (@($menuOrder) -contains $treeArg)
             if (-not $valid) { Send-Json $res @{ ok = $false; error = '没认出这个体检项目' } 400; return }
             if ($script:state -eq 'running') { Send-Json $res @{ ok = $false; error = '正在检查中，请等这轮结束' } 409; return }
+            if ($script:repairState -eq 'running') { Send-Json $res @{ ok = $false; error = '正在修复中，请等它结束再体检' } 409; return }
             $r = Start-Engine $treeArg $full
             if (-not $r.ok) { Send-Json $res @{ ok = $false; error = $r.error } 500; return }
             Send-Json $res @{ ok = $true }
@@ -375,6 +407,63 @@ function Invoke-Route($ctx) {
             $res.Headers['Cache-Control'] = 'no-store'
             $res.ContentLength64 = $bytes.Length
             $res.OutputStream.Write($bytes, 0, $bytes.Length)
+            return
+        }
+        if ($path -eq '/api/repair/list') {
+            # 动作库清单（含等级/三行文案/步骤人话/匹配检查项；ui 修复中心数据源）
+            Send-Json $res ([ordered]@{ ok = $true; actions = $repairDefs })
+            return
+        }
+        if ($path -eq '/api/repair/run') {
+            $body = Read-Body $req
+            $j = @{}
+            try { $j = $body | ConvertFrom-Json } catch { }
+            $rid = [string]$j.id
+            $def = @($repairDefs | Where-Object { [string]$_.id -eq $rid })[0]
+            if (-not $def) { Send-Json $res @{ ok = $false; error = '没认出这个修复动作' } 400; return }
+            if ([string]$def.level -ne 'green') {
+                # 黄/红级只出向导数据、永不代跑（design 铁律；v0.8.1 未收录此类动作，此分支=框架位）
+                Send-Json $res ([ordered]@{
+                    ok = $false; error = '这一级不会自动执行——下面是可以自己照着做的步骤'
+                    guide = [ordered]@{ name = [string]$def.name; level = [string]$def.level; desc = [string]$def.desc; affect = [string]$def.affect; undo = [string]$def.undo; steps = @($def.steps); rollback_note = [string]$def.rollback_note }
+                })
+                return
+            }
+            if ($script:state -eq 'running') { Send-Json $res @{ ok = $false; error = '正在检查中，请等这轮结束再修复' } 409; return }
+            if ($script:repairState -eq 'running') { Send-Json $res @{ ok = $false; error = '正在修复中，请等它结束' } 409; return }
+            if (-not (Test-Path -LiteralPath $repairScript)) { Send-Json $res @{ ok = $false; error = '修复程序文件缺失' } 500; return }
+            $rstamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+            $script:repairOutFile = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-web-repair-$PID-$rstamp.json")
+            $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $repairScript, '-ActionId', $rid, '-OutFile', $script:repairOutFile)
+            $quoted = @($argList | ForEach-Object { if ($_ -match '\s') { '"' + ($_ -replace '"', '') + '"' } else { $_ } })
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = $diagPs
+            $psi.Arguments = $quoted -join ' '
+            $psi.UseShellExecute = $false
+            $psi.CreateNoWindow = $true
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
+            if ($psi.PSObject.Properties['StandardOutputEncoding']) { $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8 }
+            if ($psi.PSObject.Properties['StandardErrorEncoding']) { $psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8 }
+            try { $script:repairProc = [System.Diagnostics.Process]::Start($psi) } catch { Send-Json $res @{ ok = $false; error = '修复程序启动失败：' + $_.Exception.Message } 500; return }
+            [DiagDrain]::Wire($script:repairProc, $script:repairErrLog)
+            $script:repairState = 'running'
+            $script:repairId = $rid
+            $script:repairResult = $null
+            Send-Json $res @{ ok = $true }
+            return
+        }
+        if ($path -eq '/api/repair/status') {
+            # 收敛：子进程退了→读结果文件→缓存到下次 run（页面刷新可重取）
+            if ($script:repairProc -and $script:repairProc.HasExited) {
+                $resJson = $null
+                try { $resJson = Get-Content -LiteralPath $script:repairOutFile -Raw -Encoding UTF8 | ConvertFrom-Json } catch { }
+                if ($null -eq $resJson) { $resJson = [ordered]@{ ok = $false; id = $script:repairId; fail_stage = 'lost'; human = '修复程序没有交回结果（异常退出）'; stages = @{} } }
+                $script:repairResult = $resJson
+                $script:repairProc = $null
+                $script:repairState = 'done'
+            }
+            Send-Json $res ([ordered]@{ state = $script:repairState; id = $script:repairId; result = $script:repairResult })
             return
         }
         if ($path -eq '/api/open-reports') {

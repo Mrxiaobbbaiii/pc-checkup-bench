@@ -1,0 +1,18 @@
+{
+  "id": "net_dhcp_reregister",
+  "name": "重新登记网络身份",
+  "level": "green",
+  "desc": "让电脑向路由器重新报到一次（刷新 DHCP 租约 + 重新注册本机 DNS 名字）。适合：IP 地址显示 169.254 开头、拿不到正常地址、DNS 服务器列表不对。",
+  "affect": "正常情况地址不变、上网不中断，只是重新报个到；用固定 IP 的网络（如公司电脑）也只是空跑一遍，没有副作用。",
+  "undo": "不用撤销——下次联网本来就会自动重新登记。",
+  "requires_admin": true,
+  "prechecks": [],
+  "steps": [
+    { "exe": "ipconfig.exe", "args": ["/registerdns"], "desc": "刷新 DHCP 租约并重新注册 DNS" }
+  ],
+  "rollback": [],
+  "rollback_note": "无需回滚：登记信息会按租期自动更新",
+  "timeout_sec": 45,
+  "match_checks": ["net_ip_dhcp", "net_dns_default"],
+  "verify_checks": ["net_ip_dhcp", "net_dns_default"]
+}

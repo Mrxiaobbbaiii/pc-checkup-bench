@@ -81,17 +81,17 @@
     </div>
   </section>
 
-  <!-- 视图三：修复中心（v0.8 占位：只有安全规则说明+本轮问题清单，无代跑动作） -->
+  <!-- 视图三：修复中心（v0.8.1：绿级动作可代跑，按报告 FAIL 项匹配；黄红只给向导） -->
   <section class="view" id="view-repair">
     <div class="hero small">
       <h1>修复中心</h1>
-      <p>查出问题以后，在这里看一步一步的修法（自动修复还在建设中）</p>
+      <p>查出问题以后，在这里看修法：绿色小修工具可以直接代跑，大动作只给步骤不代跑</p>
     </div>
     <div class="card">
       <div class="card-title">安全规则（先说清楚，再动手）</div>
       <div class="safe-grid">
-        <div class="safe green"><b>绿色 · 可以自动修</b><span>完全可逆的小动作，比如刷新 DNS 缓存——建成后工具可以直接代跑</span></div>
-        <div class="safe yellow"><b>黄色 · 你确认后才动</b><span>可撤销但有中断的操作，会先自动准备「撤销包」，你逐项确认才执行</span></div>
+        <div class="safe green"><b>绿色 · 可以自动修</b><span>完全可逆的小动作（比如刷新 DNS 缓存）——点「执行」工具代跑，跑完自动复查一遍</span></div>
+        <div class="safe yellow"><b>黄色 · 你确认后才动</b><span>可撤销但有中断的操作，会先自动准备「撤销包」，你逐项确认才执行（下一版上线）</span></div>
         <div class="safe red"><b>红色 · 永远只给步骤</b><span>删驱动 / 改注册表 / 动磁盘这类，工具永远不代跑，只给分步指南和回滚方法</span></div>
       </div>
     </div>
@@ -104,7 +104,7 @@
 
 <footer class="statusbar">
   <span id="status-left">就绪</span>
-  <span id="status-right">diag v0.8</span>
+  <span id="status-right">diag v0.8.1</span>
 </footer>
 
 <!-- 关闭确认弹层（网页内弹层，不用同步模态框） -->
@@ -148,6 +148,29 @@
     <div class="modal-title">已退出</div>
     <div class="modal-sub">体检服务已停止，后台没有留下任何进程。这个窗口现在可以关掉了。</div>
     <div class="modal-btns"><button class="btn-primary" id="bye-ok">好的</button></div>
+  </div>
+</div>
+
+<!-- 修复执行前确认弹层（绿色需管理员预告 / 黄色级确认+撤销法预览） -->
+<div class="overlay hidden" id="repair-modal">
+  <div class="modal">
+    <div class="modal-title" id="rm-title">修复确认</div>
+    <div class="modal-sub" id="rm-sub"></div>
+    <div id="rm-rows"></div>
+    <div class="modal-btns">
+      <button class="btn" id="rm-cancel">取消</button>
+      <button class="btn-primary" id="rm-go">执行</button>
+    </div>
+  </div>
+</div>
+
+<!-- 红级分步指南弹层（警示色；工具永不代跑） -->
+<div class="overlay hidden" id="guide-overlay">
+  <div class="modal guide-modal">
+    <div class="modal-title warn-title">⚠ 高风险操作 · 只给步骤，工具不会代跑</div>
+    <div class="modal-sub" id="gd-sub"></div>
+    <div id="gd-rows"></div>
+    <div class="modal-btns"><button class="btn-primary" id="gd-ok">我看明白了</button></div>
   </div>
 </div>
 </body>
