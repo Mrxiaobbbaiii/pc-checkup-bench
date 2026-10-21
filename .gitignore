@@ -3,6 +3,9 @@ reports/diag-*
 diag-lite/reports/
 # 版权背景图（不入库防将来误推公开库；登记表文字保留）
 assets/bg.jpg
+# 版权背景图（网页壳；缺文件=自动回退纯色，零功能损失）
+ui/bg.jpg
+diag-lite/ui/bg.jpg
 assets/bg-candidates/*.png
 assets/bg-candidates/*.jpg
 # 历史归档与工作区
@@ -11,3 +14,7 @@ guicheck_tmp/
 *.zip
 # 真机回滚包（机器专属产物，同真实报告口径不入库）
 reports/rollback/
+ui/brand.png
+diag-lite/ui/brand.png
+ui/bg-light.jpg
+diag-lite/ui/bg-light.jpg

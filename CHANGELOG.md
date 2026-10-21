@@ -1,5 +1,16 @@
 # diag CHANGELOG
 
+## 2026-10-21 v0.9.2 界面收口片（第十五切片；双视图退役+正式名+人话名+背景主题轮换+logo 后门；engine 判定层零改动）
+
+- **范围与铁律兑现**：改动面=ui/ 三件+server.ps1（版本串两处+staticMap 三条新映射）+ui/ 新资源三件（bg.jpg/bg-light.jpg/brand.png，版权图不入库已 gitignore）；engine/checks/trees/tests 一字未动。改前基线=复用 v091-final-51/7.txt（commit c1e208b 同态，交接单已证免重跑）；改后 **152/152 双版本全绿**（guicheck_tmp/v092-final-51.txt / v092-final-7.txt）。红级零触及（弹层指南渲染路径未动语义）。
+- **拍板清单（1021 晚多轮全记录）**：①删小白/专家双视图，18px 大字态转正唯一档，原始证据/修复卡命令行改 `<details>` 折叠（check 型默认收起+选中新节点重置；黄/红弹层步骤不折叠=安全知情全量）；②正式名=电脑体检台（本片只落 ui/server 层；engine 报告 banner 与 tests 断言留 v1.0 安装器片）；③发群彩排整体砍掉，验证标准=用户本人真机走通；④背景图主题轮换=深色 bg.jpg+0.42 暗纱 / 浅色 bg-light.jpg+0.68 浅纱（用户两轮拍板：先浅色无图→用户供新图后改轮换；0.58→0.68 二轮调素）；⑤两图同画师 @cha_hanare（米游社帖 78812534 转载帖，用户供源；弹层署名随层展示）；⑥logo=柴犬头像（brand.png 换文件即换后门，用户点名"初创状态留快改渠道勿一次定稿"）；⑦科技感卡片候选一版试过后回滚（效果不显著，候选图存档 gc-v092-card-tech-candidate.png 待下会话拍板）。
+- **ui 三件落地**：①折叠=ev-fold（结果中心 check 型原始记录，selectNode 折叠逻辑：check 型收起+summary 文案随型切换「看原始记录（这一项查了什么）/这一步的说明」）+steps-fold（修复卡命令行，summary「看具体步骤（命令）」默认收起；弹层内步骤不折叠）；②CHECK_HUMAN 人话名映射 33 项（覆盖 trees/*.yaml 全集，脚本核对零缺零死；纯显示层四处应用=跑批日志行/快速模式 skip 行/结果树 leaf[title 属性保英文原名]/详情标题/修复卡标题；数据与 match 匹配逻辑用原名零改动）；③字号升档收尾（修复中心段+弹层+状态栏，行高整除红线：.repair-item pre 26×8=208）；④initMode/applyMode 整删（v0.9.2 前工作区坏中间态的炸点根除：initMode 对已删 #btn-mode addEventListener 必炸 init）+novice CSS 死块约 50 行删+index.html data-mode 死属性删；⑤APP_VERSION='v0.9.2'，状态栏两处 diag→电脑体检台；⑥顶栏新增「🖼 背景」弹层（等高双图 3:2 cover+统一署名+点任意处关闭）。
+- **server.ps1**：$webVersion+头注 v0.9.2（python 字节替换保 BOM，写后回读断言）；staticMap 加 /bg.jpg（上棒已做本片沿用）+/brand.png+/bg-light.jpg 三映射。
+- **验证链**：①E2E 真跑只读体检两轮（性能树快速 4 秒真实 FAIL 集与历史一致；网络树 mock 场景 SKIP/FAIL/断点链/快速跳过四态全展——坑：MockDir=全模拟模式，无 mock 文件的检查项一律 SKIP 非 fallback 真跑）；②程序级断言全绿（ev-fold 存在且 check 型收起/steps-fold 默认收起/树 leaf 零英文裸名/页脚 v0.9.2/窄视口 500 零溢出/弹层双图渲染框 460×307 等大）；③guicheck 视觉岗 **9 图 9/9 PASS**（唯一瑕疵=弹层双图不等高，当场修等高后重截覆盖）；④lite 同步 7 件（ui 四图资三件+server.ps1）逐字节 diff ALL-IDENTICAL+BOM 断言，本片不打 zip。
+- **工艺坑（1021 深夜实锤）**：①IAB 页签僵尸态：server 死后已加载页面仍显示「就绪」等旧 DOM 状态（心跳/轮询静默失败无 UI 提示），自动化截图前必须断言 tab.url()==目标端口，否则截到僵尸页误导判断（本轮实踩，浅色截图作废一轮）；②IAB tabs.list() 会返回空/页签失效（turn 结束释放），每次逻辑操作批前 list+必要时 tabs.new() 重开；③截图 3 秒超时=底层捕获未完，等 3-5 秒或 clip 小图探活后再全图重试，禁连发；④server.ps1 staticMap 字节替换锚含空格（'bg.jpg', 'image/jpeg' 逗号后有空格），盲猜锚 0 命中，先 repr() 看实际字节。
+- **交接棒模板第四行（用户 1021 立）**：今后交接棒头部加一行=轮级积分经验值（flash 单轮 18~193 实测 / 教授档单轮千分级待核）+换血线=ctx 30%。
+- **C 片红级候选 7 条（待用户拍板勾选，本片只登记不实施）**：①嫌疑驱动卸载（pnputil+设备管理器；驱动签名/蓝屏嫌疑驱动）②chkdsk /f /r 修复扫描（磁盘健康/SMART 预测）③sfc+DISM 系统组件修复（蓝屏树通用）④服务禁用向导（服务超时/开机变慢）⑤系统还原 rstrui（开机用时/开机变慢）⑥设备卸载重装含驱动包（设备黄三角/驱动加载失败）⑦hosts 手工清理（DNS 死地址/默认 DNS 配置）。现有动作库 4 绿 2 黄红级为零。
+
 ## 2026-10-21 v0.9.1 双视图+打磨片（第十四切片；小白/专家一键切换+两条挂账观感修复；engine 判定层零改动）
 
 - **范围与铁律兑现**：改动面=ui/ 三件+server.ps1 版本串两处（头注+$webVersion）；engine/checks/trees/tests 一字未动。改前基线 **152/152 双版本**（工作区干净态直跑，guicheck_tmp/v091-baseline-51.txt / v091-baseline-7.txt）；改后 **152/152 双版本**（v091-final-51.txt / v091-final-7.txt）。红级零触及（本片无任何修复执行路径改动）。

@@ -1,17 +1,18 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark" data-accent="blue" data-mode="novice">
+<html lang="zh-CN" data-theme="dark" data-accent="blue">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>diag 电脑体检台</title>
+<title>电脑体检台</title>
 <link rel="stylesheet" href="style.css">
 <script src="app.js" defer></script>
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark">✚</span>
-    <div class="brand-text"><b>diag</b><span>电脑体检台</span></div>
+    <!-- logo 快改后门：替换 ui/brand.png 即换图（server 需带对应静态映射），勿写死进样式 -->
+    <span class="brand-mark"><img src="brand.png" alt=""></span>
+    <div class="brand-text"><b>电脑体检台</b><span>只查不改 · 出问题给修法</span></div>
   </div>
   <nav class="tabs" id="tabs">
     <button class="tab active" data-view="wizard">体检向导</button>
@@ -19,8 +20,8 @@
     <button class="tab" data-view="repair">修复中心</button>
   </nav>
   <div class="top-actions">
-    <button class="icon-btn" id="btn-mode" title="一键切换：小白视图字大、只看结论和按钮；专家视图看原始证据和命令细节">小白视图</button>
     <button class="icon-btn" id="btn-theme" title="换个样子：明暗 + 强调色">◐ 主题</button>
+    <button class="icon-btn" id="btn-bg" title="看完整背景图">🖼 背景</button>
     <button class="icon-btn danger" id="btn-close" title="关闭">✕ 关闭</button>
   </div>
 </header>
@@ -73,8 +74,10 @@
       <div class="card tree-card"><div class="tree" id="result-tree"><div class="placeholder">查完的结果会显示在这里</div></div></div>
       <div class="detail">
         <h2 id="sel-title">查完的结果会显示在这里</h2>
-        <div class="detail-label" id="ev-label">检查依据（原始记录）</div>
-        <pre class="ev" id="ev-box"></pre>
+        <details class="ev-fold" id="ev-fold">
+          <summary id="ev-label">看原始记录（这一项查了什么）</summary>
+          <pre class="ev" id="ev-box"></pre>
+        </details>
         <div class="detail-label">怎么修（工具只给步骤，不会替你改电脑）</div>
         <pre class="sug" id="sug-box"></pre>
         <button class="btn" id="btn-copy" disabled>复制修复方法</button>
@@ -105,7 +108,7 @@
 
 <footer class="statusbar">
   <span id="status-left">就绪</span>
-    <span id="status-right">diag v0.9.1</span>
+    <span id="status-right">电脑体检台 v0.9.2</span>
 </footer>
 
 <!-- 关闭确认弹层（网页内弹层，不用同步模态框） -->
@@ -141,6 +144,23 @@
     <textarea id="copy-ta" readonly rows="9"></textarea>
     <div class="modal-btns"><button class="btn-primary" id="copy-ok">好了</button></div>
   </div>
+</div>
+
+<!-- 背景图原画弹层（点任意处关闭；两图同画师同帖，署名随层展示） -->
+<div class="overlay hidden" id="bg-overlay">
+  <figure class="bg-figure">
+    <div class="bg-pair">
+      <div class="bg-item">
+        <img src="bg.jpg" alt="深色主题背景原画">
+        <span>深色主题背景</span>
+      </div>
+      <div class="bg-item">
+        <img src="bg-light.jpg" alt="浅色主题背景原画">
+        <span>浅色主题背景</span>
+      </div>
+    </div>
+    <figcaption>背景图原画 · 画师 <b>@cha_hanare</b>（www.miyoushe.com/ys/article/78812534 转载帖）· 点任意处关闭</figcaption>
+  </figure>
 </div>
 
 <!-- 收尾告别层（服务已停、窗口待关时兜底显示） -->

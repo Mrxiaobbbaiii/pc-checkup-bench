@@ -1,11 +1,12 @@
 'use strict';
-/* diag ui v0.9.1 —— 纯原生 JS，零构建零 CDN（断网可用）
+/* diag ui v0.9.2 「电脑体检台」—— 纯原生 JS，零构建零 CDN（断网可用）
    文案口径=design 详版第十四节对照表（与 v0.7.1 GUI 逐句对齐）；功能对齐 v0.7.1：
    树勾选（全勾/单勾，勾 2-4 禁用）+进度+日志三态着色+结果树+FAIL 复制+取消+关闭确认（网页内弹层）
-   v0.9.1 新增：小白/专家双视图一键切换（小白=大字大按钮+藏原始证据与命令行；专家=v0.9 全量原样；
-   版本串收敛 APP_VERSION 常量——v0.9 坑③计时器硬编码版本盖静态页脚的根治） */
+   v0.9.2：小白/专家双视图退役（大字态转正唯一档）；原始证据/修复卡命令行改 <details> 折叠；
+   检查项挂人话名映射 CHECK_HUMAN（纯显示层，数据与匹配逻辑零改动，leaf 悬停可见英文原名）；
+   版本串收敛 APP_VERSION 常量——v0.9 坑③计时器硬编码版本盖静态页脚的根治 */
 
-const APP_VERSION = 'v0.9.1';
+const APP_VERSION = 'v0.9.2';
 
 const $ = (s) => document.querySelector(s);
 
@@ -26,11 +27,29 @@ const S = {
   repairActions: null,   // v0.8.1 /api/repair/list 缓存（null=还没拿到）
   repairBusy: false,     // 本地镜像：修复进行中（禁其他修复/按钮态）
   repairDoneIds: {},     // 已执行过的动作 id → 结果（防重复渲染）
-  lastNode: null,        // v0.9.1 结果树最后选中节点（切视图模式后重放渲染）
+  lastNode: null,        // 结果树最后选中节点
 };
 
 const STATUS_WORD = { PASS: '✓ 正常', FAIL: '✗ 有问题', SKIP: '– 没查成' };
 const LAYER_NUM = ['①', '②', '③', '④', '⑤', '⑥'];
+
+/* 检查项人话名映射（v0.9.2 纯显示层：界面不出现英文裸名；未收录项原样显示 id）
+   数据源与修复匹配逻辑仍用英文原名，零改动 */
+const CHECK_HUMAN = {
+  net_adapter_list: '网卡与连线', net_ip_dhcp: 'IP 地址获取', net_gateway_conflict: '网关配置冲突',
+  net_gateway_ping: '网关连通', net_public_ping: '公网连通', net_dns_deadaddr: 'DNS 死地址',
+  net_dns_default: '默认 DNS 配置', net_dns_gateway_proxy: 'DNS 网关代理', net_dns_public: '公共 DNS 解析',
+  bs_event_history: '蓝屏记录（近 90 天）', bs_powerloss_distinction: '断电与蓝屏区分', bs_code_frequency: '蓝屏码频次',
+  bs_whea_hardware: '硬件报错记录', bs_minidump_inventory: '转储文件盘点', bs_suspect_drivers: '嫌疑驱动名单',
+  hw_disk_health: '磁盘健康', hw_smart_predict: 'SMART 健康预测', hw_battery_wear: '电池损耗',
+  hw_thermal: '温度热区', hw_memdiag_history: '内存诊断史',
+  dv_driver_signature: '驱动签名', dv_driver_age: '驱动年代', dv_thirdparty_inventory: '第三方驱动数量',
+  dv_network_filters: '网络过滤驱动', dv_device_errors: '设备错误（黄三角）', dv_driver_load_failures: '驱动加载失败',
+  pf_boot_duration: '开机用时', pf_boot_degradation_events: '开机变慢事件', pf_startup_items: '开机自启项',
+  pf_service_timeouts: '服务超时', pf_disk_space: '磁盘剩余空间', pf_memory_pressure: '内存压力',
+  pf_disk_saturation: '磁盘繁忙度',
+};
+function humanCheck(n) { return CHECK_HUMAN[n] || n; }
 
 function statusWord(st) { return STATUS_WORD[st] || '– 没查成'; }
 function exitHuman(code) {
@@ -236,7 +255,7 @@ async function pollEvents() {
 function handleEvent(ev) {
   if (ev.event === 'check') {
     const sec = ev.ms ? (ev.ms / 1000).toFixed(1) + ' 秒' : '';
-    addLog(statusWord(ev.status) + '  ' + ev.check + ' · ' + sec, stClass(ev.status));
+    addLog(statusWord(ev.status) + '  ' + humanCheck(ev.check) + ' · ' + sec, stClass(ev.status));
     S.seqPos++;
     const pct = S.expectSeq.length ? Math.round((S.seqPos / S.expectSeq.length) * 100) : 0;
     $('#progress-fill').style.width = pct + '%';
@@ -249,7 +268,7 @@ function handleEvent(ev) {
         const nx = S.expectSeq[i];
         if (nx.tree !== ev.tree) continue;
         if (nx.layer === ev.layer) continue;
-        addLog('– 没查成  ' + nx.check + '（快速模式提前结束）', 'st-skip');
+        addLog('– 没查成  ' + humanCheck(nx.check) + '（快速模式提前结束）', 'st-skip');
         S.seqPos++;
       }
       const pct = S.expectSeq.length ? Math.round((S.seqPos / S.expectSeq.length) * 100) : 0;
@@ -321,12 +340,12 @@ function startElapsed() {
     const s = Math.floor((Date.now() - S.runStartAt) / 1000);
     const mm = String(Math.floor(s / 60)).padStart(2, '0');
     const ss = String(s % 60).padStart(2, '0');
-    $('#status-right').textContent = 'diag ' + APP_VERSION + ' · 用时 ' + mm + ':' + ss;
+    $('#status-right').textContent = '电脑体检台 ' + APP_VERSION + ' · 用时 ' + mm + ':' + ss;
   }, 1000);
 }
 function stopElapsed() {
   if (S.elapsedTimer) { clearInterval(S.elapsedTimer); S.elapsedTimer = null; }
-  $('#status-right').textContent = 'diag ' + APP_VERSION;
+  $('#status-right').textContent = '电脑体检台 ' + APP_VERSION;
 }
 
 /* ---------- 报告与结果树（数据源=/api/report → engine JSON 报告，B 案） ---------- */
@@ -429,7 +448,8 @@ function buildLayerNode(t, l, idx) {
     const leaf = document.createElement('div');
     leaf.className = 'leaf';
     leaf.style.color = c.status === 'PASS' ? 'var(--pass)' : c.status === 'FAIL' ? 'var(--fail)' : 'var(--skip)';
-    leaf.appendChild(document.createTextNode(statusWord(c.status) + '  ' + c.name));
+    leaf.title = c.name;
+    leaf.appendChild(document.createTextNode(statusWord(c.status) + '  ' + humanCheck(c.name)));
     leaf.__data = { type: 'check', data: c, treeName: t.report_name };
     leaf.addEventListener('click', () => selectNode(leaf));
     kids.appendChild(leaf);
@@ -452,14 +472,14 @@ function selectNode(node) {
   copyBtn.textContent = '复制修复方法';
   ev.textContent = '';
   sug.textContent = '';
-  // 小白模式只藏 check 型的原始证据（层/树/总结论的本就用人话写，对小白有用）；
-  // 切模式后经 applyMode 重放本函数刷新显隐
-  const rawOff = document.documentElement.dataset.mode === 'novice' && tag.type === 'check';
-  $('#ev-label').classList.toggle('raw-off', rawOff);
-  ev.classList.toggle('raw-off', rawOff);
+  // v0.9.2 折叠逻辑：check 型=原始记录收起（每次选中新节点重置）；layer/tree/root 型=说明展开直接可见
+  const fold = $('#ev-fold');
+  const isCheck = tag.type === 'check';
+  $('#ev-label').textContent = isCheck ? '看原始记录（这一项查了什么）' : '这一步的说明';
+  fold.open = !isCheck;
   if (tag.type === 'check') {
     const c = tag.data;
-    title.textContent = c.name + '  ' + statusWord(c.status);
+    title.textContent = humanCheck(c.name) + '  ' + statusWord(c.status);
     title.style.color = c.status === 'PASS' ? 'var(--pass)' : c.status === 'FAIL' ? 'var(--fail)' : 'var(--skip)';
     ev.textContent = c.evidence || '';
     if (c.suggestion) {
@@ -600,7 +620,7 @@ function buildRepairList() {
     head.className = 'ri-head';
     const ti = document.createElement('div');
     ti.className = 'ri-title';
-    ti.textContent = '【' + f.tree + '】' + f.check;
+    ti.textContent = '【' + f.tree + '】' + humanCheck(f.check);
     const cp = document.createElement('button');
     cp.className = 'btn';
     cp.textContent = '复制修复方法';
@@ -642,6 +662,12 @@ function buildActionCard(a) {
     card.appendChild(row);
   });
 
+  // v0.9.2：卡片内命令行折叠收起；黄级确认弹层/红级指南里的步骤不折叠（安全知情全量）
+  const fold = document.createElement('details');
+  fold.className = 'steps-fold';
+  const foldSum = document.createElement('summary');
+  foldSum.textContent = '看具体步骤（命令）';
+  fold.appendChild(foldSum);
   const steps = document.createElement('div');
   steps.className = 'ac-steps';
   (a.steps || []).forEach((st) => {
@@ -649,7 +675,8 @@ function buildActionCard(a) {
     line.textContent = '· ' + (st.desc || '') + '（' + stepCmdText(st) + '）';
     steps.appendChild(line);
   });
-  card.appendChild(steps);
+  fold.appendChild(steps);
+  card.appendChild(fold);
 
   const btnRow = document.createElement('div');
   btnRow.className = 'ac-btns';
@@ -1000,24 +1027,9 @@ function initTheme() {
   $('#theme-done').addEventListener('click', () => $('#theme-overlay').classList.add('hidden'));
 }
 
-/* ---------- 视图模式（v0.9.1：小白/专家一键切换；默认小白；localStorage 记住；
-   显隐与字号全在 CSS（html[data-mode]），JS 只管状态与 check 型证据显隐重放） ---------- */
-function applyMode(mode) {
-  document.documentElement.dataset.mode = mode;
-  const btn = $('#btn-mode');
-  if (btn) btn.textContent = mode === 'novice' ? '小白视图' : '专家视图';
-  try { localStorage.setItem('diag-mode', mode); } catch (e) {}
-  // 结果中心已有选中节点时按新模式重放（check 型原始证据显隐随模式变）
-  if (S.lastNode) { try { selectNode(S.lastNode); } catch (e) {} }
-}
-function initMode() {
-  let m = 'novice';
-  try { const raw = localStorage.getItem('diag-mode'); if (raw === 'expert' || raw === 'novice') m = raw; } catch (e) {}
-  $('#btn-mode').addEventListener('click', () => {
-    applyMode(document.documentElement.dataset.mode === 'novice' ? 'expert' : 'novice');
-  });
-  applyMode(m);
-}
+/* ---------- 背景图原画弹层（点任意处关闭；图缺失时 server 404=img 不渲染，层仍可开不致命） ---------- */
+$('#btn-bg').addEventListener('click', () => $('#bg-overlay').classList.remove('hidden'));
+$('#bg-overlay').addEventListener('click', () => $('#bg-overlay').classList.add('hidden'));
 
 /* ---------- 工具 ---------- */
 function esc(s) {
@@ -1035,7 +1047,6 @@ if (/[?&]probe/.test(location.search)) {
 }
 (async function init() {
   initTheme();
-  initMode();
   try {
     const r = await fetch('/api/meta', { cache: 'no-store' });
     S.meta = await r.json();

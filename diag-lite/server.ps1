@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag web server v0.9.1 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用）
+diag web server v0.9.2 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用）
 用法（bat 启动器代跑）：powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File server.ps1
       开发/测试附加参数：-MockDir <dir>（透传 engine 模拟模式，自动化测试专用，默认关=真跑）
                           -NoBrowser（不拉 Edge，配合 -PortFile 供自动化测试读端口）
@@ -32,7 +32,7 @@ $root = $PSScriptRoot
 $engineScript = Join-Path $root 'engine\run.ps1'
 $uiDir = Join-Path $root 'ui'
 $reportsDir = Join-Path $root 'reports'
-$webVersion = 'v0.9.1'
+$webVersion = 'v0.9.2'
 $diagPs = (Get-Process -Id $PID).Path
 
 # ---------- 子进程 stdout 排水器（C# 空回调：scriptblock delegate 无 runspace 回调线程会炸进程；v0.6 已验机制照搬）
@@ -319,7 +319,7 @@ function Read-Body($req) {
 }
 
 # ---------- 路由（任意请求=心跳；单线程事件循环无并发竞态） ----------
-$staticMap = @{ '/' = @('index.html', 'text/html; charset=utf-8'); '/index.html' = @('index.html', 'text/html; charset=utf-8'); '/app.js' = @('app.js', 'text/javascript; charset=utf-8'); '/style.css' = @('style.css', 'text/css; charset=utf-8') }
+$staticMap = @{ '/' = @('index.html', 'text/html; charset=utf-8'); '/index.html' = @('index.html', 'text/html; charset=utf-8'); '/app.js' = @('app.js', 'text/javascript; charset=utf-8'); '/style.css' = @('style.css', 'text/css; charset=utf-8'); '/bg.jpg' = @('bg.jpg', 'image/jpeg'); '/brand.png' = @('brand.png', 'image/png'); '/bg-light.jpg' = @('bg-light.jpg', 'image/jpeg') }
 
 function Invoke-Route($ctx) {
     $req = $ctx.Request; $res = $ctx.Response
