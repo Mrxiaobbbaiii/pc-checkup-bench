@@ -1,0 +1,27 @@
+{
+  "id": "net_winsock_reset",
+  "name": "重置 Winsock 网络目录",
+  "level": "yellow",
+  "desc": "把 Windows 管理网络接口的底层目录（Winsock）恢复成出厂状态，清掉各种软件在网络层挂的「钩子」。适合：上不了网但查不出原因、装过卸过安全软件/加速器/VPN 后网络古怪、第三方网络过滤链过多。",
+  "affect": "会清掉第三方软件在网络层的挂接（重启电脑后生效，重启前网络照常）；个别依赖挂接的软件（老式安全软件/代理器）重启后可能要重装或重新设置；不会丢文件和照片。",
+  "undo": "执行前工具自动把 Winsock 目录备份成恢复包，并生成一键撤销脚本（undo-*.bat）——管理员方式运行它再重启电脑，就恢复原样。",
+  "requires_admin": true,
+  "restore_point": true,
+  "prechecks": [],
+  "backup_steps": [
+    { "exe": "reg.exe", "args": ["export", "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Winsock", "{BK}\\winsock.reg", "/y"], "desc": "备份 Winsock 设置（注册表导出）" },
+    { "exe": "reg.exe", "args": ["export", "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Winsock2", "{BK}\\winsock2.reg", "/y"], "desc": "备份 Winsock2 目录（注册表导出）" }
+  ],
+  "undo_script": [
+    "reg import \"{BK}\\winsock.reg\"",
+    "reg import \"{BK}\\winsock2.reg\""
+  ],
+  "steps": [
+    { "exe": "netsh.exe", "args": ["winsock", "reset"], "desc": "重置 Winsock 目录（重启电脑后生效）" }
+  ],
+  "rollback": [],
+  "rollback_note": "撤销=管理员运行回滚包里的 undo-net_winsock_reset.bat 后重启电脑",
+  "timeout_sec": 30,
+  "match_checks": ["dv_network_filters"],
+  "verify_checks": ["dv_network_filters"]
+}

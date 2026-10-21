@@ -1,0 +1,28 @@
+{
+  "id": "net_tcpip_reset",
+  "name": "重置 TCP/IP 网络栈",
+  "level": "yellow",
+  "desc": "把 Windows 的网络地址设置（IPv4 和 IPv6）恢复成出厂状态，清掉手工改过的网络参数。适合：IP 显示 169.254 开头怎么都修不好、改过网络参数后上不了网、网络时通时断且重装网卡驱动无效。",
+  "affect": "手工设置的网络参数会回到出厂值——用「自动获取 IP」的网络没感觉；用固定 IP 的网络（公司电脑/手动填过 IP）重启后要重新填一遍 IP；重启电脑后才生效，重启前网络照常。",
+  "undo": "执行前工具自动把 IP 设置备份成恢复包，并生成一键撤销脚本（undo-*.bat）——管理员方式运行它再重启电脑，就恢复原样（重启后要重新填固定 IP 的情况撤销不了，请先截图记下 IP 设置）。",
+  "requires_admin": true,
+  "restore_point": true,
+  "prechecks": [],
+  "backup_steps": [
+    { "exe": "reg.exe", "args": ["export", "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "{BK}\\tcpip4.reg", "/y"], "desc": "备份 IPv4 网络设置（注册表导出）" },
+    { "exe": "reg.exe", "args": ["export", "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters", "{BK}\\tcpip6.reg", "/y"], "desc": "备份 IPv6 网络设置（注册表导出）" }
+  ],
+  "undo_script": [
+    "reg import \"{BK}\\tcpip4.reg\"",
+    "reg import \"{BK}\\tcpip6.reg\""
+  ],
+  "steps": [
+    { "exe": "netsh.exe", "args": ["int", "ipv4", "reset"], "desc": "重置 IPv4 网络栈（重启电脑后生效）" },
+    { "exe": "netsh.exe", "args": ["int", "ipv6", "reset"], "desc": "重置 IPv6 网络栈（重启电脑后生效）" }
+  ],
+  "rollback": [],
+  "rollback_note": "撤销=管理员运行回滚包里的 undo-net_tcpip_reset.bat 后重启电脑（固定 IP 需重新填写）",
+  "timeout_sec": 45,
+  "match_checks": ["net_ip_dhcp", "net_dns_default"],
+  "verify_checks": ["net_ip_dhcp"]
+}

@@ -179,9 +179,12 @@ foreach ($rc in $global:DiagRepairCases) {
     Copy-Item -Recurse -Force (Join-Path $root 'checks') (Join-Path $tmpRoot 'checks')
     foreach ($mk in @($rc.clean | Where-Object { $_ })) { Remove-Item -LiteralPath (Join-Path $env:TEMP $mk) -Force -ErrorAction SilentlyContinue }
     $useNever = [bool]$rc.neverElevate
+    if ($rc.forceNever) { $useNever = $true }   # 黄级真动作单测专用：绝不真跑，预检挡下
+    if ($rc.requireSilent -and -not $silentElev) { $useNever = $true }   # 黄级 fixture：不可静默提权的机器转挡下
     if ($rc.kind -eq 'real' -and -not $silentElev) { $useNever = $true }
     $repairArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $tmpRoot 'repair\repair.ps1'), '-ActionId', $rc.actionId)
     if ($useNever) { $repairArgs += '-NeverElevate' }
+    foreach ($xa in @($rc.extraArgs)) { $repairArgs += [string]$xa }
     $outText = ''
     $exitCode = -1
     try {

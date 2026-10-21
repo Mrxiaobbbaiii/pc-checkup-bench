@@ -1,0 +1,25 @@
+{
+  "id": "net_tcp_reset",
+  "name": "重置 TCP 传输参数",
+  "level": "yellow",
+  "desc": "把 Windows 管理数据传输的调优参数（接收窗口自动调优、拥塞控制等）恢复成出厂状态。适合：网速能连但慢得反常、网页半天打不开但 QQ 秒回、被「网络加速工具」改乱过参数。",
+  "affect": "传输调优参数回到出厂值，正常下载/网页速度不受影响；装过网络加速器/优化工具改过的加速效果会消失（那正是目的之一）；重启电脑后才生效，重启前网络照常。",
+  "undo": "执行前工具自动把 TCP 参数备份成恢复包，并生成一键撤销脚本（undo-*.bat）——管理员方式运行它再重启电脑，就恢复原样。",
+  "requires_admin": true,
+  "restore_point": true,
+  "prechecks": [],
+  "backup_steps": [
+    { "exe": "reg.exe", "args": ["export", "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcp\\Parameters", "{BK}\\tcp-param.reg", "/y"], "desc": "备份 TCP 传输参数（注册表导出）" }
+  ],
+  "undo_script": [
+    "reg import \"{BK}\\tcp-param.reg\""
+  ],
+  "steps": [
+    { "exe": "netsh.exe", "args": ["int", "tcp", "reset"], "desc": "重置 TCP 传输参数（重启电脑后生效）" }
+  ],
+  "rollback": [],
+  "rollback_note": "撤销=管理员运行回滚包里的 undo-net_tcp_reset.bat 后重启电脑",
+  "timeout_sec": 30,
+  "match_checks": ["net_public_ping", "net_gateway_ping"],
+  "verify_checks": ["net_gateway_ping"]
+}

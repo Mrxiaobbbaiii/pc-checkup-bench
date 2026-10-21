@@ -325,6 +325,14 @@ pre.sug { max-height: 244px; }
 .stage-line { font-size: 12.5px; line-height: 21px; font-family: Consolas, "Microsoft YaHei UI", monospace; overflow-wrap: anywhere; }
 .stage-out { font-size: 11.5px; line-height: 18px; color: var(--faint); padding-left: 18px; overflow-wrap: anywhere; }
 #rm-rows .ac-steps, #gd-rows .ac-steps { margin-top: 6px; }
+
+/* 黄级逐项确认行（v0.9）：三行勾选 + 还原点勾选 */
+.rm-line { display: flex; gap: 9px; align-items: flex-start; margin: 9px 0; font-size: 13px; line-height: 1.55; cursor: pointer; }
+.rm-line input { margin-top: 3px; flex: none; accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+.rm-line b { color: var(--text); }
+.rm-line span { color: var(--dim); }
+.rm-line.rp span { color: var(--text); }
+.rm-note { font-size: 12px; color: var(--faint); border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; line-height: 1.55; }
 .warn-title { color: var(--fail); }
 .guide-modal { border-color: color-mix(in srgb, var(--fail) 50%, var(--line-hi)); }
 

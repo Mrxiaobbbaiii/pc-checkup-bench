@@ -316,12 +316,12 @@ function startElapsed() {
     const s = Math.floor((Date.now() - S.runStartAt) / 1000);
     const mm = String(Math.floor(s / 60)).padStart(2, '0');
     const ss = String(s % 60).padStart(2, '0');
-    $('#status-right').textContent = 'diag v0.8.1 · 用时 ' + mm + ':' + ss;
+    $('#status-right').textContent = 'diag v0.9 · 用时 ' + mm + ':' + ss;
   }, 1000);
 }
 function stopElapsed() {
   if (S.elapsedTimer) { clearInterval(S.elapsedTimer); S.elapsedTimer = null; }
-  $('#status-right').textContent = 'diag v0.8.1';
+  $('#status-right').textContent = 'diag v0.9';
 }
 
 /* ---------- 报告与结果树（数据源=/api/report → engine JSON 报告，B 案） ---------- */
@@ -555,6 +555,10 @@ const CMD_MAP = {
   'ipconfig.exe /flushdns': 'ipconfig /flushdns',
   'arp.exe -d *': 'arp -d *',
   'ipconfig.exe /registerdns': 'ipconfig /registerdns',
+  'netsh.exe winsock reset': 'netsh winsock reset',
+  'netsh.exe int ipv4 reset': 'netsh int ipv4 reset',
+  'netsh.exe int ipv6 reset': 'netsh int ipv6 reset',
+  'netsh.exe int tcp reset': 'netsh int tcp reset',
 };
 function stepCmdText(st) {
   const raw = st.exe + ' ' + (st.args || []).join(' ');
@@ -645,8 +649,8 @@ function buildActionCard(a) {
     btn.textContent = a.requires_admin ? '执行（会弹管理员确认）' : '执行';
     btn.addEventListener('click', () => onGreenRun(a, btn, card));
   } else if (a.level === 'yellow') {
-    btn.textContent = '看步骤与撤销法';
-    btn.addEventListener('click', () => showYellowModal(a));
+    btn.textContent = '逐项确认后执行';
+    btn.addEventListener('click', () => showYellowConfirm(a, btn, card));
   } else {
     btn.textContent = '看分步指南';
     btn.addEventListener('click', (e) => onRedArm(e, a));
@@ -681,19 +685,69 @@ function showGreenConfirmModal(a, onGo) {
   fillModalRows(a);
   const go = document.getElementById('rm-go');
   go.textContent = '执行';
+  go.disabled = false;
   go.onclick = () => { hideRepairModal(); onGo(); };
   document.getElementById('rm-cancel').onclick = hideRepairModal;
   document.getElementById('repair-modal').classList.remove('hidden');
 }
-function showYellowModal(a) {
+/* 黄级逐项确认（v0.9 真流程替换预告弹层）：三行（将做什么/影响什么/怎么撤销）逐项打勾才点亮
+   「确认执行」；可选系统还原点勾选（默认勾，建不出来执行器自动中止）；回滚包先行由执行器保证 */
+function showYellowConfirm(a, btn, card) {
+  document.getElementById('rm-title').textContent = a.name || '修复动作';
   const sub = document.getElementById('rm-sub');
-  sub.textContent = '黄色级动作要「逐项确认 + 自动撤销包」，下一版才上线。现在可以先看它打算做什么、怎么撤销——照着步骤自己在管理员窗口操作也可以。';
-  fillModalRows(a);
+  sub.textContent = '这是有中断的修复动作——三行都看懂、逐项打勾，才会出现「确认执行」。点了之后工具会先自动生成撤销脚本和备份（回滚包），然后才开始干活。';
+  const rows = document.getElementById('rm-rows');
+  rows.innerHTML = '';
+  const checks = [];
+  [['将做什么', a.desc], ['影响什么', a.affect], ['怎么撤销', a.undo || a.rollback_note]].forEach(([k, v]) => {
+    const lab = document.createElement('label');
+    lab.className = 'rm-line';
+    const ck = document.createElement('input');
+    ck.type = 'checkbox';
+    ck.className = 'rm-ck';
+    const sp = document.createElement('span');
+    sp.innerHTML = '<b>' + k + '：</b>' + esc(v || '');
+    lab.appendChild(ck); lab.appendChild(sp);
+    rows.appendChild(lab);
+    ck.addEventListener('change', updGo);
+    checks.push(ck);
+  });
+  const steps = document.createElement('div');
+  steps.className = 'ac-steps';
+  (a.steps || []).forEach((st) => {
+    const line = document.createElement('div');
+    line.textContent = '· ' + (st.desc || '') + '（' + stepCmdText(st) + '）';
+    steps.appendChild(line);
+  });
+  rows.appendChild(steps);
+  let rp = null;
+  if (a.restore_point) {
+    const lab = document.createElement('label');
+    lab.className = 'rm-line rp';
+    rp = document.createElement('input');
+    rp.type = 'checkbox';
+    rp.className = 'rm-rp';
+    rp.checked = true;
+    const sp = document.createElement('span');
+    sp.textContent = '执行前先建一个系统还原点（推荐。建不出来会自动中止，什么都不动）';
+    lab.appendChild(rp); lab.appendChild(sp);
+    rows.appendChild(lab);
+  }
+  const note = document.createElement('div');
+  note.className = 'rm-note';
+  note.textContent = '执行中可能短暂断网，请等它跑完再操作；一次只做一个修复，不做并发。';
+  rows.appendChild(note);
   const go = document.getElementById('rm-go');
-  go.textContent = '知道了';
-  go.onclick = hideRepairModal;
+  go.textContent = '确认执行';
+  go.disabled = true;
+  go.onclick = () => {
+    hideRepairModal();
+    startRepairRun(a, btn, card, { restorePoint: rp ? rp.checked : false });
+  };
   document.getElementById('rm-cancel').onclick = hideRepairModal;
   document.getElementById('repair-modal').classList.remove('hidden');
+  updGo();
+  function updGo() { go.disabled = !checks.every((c) => c.checked); }
 }
 function fillModalRows(a) {
   document.getElementById('rm-title').textContent = a.name || '修复动作';
@@ -757,9 +811,10 @@ document.getElementById('gd-ok').addEventListener('click', () => {
   document.getElementById('guide-overlay').classList.add('hidden');
 });
 
-async function startRepairRun(a, btn, card) {
+async function startRepairRun(a, btn, card, opts) {
+  opts = opts || {};
   setRepairBusy(true, btn);
-  setStatus('正在修复：' + a.name + ' …', '');
+  setStatus('正在修复：' + a.name + (a.level === 'yellow' ? '（先生成回滚包，再执行）…' : ' …'), '');
   let slot = card.querySelector('.ac-result');
   if (!slot) { slot = document.createElement('div'); slot.className = 'ac-result'; card.appendChild(slot); }
   slot.innerHTML = '<div class="stage-line st-dim">修复中…（要做的事：' + esc((a.steps || []).map((s) => s.desc).join('；')) + '）</div>';
@@ -767,7 +822,7 @@ async function startRepairRun(a, btn, card) {
     const r = await fetch('/api/repair/run', {
       method: 'POST', cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: a.id }),
+      body: JSON.stringify({ id: a.id, restore_point: !!opts.restorePoint }),
     });
     const j = await r.json();
     if (!j.ok) { renderRepairResult(slot, { ok: false, human: j.error || '启动失败' }); return; }
@@ -813,11 +868,26 @@ function renderRepairResult(slot, res) {
     l.textContent = (pre.ok ? '✓ ① 预检通过' : '✗ ① 预检没过：' + (pre.notes || []).join('；'));
     slot.appendChild(l);
   }
+  const pkg = st.pkg;
+  if (pkg) {
+    const rp = pkg.restore_point || {};
+    let rpTxt = '';
+    if (rp.requested) rpTxt = rp.ok ? '；系统还原点已备好' : '；✗ 系统还原点没建成';
+    const l = document.createElement('div');
+    l.className = 'stage-line ' + (pkg.ok ? 'st-pass' : 'st-fail');
+    if (pkg.ok) {
+      const uf = String(pkg.undo_file || '').split(/[\\/]/).pop();
+      l.textContent = '✓ ② 回滚包已生成（撤销脚本 ' + uf + rpTxt + '）';
+    } else {
+      l.textContent = '✗ ② 回滚包：' + (pkg.note || '没生成') + rpTxt;
+    }
+    slot.appendChild(l);
+  }
   if (st.exec) {
     (st.exec.steps || []).forEach((s) => {
       const l = document.createElement('div');
       l.className = 'stage-line ' + (s.exit === 0 && !s.timed_out ? 'st-pass' : 'st-fail');
-      l.textContent = (s.exit === 0 && !s.timed_out ? '✓ ② ' : '✗ ② ') + (s.desc || '') +
+      l.textContent = (s.exit === 0 && !s.timed_out ? '✓ ③ ' : '✗ ③ ') + (s.desc || '') +
         (s.timed_out ? '：超时被停' : (s.exit !== 0 ? '：没跑成（退出码 ' + s.exit + '）' : '（' + (s.ms || 0) + ' 毫秒）'));
       slot.appendChild(l);
       if (s.out_head) {
@@ -830,7 +900,7 @@ function renderRepairResult(slot, res) {
     if (!(st.exec.steps || []).length && st.exec.note) {
       const l = document.createElement('div');
       l.className = 'stage-line st-skip';
-      l.textContent = '– ② ' + st.exec.note;
+      l.textContent = '– ③ ' + st.exec.note;
       slot.appendChild(l);
     }
   }
@@ -840,14 +910,14 @@ function renderRepairResult(slot, res) {
       (vf.checks || []).forEach((c) => {
         const l = document.createElement('div');
         l.className = 'stage-line ' + (c.status === 'PASS' ? 'st-pass' : c.status === 'FAIL' ? 'st-fail' : 'st-skip');
-        l.textContent = (c.status === 'PASS' ? '✓ ③ 复查 ' : c.status === 'FAIL' ? '✗ ③ 复查 ' : '– ③ 复查 ') +
+        l.textContent = (c.status === 'PASS' ? '✓ ④ 复查 ' : c.status === 'FAIL' ? '✗ ④ 复查 ' : '– ④ 复查 ') +
           c.name + (c.status === 'PASS' ? '：正常' : c.status === 'FAIL' ? '：仍有问题（看下面建议）' : '：没查成');
         slot.appendChild(l);
       });
     } else if (vf.note) {
       const l = document.createElement('div');
       l.className = 'stage-line st-skip';
-      l.textContent = '– ③ ' + vf.note;
+      l.textContent = '– ④ ' + vf.note;
       slot.appendChild(l);
     }
   }
@@ -855,7 +925,7 @@ function renderRepairResult(slot, res) {
   if (lg) {
     const l = document.createElement('div');
     l.className = 'stage-line ' + (lg.ok ? 'st-dim' : 'st-fail');
-    l.textContent = lg.ok ? '✓ ④ 已记入修复台账（reports/repair-log.json）' : '✗ ④ 台账没写上：' + (lg.err || '');
+    l.textContent = lg.ok ? '✓ ⑤ 已记入修复台账（reports/repair-log.json）' : '✗ ⑤ 台账没写上：' + (lg.err || '');
     slot.appendChild(l);
   }
 }

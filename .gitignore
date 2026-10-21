@@ -9,3 +9,5 @@ assets/bg-candidates/*.jpg
 archive/
 guicheck_tmp/
 *.zip
+# 真机回滚包（机器专属产物，同真实报告口径不入库）
+reports/rollback/

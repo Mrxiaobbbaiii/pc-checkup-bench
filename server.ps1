@@ -1,16 +1,18 @@
 ﻿#Requires -Version 5.1
 <#
-diag web server v0.8.1 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用）
+diag web server v0.9 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用）
 用法（bat 启动器代跑）：powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File server.ps1
       开发/测试附加参数：-MockDir <dir>（透传 engine 模拟模式，自动化测试专用，默认关=真跑）
                           -NoBrowser（不拉 Edge，配合 -PortFile 供自动化测试读端口）
                           -PortFile <file>（把实际绑定端口写进该文件，自动化测试用）
 架构：HttpListener 绑 loopback 随机端口（免防火墙弹窗；127.0.0.1 前缀被拒自动降级 localhost 前缀）
       + 静态 ui/ + REST API（/api/meta /api/start /api/events /api/cancel /api/report /api/heartbeat
-      /api/bye /api/open-reports /api/shutdown + v0.8.1 修复三接口 /api/repair/list /api/repair/run
+      /api/bye /api/open-reports /api/shutdown + 修复接口 /api/repair/list /api/repair/run
       /api/repair/status + /reports/<文件> 报告下发）。
-v0.8.1 修复中心：绿级动作子进程代跑（repair/repair.ps1 五段执行器；需提权时执行器内部一次性 RunAs）；
-      黄/红级只回向导数据永不执行；跑批中禁修复、修复中禁跑批（双向 409）；关窗自杀连带杀修复子进程。
+v0.9 修复中心：绿级/黄级动作子进程代跑（repair/repair.ps1 五段执行器；需提权时执行器内部一次性 RunAs）；
+      黄级额外带 -AllowYellow（逐项确认由 ui 前置把关）与可选 -WithRestorePoint（系统还原点先行，
+      建不出来执行器自动中止）；红级只回向导数据永不执行；跑批中禁修复、修复中禁跑批（双向 409）；
+      关窗自杀连带杀修复子进程。
 生命周期：server 起 Edge --app 独立窗 → 关窗时页面 sendBeacon('/api/bye')（pagehide 必达）
       → server 2 秒内确认无回连→杀引擎→自杀（窗关→3 秒内杀引擎达标）。
       心跳=兜底信号（页面后台化时 Chromium 会把定时器节流到 ~1 次/分钟，禁用短超时）：
@@ -30,7 +32,7 @@ $root = $PSScriptRoot
 $engineScript = Join-Path $root 'engine\run.ps1'
 $uiDir = Join-Path $root 'ui'
 $reportsDir = Join-Path $root 'reports'
-$webVersion = 'v0.8.1'
+$webVersion = 'v0.9'
 $diagPs = (Get-Process -Id $PID).Path
 
 # ---------- 子进程 stdout 排水器（C# 空回调：scriptblock delegate 无 runspace 回调线程会炸进程；v0.6 已验机制照搬）
@@ -81,7 +83,7 @@ foreach ($t in $menuOrder) {
     }
 }
 
-# ---------- 修复动作知识（启动时只读 repair/actions/*.json；v0.8.1 只收绿级，黄/红留框架位） ----------
+# ---------- 修复动作知识（启动时只读 repair/actions/*.json；绿+黄级可代跑，红级留向导位） ----------
 $repairDefs = @()
 $repairScript = Join-Path $root 'repair\repair.ps1'
 $repairActionsDir = Join-Path $root 'repair\actions'
@@ -419,10 +421,11 @@ function Invoke-Route($ctx) {
             $j = @{}
             try { $j = $body | ConvertFrom-Json } catch { }
             $rid = [string]$j.id
+            $wantRp = ($j.restore_point -eq $true)
             $def = @($repairDefs | Where-Object { [string]$_.id -eq $rid })[0]
             if (-not $def) { Send-Json $res @{ ok = $false; error = '没认出这个修复动作' } 400; return }
-            if ([string]$def.level -ne 'green') {
-                # 黄/红级只出向导数据、永不代跑（design 铁律；v0.8.1 未收录此类动作，此分支=框架位）
+            if ([string]$def.level -eq 'red') {
+                # 红级只出向导数据、永不代跑（design 铁律；红级动作不入库，此分支=框架位）
                 Send-Json $res ([ordered]@{
                     ok = $false; error = '这一级不会自动执行——下面是可以自己照着做的步骤'
                     guide = [ordered]@{ name = [string]$def.name; level = [string]$def.level; desc = [string]$def.desc; affect = [string]$def.affect; undo = [string]$def.undo; steps = @($def.steps); rollback_note = [string]$def.rollback_note }
@@ -435,6 +438,11 @@ function Invoke-Route($ctx) {
             $rstamp = Get-Date -Format 'yyyyMMdd-HHmmss'
             $script:repairOutFile = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-web-repair-$PID-$rstamp.json")
             $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $repairScript, '-ActionId', $rid, '-OutFile', $script:repairOutFile)
+            if ([string]$def.level -eq 'yellow') {
+                # 黄级：ui 逐项确认已在前置把关，这里显式放行 + 可选系统还原点
+                $argList += '-AllowYellow'
+                if ($wantRp) { $argList += '-WithRestorePoint' }
+            }
             $quoted = @($argList | ForEach-Object { if ($_ -match '\s') { '"' + ($_ -replace '"', '') + '"' } else { $_ } })
             $psi = New-Object System.Diagnostics.ProcessStartInfo
             $psi.FileName = $diagPs

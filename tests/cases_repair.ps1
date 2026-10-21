@@ -1,8 +1,9 @@
 ﻿#Requires -Version 5.1
 <#
-diag 修复域用例（v0.8.1 第十二切片；四断言=命令序列/回滚序列/超时负例/权限负例）
+diag 修复域用例（v0.9 第十三切片；四断言=命令序列/回滚序列/超时负例/权限负例；绿黄双级）
 结构：
-  - rep_schema            ：动作库静态契约（全部绿级/id 唯一/匹配与验证检查项真实存在/超时范围/命令白名单）
+  - rep_schema            ：动作库静态契约（绿+黄级/id 唯一/匹配与验证检查项真实存在/超时范围/命令白名单/
+                            黄级回滚包契约 backup_steps+undo_script 均含 {BK}/撤销 import 数≥备份 export 数）
   - rep_cmdseq            ：fixture 双步依序写标记文件 → 命令序列断言
   - rep_rollback          ：fixture 第二步 exit 7 → 回滚序列按序跑 → 回滚断言
   - rep_timeout           ：fixture ping 30 发+动作超时 2 秒 → 超时负例断言
@@ -10,6 +11,14 @@ diag 修复域用例（v0.8.1 第十二切片；四断言=命令序列/回滚序
   - rep_adminblock        ：fixture requires_admin+NeverElevate → 预检挡下零副作用 → 权限负例第二面
   - rep_flush_dns / rep_arp_flush / rep_registerdns ：三个真实绿级动作全链实测
                             （可静默提权的机器=全五段跑通；不可静默提权的机器=NeverElevate 预检挡下，双语境确定性）
+  v0.9 黄级（回滚包+还原点；真黄级动作绝不真跑，单测只走预检挡下，真跑留给真机演练）：
+  - rep_y_cmdseq          ：黄级提权内层=备份步→主步依序写标记+撤销脚本落盘且 {BK} 已替换 → 命令序列断言
+  - rep_y_rollback        ：黄级主步失败 → 提权内层自动回滚按序跑 → 回滚序列断言
+  - rep_y_timeout         ：黄级主步 ping 30 发超时 2 秒掐停+自动回滚 → 超时负例断言
+  - rep_y_perm            ：黄级直跑路径 net session（非提权=失败+自动回滚/提权=成功）→ 权限负例断言
+  - rep_y_rpfail          ：黄级+还原点请求（非提权=还原点建不成中止零副作用/提权=建点后照跑）→ 还原点负例断言
+  - rep_y_winsock / rep_y_tcpip / rep_y_tcp ：三个真实黄级动作 NeverElevate 挡下（预检挡下零副作用+回滚包不生成）
+黄级 fixture 走 requires_admin=true 的提权内层路径（requireSilent：不可静默提权的机器自动转 NeverElevate，双语境确定性）。
 真实动作跑在临时仓副本（checks/ 拷贝、reports/ 独立），主仓 reports/ 零污染。
 #>
 
@@ -128,6 +137,122 @@ $fixtureAdminBlock = @'
 }
 '@
 
+# ---- v0.9 黄级 fixture（requireSilent：提权内层路径；不可静默提权的机器自动转 NeverElevate 挡下） ----
+$fixtureYCmdseq = @'
+{
+  "id": "zz_test_y_cmdseq",
+  "name": "zz yellow cmd order test",
+  "level": "yellow",
+  "desc": "t", "affect": "t", "undo": "t",
+  "requires_admin": true, "restore_point": true, "prechecks": [],
+  "backup_steps": [
+    { "exe": "cmd.exe", "args": ["/c", "echo bak>\"{BK}\\marker-y.txt\""], "desc": "backup marker" }
+  ],
+  "undo_script": [
+    "echo undo placeholder {BK}"
+  ],
+  "steps": [
+    { "exe": "cmd.exe", "args": ["/c", "echo main>>\"%TEMP%\\diag-rep-y.txt\""], "desc": "main marker" }
+  ],
+  "rollback": [],
+  "rollback_note": "none",
+  "timeout_sec": 10,
+  "match_checks": [], "verify_checks": []
+}
+'@
+
+$fixtureYRollback = @'
+{
+  "id": "zz_test_y_rollback",
+  "name": "zz yellow rollback test",
+  "level": "yellow",
+  "desc": "t", "affect": "t", "undo": "t",
+  "requires_admin": true, "prechecks": [],
+  "backup_steps": [
+    { "exe": "cmd.exe", "args": ["/c", "echo bak>\"%TEMP%\\diag-rep-yb.txt\""], "desc": "backup marker" }
+  ],
+  "undo_script": [ "echo undo {BK}" ],
+  "steps": [
+    { "exe": "cmd.exe", "args": ["/c", "echo main>>\"%TEMP%\\diag-rep-yb.txt\""], "desc": "ok main" },
+    { "exe": "cmd.exe", "args": ["/c", "exit", "7"], "desc": "fail main" }
+  ],
+  "rollback": [
+    { "exe": "cmd.exe", "args": ["/c", "echo rb1>>\"%TEMP%\\diag-rep-yb.txt\""], "desc": "auto rollback 1" },
+    { "exe": "cmd.exe", "args": ["/c", "echo rb2>>\"%TEMP%\\diag-rep-yb.txt\""], "desc": "auto rollback 2" }
+  ],
+  "rollback_note": "test",
+  "timeout_sec": 10,
+  "match_checks": [], "verify_checks": []
+}
+'@
+
+$fixtureYTimeout = @'
+{
+  "id": "zz_test_y_timeout",
+  "name": "zz yellow timeout test",
+  "level": "yellow",
+  "desc": "t", "affect": "t", "undo": "t",
+  "requires_admin": true, "prechecks": [],
+  "backup_steps": [
+    { "exe": "cmd.exe", "args": ["/c", "echo bak>\"%TEMP%\\diag-rep-yt.txt\""], "desc": "backup marker" }
+  ],
+  "undo_script": [ "echo undo {BK}" ],
+  "steps": [
+    { "exe": "ping.exe", "args": ["-n", "30", "127.0.0.1"], "desc": "long ping" }
+  ],
+  "rollback": [
+    { "exe": "cmd.exe", "args": ["/c", "echo rb>>\"%TEMP%\\diag-rep-yt.txt\""], "desc": "auto rollback" }
+  ],
+  "rollback_note": "test",
+  "timeout_sec": 2,
+  "match_checks": [], "verify_checks": []
+}
+'@
+
+$fixtureYPerm = @'
+{
+  "id": "zz_test_y_perm",
+  "name": "zz yellow permission test",
+  "level": "yellow",
+  "desc": "t", "affect": "t", "undo": "t",
+  "requires_admin": false, "prechecks": [],
+  "backup_steps": [
+    { "exe": "cmd.exe", "args": ["/c", "echo bak>\"%TEMP%\\diag-rep-yp.txt\""], "desc": "backup marker" }
+  ],
+  "undo_script": [ "echo undo {BK}" ],
+  "steps": [
+    { "exe": "net.exe", "args": ["session"], "desc": "net session" }
+  ],
+  "rollback": [
+    { "exe": "cmd.exe", "args": ["/c", "echo rb>>\"%TEMP%\\diag-rep-yp.txt\""], "desc": "auto rollback" }
+  ],
+  "rollback_note": "test",
+  "timeout_sec": 15,
+  "match_checks": [], "verify_checks": []
+}
+'@
+
+$fixtureYRpFail = @'
+{
+  "id": "zz_test_y_rpfail",
+  "name": "zz yellow restore point fail test",
+  "level": "yellow",
+  "desc": "t", "affect": "t", "undo": "t",
+  "requires_admin": false, "prechecks": [],
+  "backup_steps": [
+    { "exe": "cmd.exe", "args": ["/c", "echo bak>\"%TEMP%\\diag-rep-yrp.txt\""], "desc": "backup marker" }
+  ],
+  "undo_script": [ "echo undo {BK}" ],
+  "steps": [
+    { "exe": "cmd.exe", "args": ["/c", "echo main>\"%TEMP%\\diag-rep-yrp.txt\""], "desc": "main marker" }
+  ],
+  "rollback": [],
+  "rollback_note": "none",
+  "timeout_sec": 10,
+  "match_checks": [], "verify_checks": []
+}
+'@
+
 $global:DiagRepairCases = @(
 
     # ---- 动作库静态契约（真仓真文件，不跑临时仓） ----
@@ -141,14 +266,15 @@ $global:DiagRepairCases = @(
             $actionsDir = Join-Path $root 'repair\actions'
             $checksNames = @(Get-ChildItem -LiteralPath (Join-Path $root 'checks') -File -Filter '*.ps1' | ForEach-Object { $_.BaseName })
             $jsons = @(Get-ChildItem -LiteralPath $actionsDir -File -Filter '*.json')
-            if ($jsons.Count -lt 3) { $bad += "actions count $($jsons.Count) < 3 (green 3-5 ruled)" }
+            if ($jsons.Count -lt 6) { $bad += "actions count $($jsons.Count) < 6 (green 3 + yellow 3 ruled)" }
             $seenIds = @{}
-            $exeAllow = @('ipconfig.exe', 'arp.exe', 'nbtstat.exe', 'netsh.exe')
+            $exeAllow = @('ipconfig.exe', 'arp.exe', 'nbtstat.exe', 'netsh.exe', 'reg.exe')
             foreach ($jf in $jsons) {
                 $a = $null
                 try { $a = Get-Content -LiteralPath $jf.FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $bad += "unparsable: $($jf.Name)"; continue }
                 if ([string]$a.id -ne $jf.BaseName) { $bad += "id/file mismatch: $($jf.Name)" }
-                if ([string]$a.level -ne 'green') { $bad += "non-green action shipped: $($jf.Name)" }
+                $lvl = [string]$a.level
+                if (@('green', 'yellow') -notcontains $lvl) { $bad += "level not green/yellow (red never ships): $($jf.Name)" }
                 if ($seenIds[[string]$a.id]) { $bad += "duplicate id: $($a.id)" }
                 $seenIds[[string]$a.id] = $true
                 foreach ($mc in @($a.match_checks)) { if ($checksNames -notcontains [string]$mc) { $bad += "match_check not a real check: $mc" } }
@@ -163,6 +289,29 @@ $global:DiagRepairCases = @(
                 if ($null -eq $a.rollback) { $bad += "rollback field missing: $($jf.Name)" }
                 foreach ($pc in @($a.prechecks)) { if (@('no_static_arp') -notcontains [string]$pc) { $bad += "unknown precheck '$pc': $($jf.Name)" } }
                 foreach ($k in @('name', 'desc', 'affect', 'undo', 'rollback_note')) { if (-not [string]$a.$k) { $bad += "field '$k' empty: $($jf.Name)" } }
+                if ($lvl -eq 'yellow') {
+                    # 回滚包契约：备份步+撤销脚本都要有，{BK} 占位符必须在场（撤销=把备份导回去）
+                    if (-not @($a.backup_steps).Count) { $bad += "yellow without backup_steps: $($jf.Name)" }
+                    else {
+                        $nExport = 0
+                        foreach ($bst in @($a.backup_steps)) {
+                            if ($exeAllow -notcontains [string]$bst.exe) { $bad += "backup exe not in allowlist: $($bst.exe)" }
+                            if ((@($bst.args) -join ' ') -notmatch '\{BK\}') { $bad += "backup step missing {BK}: $($jf.Name)" }
+                            if ([string]$bst.exe -eq 'reg.exe') { $nExport++ }
+                        }
+                        $nImport = 0
+                        if (-not @($a.undo_script).Count) { $bad += "yellow without undo_script: $($jf.Name)" }
+                        else {
+                            $hasBk = $false
+                            foreach ($ul in @($a.undo_script)) {
+                                if ([string]$ul -match '\{BK\}') { $hasBk = $true }
+                                if ([string]$ul -match 'reg\s+import') { $nImport++ }
+                            }
+                            if (-not $hasBk) { $bad += "undo_script missing {BK}: $($jf.Name)" }
+                            if ($nExport -gt 0 -and $nImport -lt $nExport) { $bad += "undo imports($nImport) < backup exports($nExport): $($jf.Name)" }
+                        }
+                    }
+                }
             }
             return $bad
         }
@@ -209,8 +358,13 @@ $global:DiagRepairCases = @(
             if ($res.ok -ne $false) { $bad += "expect ok=false got $($res.ok)"; return $bad }
             if ([string]$res.fail_stage -ne 'exec') { $bad += "expect fail_stage=exec got $($res.fail_stage)" }
             $steps = @($res.stages.exec.steps)
-            if ($steps.Count -ne 2) { $bad += "expect 2 steps got $($steps.Count)" }
-            elseif ([int]$steps[1].exit -ne 7) { $bad += "expect fail step exit=7 got $($steps[1].exit)" }
+            if ($steps.Count -ne 4) { $bad += "expect 4 steps (2 main + 2 rollback) got $($steps.Count)" }
+            else {
+                if ([string]$steps[0].phase -ne 'main' -or [string]$steps[1].phase -ne 'main') { $bad += "expect main phases got $($steps[0].phase)/$($steps[1].phase)" }
+                if ([string]$steps[2].phase -ne 'rollback' -or [string]$steps[3].phase -ne 'rollback') { $bad += "expect rollback phases got $($steps[2].phase)/$($steps[3].phase)" }
+                if ([int]$steps[1].exit -ne 7) { $bad += "expect fail step exit=7 got $($steps[1].exit)" }
+                if ($steps[2].desc -notmatch '^\[自动回滚\]') { $bad += "rollback desc prefix missing: $($steps[2].desc)" }
+            }
             $mk = Join-Path $env:TEMP 'diag-rep-rb.txt'
             if (-not (Test-Path -LiteralPath $mk)) { $bad += 'marker missing' }
             else {
@@ -368,4 +522,214 @@ $global:DiagRepairCases = @(
             return $bad
         }
     }
+
+    # ---- v0.9 黄级：命令序列（提权内层 备份→主步 依序+撤销脚本落盘且 {BK} 已替换） ----
+    @{
+        name = 'rep_y_cmdseq'
+        kind = 'fixture'
+        actionId = 'zz_test_y_cmdseq'
+        fixtures = @{ 'zz_test_y_cmdseq.json' = $fixtureYCmdseq }
+        clean = @('diag-rep-y.txt')
+        requireSilent = $true
+        extraArgs = @('-AllowYellow')
+        assert = {
+            param($res, $ctx)
+            $bad = @()
+            if (-not $ctx.SilentElev) {
+                if ($res.ok -ne $false -or [string]$res.fail_stage -ne 'precheck') { $bad += "non-silent ctx: expect precheck block got $($res.ok)/$($res.fail_stage)" }
+                return $bad
+            }
+            if ($res.ok -ne $true) { $bad += "expect ok=true got $($res.ok) (human=$($res.human))"; return $bad }
+            $steps = @($res.stages.exec.steps)
+            if ($steps.Count -ne 2) { $bad += "expect 2 steps (backup+main) got $($steps.Count)" }
+            else {
+                if ([string]$steps[0].phase -ne 'backup' -or [string]$steps[1].phase -ne 'main') { $bad += "phases: $($steps[0].phase)/$($steps[1].phase)" }
+                if ([int]$steps[0].exit -ne 0 -or [int]$steps[1].exit -ne 0) { $bad += "step exits: $($steps[0].exit)/$($steps[1].exit)" }
+            }
+            $mk = Join-Path $env:TEMP 'diag-rep-y.txt'
+            if (-not (Test-Path -LiteralPath $mk)) { $bad += 'marker file missing' }
+            else {
+                $lines = @(Get-Content -LiteralPath $mk | Where-Object { $_.Trim() -ne '' } | ForEach-Object { $_.Trim() })
+                if ($lines.Count -lt 1 -or $lines[0] -ne 'main') { $bad += "main marker wrong: $($lines -join '|')" }
+            }
+            # {BK} 替换闭环：备份标记文件必须落在真实备份目录里（备份步 args 占位符替换实测）
+            $pkg = $res.stages.pkg
+            $bkm = Join-Path ([string]$pkg.backup_dir) 'marker-y.txt'
+            if (-not (Test-Path -LiteralPath $bkm)) { $bad += "backup marker not in backup dir: $bkm" }
+            elseif ((Get-Content -LiteralPath $bkm | Where-Object { $_.Trim() -ne '' }) -notcontains 'bak') { $bad += 'backup marker content wrong' }
+            # 撤销脚本：落盘+{BK} 已替换成真实备份目录+内容头正确
+            if (-not $pkg -or -not $pkg.ok) { $bad += 'pkg stage missing/not ok' }
+            else {
+                $uf = [string]$pkg.undo_file
+                if (-not (Test-Path -LiteralPath $uf)) { $bad += "undo script missing: $uf" }
+                else {
+                    $txt = Get-Content -LiteralPath $uf -Raw
+                    if ($txt -notmatch 'rollback package: zz_test_y_cmdseq') { $bad += 'undo script header wrong' }
+                    if ($txt -match '\{BK\}') { $bad += '{BK} placeholder not replaced' }
+                    if (-not $txt.Contains([string]$pkg.backup_dir)) { $bad += 'undo script missing backup dir' }
+                }
+            }
+            $log = Get-LastRepairLog $ctx.TmpRoot
+            if (-not $log -or $log.id -ne 'zz_test_y_cmdseq' -or $log.ok -ne $true) { $bad += 'repair-log line missing/wrong' }
+            return $bad
+        }
+    }
+
+    # ---- v0.9 黄级：回滚序列（主步失败 → 提权内层自动回滚按序跑） ----
+    @{
+        name = 'rep_y_rollback'
+        kind = 'fixture'
+        actionId = 'zz_test_y_rollback'
+        fixtures = @{ 'zz_test_y_rollback.json' = $fixtureYRollback }
+        clean = @('diag-rep-yb.txt')
+        requireSilent = $true
+        extraArgs = @('-AllowYellow')
+        assert = {
+            param($res, $ctx)
+            $bad = @()
+            if (-not $ctx.SilentElev) {
+                if ($res.ok -ne $false -or [string]$res.fail_stage -ne 'precheck') { $bad += "non-silent ctx: expect precheck block got $($res.ok)/$($res.fail_stage)" }
+                return $bad
+            }
+            if ($res.ok -ne $false) { $bad += "expect ok=false got $($res.ok)"; return $bad }
+            if ([string]$res.fail_stage -ne 'exec') { $bad += "expect fail_stage=exec got $($res.fail_stage)" }
+            $steps = @($res.stages.exec.steps)
+            if ($steps.Count -ne 5) { $bad += "expect 5 steps (1 backup+2 main+2 rollback) got $($steps.Count)" }
+            else {
+                $phases = ($steps | ForEach-Object { [string]$_.phase }) -join '/'
+                if ($phases -ne 'backup/main/main/rollback/rollback') { $bad += "phases: $phases" }
+                if ([int]$steps[2].exit -ne 7) { $bad += "expect fail main exit=7 got $($steps[2].exit)" }
+            }
+            $mk = Join-Path $env:TEMP 'diag-rep-yb.txt'
+            if (-not (Test-Path -LiteralPath $mk)) { $bad += 'marker missing' }
+            else {
+                $lines = @(Get-Content -LiteralPath $mk | Where-Object { $_.Trim() -ne '' } | ForEach-Object { $_.Trim() })
+                $iB = [array]::IndexOf($lines, 'bak'); $iM = [array]::IndexOf($lines, 'main'); $i1 = [array]::IndexOf($lines, 'rb1'); $i2 = [array]::IndexOf($lines, 'rb2')
+                if ($iB -lt 0 -or $iM -lt 0 -or $i1 -lt 0 -or $i2 -lt 0 -or -not ($iB -lt $iM -and $iM -lt $i1 -and $i1 -lt $i2)) { $bad += "order wrong: $($lines -join '|')" }
+            }
+            if (-not (Test-Path -LiteralPath ([string]$res.stages.pkg.undo_file))) { $bad += 'undo script missing' }
+            $log = Get-LastRepairLog $ctx.TmpRoot
+            if (-not $log -or $log.ok -ne $false) { $bad += 'repair-log should record failure' }
+            return $bad
+        }
+    }
+
+    # ---- v0.9 黄级：超时负例（主步 2 秒掐停+自动回滚） ----
+    @{
+        name = 'rep_y_timeout'
+        kind = 'fixture'
+        actionId = 'zz_test_y_timeout'
+        fixtures = @{ 'zz_test_y_timeout.json' = $fixtureYTimeout }
+        clean = @('diag-rep-yt.txt')
+        requireSilent = $true
+        extraArgs = @('-AllowYellow')
+        assert = {
+            param($res, $ctx)
+            $bad = @()
+            if (-not $ctx.SilentElev) {
+                if ($res.ok -ne $false -or [string]$res.fail_stage -ne 'precheck') { $bad += "non-silent ctx: expect precheck block got $($res.ok)/$($res.fail_stage)" }
+                return $bad
+            }
+            if ($res.ok -ne $false) { $bad += "expect ok=false got $($res.ok)"; return $bad }
+            $steps = @($res.stages.exec.steps)
+            if ($steps.Count -ne 3) { $bad += "expect 3 steps (backup+main+rollback) got $($steps.Count)" }
+            else {
+                $main = $steps[1]
+                if ($main.timed_out -ne $true) { $bad += 'expect timed_out=true on main' }
+                if ([int]$main.ms -gt 15000) { $bad += "timeout took $($main.ms)ms (>15s)" }
+                if ([string]$steps[2].phase -ne 'rollback') { $bad += "expect rollback after timeout got $($steps[2].phase)" }
+            }
+            $mk = Join-Path $env:TEMP 'diag-rep-yt.txt'
+            if (-not (Test-Path -LiteralPath $mk)) { $bad += 'rollback marker missing' }
+            elseif ((Get-Content -LiteralPath $mk | Where-Object { $_.Trim() -ne '' }) -notcontains 'rb') { $bad += 'rollback marker content wrong' }
+            if ([string]$res.fail_stage -ne 'exec') { $bad += "fail_stage=$($res.fail_stage)" }
+            return $bad
+        }
+    }
+
+    # ---- v0.9 黄级：权限负例（直跑路径；非提权=失败+自动回滚，提权=成功） ----
+    @{
+        name = 'rep_y_perm'
+        kind = 'fixture'
+        actionId = 'zz_test_y_perm'
+        fixtures = @{ 'zz_test_y_perm.json' = $fixtureYPerm }
+        clean = @('diag-rep-yp.txt')
+        extraArgs = @('-AllowYellow')
+        assert = {
+            param($res, $ctx)
+            $bad = @()
+            $mk = Join-Path $env:TEMP 'diag-rep-yp.txt'
+            if (Test-CurElevated) {
+                if ($res.ok -ne $true) { $bad += "elevated ctx: expect ok=true got $($res.ok) (human=$($res.human))" }
+                $lines = @()
+                if (Test-Path -LiteralPath $mk) { $lines = @(Get-Content -LiteralPath $mk | Where-Object { $_.Trim() -ne '' } | ForEach-Object { $_.Trim() }) }
+                if ($lines -contains 'rb') { $bad += 'rollback ran despite success' }
+            } else {
+                if ($res.ok -ne $false) { $bad += "non-elevated ctx: expect ok=false got $($res.ok)（net session 本该被拒绝）" }
+                else {
+                    if ([string]$res.fail_stage -ne 'exec') { $bad += "fail_stage=$($res.fail_stage)" }
+                    $steps = @($res.stages.exec.steps)
+                    if ($steps.Count -ne 3 -or [int]$steps[1].exit -eq 0) { $bad += "expect backup+fail+rollback got $($steps.Count)" }
+                    $lines = @()
+                    if (Test-Path -LiteralPath $mk) { $lines = @(Get-Content -LiteralPath $mk | Where-Object { $_.Trim() -ne '' } | ForEach-Object { $_.Trim() }) }
+                    if (-not ($lines.Contains('bak') -and $lines.Contains('rb'))) { $bad += "markers wrong: $($lines -join '|')" }
+                }
+            }
+            return $bad
+        }
+    }
+
+    # ---- v0.9 黄级：还原点负例（还原点请求；非提权=建不成中止零副作用，提权=建点后照跑） ----
+    @{
+        name = 'rep_y_rpfail'
+        kind = 'fixture'
+        actionId = 'zz_test_y_rpfail'
+        fixtures = @{ 'zz_test_y_rpfail.json' = $fixtureYRpFail }
+        clean = @('diag-rep-yrp.txt')
+        extraArgs = @('-AllowYellow', '-WithRestorePoint')
+        assert = {
+            param($res, $ctx)
+            $bad = @()
+            $mk = Join-Path $env:TEMP 'diag-rep-yrp.txt'
+            if (Test-CurElevated) {
+                # 提权上下文：还原点建成（或当日已有）→ 照常执行
+                if ($res.ok -ne $true) { $bad += "elevated ctx: expect ok=true got $($res.ok) (human=$($res.human))" }
+                return $bad
+            }
+            if ($res.ok -ne $false) { $bad += "non-elevated ctx: expect ok=false got $($res.ok)"; return $bad }
+            if ([string]$res.fail_stage -ne 'rollback_pkg') { $bad += "expect fail_stage=rollback_pkg got $($res.fail_stage)" }
+            $pkg = $res.stages.pkg
+            if (-not $pkg -or -not $pkg.restore_point -or $pkg.restore_point.requested -ne $true) { $bad += 'restore_point.requested not recorded' }
+            elseif ($pkg.restore_point.ok -ne $false) { $bad += 'restore_point should be failed in non-elevated ctx' }
+            if (Test-Path -LiteralPath $mk) { $bad += 'marker exists: steps ran despite restore-point abort' }
+            if (-not $pkg -or -not (Test-Path -LiteralPath ([string]$pkg.undo_file))) { $bad += 'undo script should exist (rollback package first)' }
+            $log = Get-LastRepairLog $ctx.TmpRoot
+            if (-not $log -or $log.ok -ne $false) { $bad += 'repair-log should record abort' }
+            return $bad
+        }
+    }
 )
+
+# ---- v0.9 真实黄级动作 ×3：单测绝不真跑（forceNever=预检挡下零副作用）；真跑留给真机演练 ----
+foreach ($yAct in @(@('rep_y_winsock', 'net_winsock_reset'), @('rep_y_tcpip', 'net_tcpip_reset'), @('rep_y_tcp', 'net_tcp_reset'))) {
+    $global:DiagRepairCases += @{
+        name = $yAct[0]
+        kind = 'real'
+        actionId = $yAct[1]
+        forceNever = $true
+        extraArgs = @('-AllowYellow')
+        assert = {
+            param($res, $ctx)
+            $bad = @()
+            if ($res.ok -ne $false) { $bad += "expect ok=false (never really run in tests) got $($res.ok)"; return $bad }
+            if ([string]$res.fail_stage -ne 'precheck') { $bad += "expect fail_stage=precheck got $($res.fail_stage)" }
+            $notes = (@($res.stages.precheck.notes) -join '；')
+            if ($notes -notmatch '管理员') { $bad += "precheck note should mention admin: $notes" }
+            if (@($res.stages.exec.steps).Count -ne 0) { $bad += 'steps ran despite NeverElevate' }
+            if (Test-Path -LiteralPath (Join-Path $ctx.TmpRoot 'reports\rollback')) { $bad += 'rollback dir created despite precheck block' }
+            $log = Get-LastRepairLog $ctx.TmpRoot
+            if (-not $log -or $log.ok -ne $false) { $bad += 'repair-log should record blocked run' }
+            return $bad
+        }
+    }
+}
