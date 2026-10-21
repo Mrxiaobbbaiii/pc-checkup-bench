@@ -14,6 +14,7 @@ $diagPs = (Get-Process -Id $PID).Path
 . (Join-Path $PSScriptRoot 'cases.ps1')
 . (Join-Path $PSScriptRoot 'scenarios.ps1')
 . (Join-Path $PSScriptRoot 'cases_b.ps1')
+. (Join-Path $PSScriptRoot 'cases_repair.ps1')
 
 $results = @()
 
@@ -151,6 +152,54 @@ foreach ($bc in $global:DiagBCases) {
     if ($bad.Count -gt 0) { Add-Result 'engine-b' $bc.name '' $false ($bad -join '; ') }
     else { Add-Result 'engine-b' $bc.name '' $true }
     Remove-Item $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# ---------- ④ 修复动作用例（v0.8.1：四断言+每绿级动作实测；临时仓跑 repair.ps1，主仓 reports/ 零污染） ----------
+$silentElev = Test-SilentElevatable
+foreach ($rc in $global:DiagRepairCases) {
+    if ($rc.kind -eq 'schema') {
+        $ctx = @{ Root = $root; TmpRoot = ''; SilentElev = $silentElev }
+        $bad = & $rc.assert $null $ctx
+        if ($bad) { Add-Result 'repair' $rc.name '' $false (($bad | Select-Object -First 3) -join '; ') }
+        else { Add-Result 'repair' $rc.name '' $true }
+        continue
+    }
+    $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-repaircase-" + $rc.name + "-" + $PID)
+    if (Test-Path -LiteralPath $tmpRoot) { Remove-Item -LiteralPath $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue }
+    New-Item -ItemType Directory -Path (Join-Path $tmpRoot 'reports') -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $tmpRoot 'repair\actions') -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $root 'repair\repair.ps1') -Destination (Join-Path $tmpRoot 'repair\repair.ps1') -Force
+    if ($rc.kind -eq 'fixture') {
+        foreach ($kv in $rc.fixtures.GetEnumerator()) {
+            [System.IO.File]::WriteAllText((Join-Path $tmpRoot ("repair\actions\" + $kv.Key)), $kv.Value, (New-Object System.Text.UTF8Encoding($true)))
+        }
+    } else {
+        Copy-Item -LiteralPath (Join-Path $root ("repair\actions\" + $rc.actionId + '.json')) -Destination (Join-Path $tmpRoot ("repair\actions\" + $rc.actionId + '.json')) -Force
+    }
+    Copy-Item -Recurse -Force (Join-Path $root 'checks') (Join-Path $tmpRoot 'checks')
+    foreach ($mk in @($rc.clean | Where-Object { $_ })) { Remove-Item -LiteralPath (Join-Path $env:TEMP $mk) -Force -ErrorAction SilentlyContinue }
+    $useNever = [bool]$rc.neverElevate
+    if ($rc.kind -eq 'real' -and -not $silentElev) { $useNever = $true }
+    $repairArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $tmpRoot 'repair\repair.ps1'), '-ActionId', $rc.actionId)
+    if ($useNever) { $repairArgs += '-NeverElevate' }
+    $outText = ''
+    $exitCode = -1
+    try {
+        $outText = (& $diagPs @repairArgs 2>&1 | Out-String)
+        $exitCode = $LASTEXITCODE
+    } catch {
+        Add-Result 'repair' $rc.name '' $false ("repair crashed: $($_.Exception.Message)")
+        continue
+    }
+    $res = $null
+    try { $res = $outText | ConvertFrom-Json } catch { $res = $null }
+    $ctx = @{ Root = $root; TmpRoot = $tmpRoot; SilentElev = $silentElev; ExitCode = $exitCode }
+    $bad = @()
+    if ($null -eq $res) { $bad += ("repair output unparsable: " + (($outText -split "`r?`n") | Select-Object -First 2)) }
+    else { $bad = & $rc.assert $res $ctx }
+    if ($bad) { Add-Result 'repair' $rc.name '' $false (($bad | Select-Object -First 3) -join '; ') }
+    else { Add-Result 'repair' $rc.name '' $true }
+    Remove-Item -LiteralPath $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 # ---------- 汇总 ----------
