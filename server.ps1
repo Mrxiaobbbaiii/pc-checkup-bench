@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag web server v0.9 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用）
+diag web server v0.9.1 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用）
 用法（bat 启动器代跑）：powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File server.ps1
       开发/测试附加参数：-MockDir <dir>（透传 engine 模拟模式，自动化测试专用，默认关=真跑）
                           -NoBrowser（不拉 Edge，配合 -PortFile 供自动化测试读端口）
@@ -32,7 +32,7 @@ $root = $PSScriptRoot
 $engineScript = Join-Path $root 'engine\run.ps1'
 $uiDir = Join-Path $root 'ui'
 $reportsDir = Join-Path $root 'reports'
-$webVersion = 'v0.9'
+$webVersion = 'v0.9.1'
 $diagPs = (Get-Process -Id $PID).Path
 
 # ---------- 子进程 stdout 排水器（C# 空回调：scriptblock delegate 无 runspace 回调线程会炸进程；v0.6 已验机制照搬）

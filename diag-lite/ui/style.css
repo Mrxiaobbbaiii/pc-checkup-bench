@@ -1,5 +1,7 @@
-/* diag ui v0.8 —— 深色科技感（设计参考=Fluent 2 暗色面板 + shadcn 卡片语言；简洁不花哨）
-   主题机制：CSS 变量 + <html data-theme data-accent>，页面右上一键换，存 localStorage */
+/* diag ui v0.9.1 —— 深色科技感（设计参考=Fluent 2 暗色面板 + shadcn 卡片语言；简洁不花哨）
+   主题机制：CSS 变量 + <html data-theme data-accent>，页面右上一键换，存 localStorage
+   视图机制（v0.9.1）：<html data-mode="novice|expert">，右上一键切换，存 localStorage。
+   小白=16px 级大字+大按钮+隐藏原始证据与命令行（只留一句话结论/修法/安全三行）；专家=v0.9 原样全量 */
 
 :root, html[data-theme="dark"] {
   --bg: #0a101d;
@@ -15,6 +17,7 @@
   --pass: #3fd68f;
   --fail: #ff6b6b;
   --skip: #8b98ad;
+  --yellow: #ffd166;
   --accent: #4cc2ff;
   --accent-soft: rgba(76, 194, 255, .14);
   --accent-ink: #04121f;
@@ -35,6 +38,7 @@ html[data-theme="light"] {
   --pass: #148a4d;
   --fail: #d92b2b;
   --skip: #667085;
+  --yellow: #8a5a00;
   --accent-soft: rgba(30, 120, 200, .12);
   --accent-ink: #ffffff;
   --shadow: 0 8px 24px rgba(30, 50, 90, .14);
@@ -91,6 +95,7 @@ body {
   appearance: none; border: 0; background: transparent; color: var(--dim);
   font: inherit; font-size: 13.5px; padding: 8px 14px 9px; cursor: pointer;
   border-radius: 8px 8px 0 0; position: relative;
+  white-space: nowrap;
 }
 .tab:hover { color: var(--text); background: var(--accent-soft); }
 .tab.active { color: var(--accent); font-weight: 600; }
@@ -103,6 +108,7 @@ body {
   appearance: none; font: inherit; font-size: 12.5px;
   color: var(--dim); background: transparent; border: 1px solid var(--line);
   border-radius: 8px; padding: 6px 12px; cursor: pointer;
+  white-space: nowrap;
 }
 .icon-btn:hover { color: var(--text); border-color: var(--line-hi); background: var(--panel-hi); }
 .icon-btn.danger:hover { color: var(--fail); border-color: var(--fail); }
@@ -269,8 +275,8 @@ pre.sug { max-height: 244px; }
 .safe span { font-size: 12px; color: var(--dim); line-height: 1.5; }
 .safe.green  { border-left: 3px solid var(--pass); }
 .safe.green b { color: var(--pass); }
-.safe.yellow { border-left: 3px solid #ffd166; }
-.safe.yellow b { color: #ffd166; }
+.safe.yellow { border-left: 3px solid var(--yellow); }
+.safe.yellow b { color: var(--yellow); }
 .safe.red    { border-left: 3px solid var(--fail); }
 .safe.red b { color: var(--fail); }
 .repair-item {
@@ -293,7 +299,7 @@ pre.sug { max-height: 244px; }
   background: var(--panel); padding: 12px 14px; margin: 0 0 10px 0;
 }
 .action-card.lv-green  { border-left: 3px solid var(--pass); }
-.action-card.lv-yellow { border-left: 3px solid #ffd166; }
+.action-card.lv-yellow { border-left: 3px solid var(--yellow); }
 .action-card.lv-red    { border-left: 3px solid var(--fail); }
 .ac-badge { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .ac-badge b { font-size: 13.5px; }
@@ -302,7 +308,7 @@ pre.sug { max-height: 244px; }
   border: 1px solid var(--line); color: var(--dim); background: var(--panel-2);
 }
 .lv-tag.green  { color: var(--pass); border-color: color-mix(in srgb, var(--pass) 45%, var(--line)); }
-.lv-tag.yellow { color: #ffd166; border-color: color-mix(in srgb, #ffd166 45%, var(--line)); }
+.lv-tag.yellow { color: var(--yellow); border-color: color-mix(in srgb, var(--yellow) 45%, var(--line)); }
 .lv-tag.red    { color: var(--fail); border-color: color-mix(in srgb, var(--fail) 45%, var(--line)); }
 .ac-row { display: flex; gap: 8px; margin: 4px 0; align-items: baseline; }
 .ac-key {
@@ -390,3 +396,59 @@ pre.sug { max-height: 244px; }
   .safe-grid { grid-template-columns: 1fr; }
   .brand-text span { display: none; }
 }
+/* 窄视口（v0.9.1 打磨）：顶栏换两行——品牌+按钮一行，三个页签第二行三等分（根修逐字断行） */
+@media (max-width: 720px) {
+  .topbar { flex-wrap: wrap; row-gap: 2px; padding: 8px 12px; }
+  .tabs { order: 3; width: 100%; margin-left: 0; }
+  .tab { flex: 1 1 0; text-align: center; padding: 8px 4px 9px; }
+}
+
+/* ---------- 小白视图（v0.9.1：html[data-mode="novice"]；16px 级大字+大按钮；
+   check 型原始证据由 app.js 按型挂 .raw-off 隐藏，修复卡命令行整卡隐藏；
+   弹层（黄级三行确认/红级指南）不裁剪=安全知情全量；专家模式=本块零覆盖，v0.9 原样 ---------- */
+html[data-mode="novice"] body { font-size: 16px; }
+html[data-mode="novice"] .brand-text b { font-size: 16.5px; }
+html[data-mode="novice"] .brand-text span { font-size: 13px; }
+html[data-mode="novice"] .tab { font-size: 15.5px; padding: 8px 16px 9px; }
+html[data-mode="novice"] .icon-btn { font-size: 14px; }
+html[data-mode="novice"] .hero h1 { font-size: 24px; }
+html[data-mode="novice"] .hero p { font-size: 15px; }
+html[data-mode="novice"] .hero.small h1 { font-size: 20px; }
+html[data-mode="novice"] .card-title { font-size: 14.5px; }
+html[data-mode="novice"] .check-item .txt b { font-size: 15.5px; }
+html[data-mode="novice"] .check-item .txt small { font-size: 13.5px; }
+html[data-mode="novice"] .check-item .box { width: 19px; height: 19px; font-size: 13px; }
+html[data-mode="novice"] .hint { font-size: 14px; }
+html[data-mode="novice"] .btn, html[data-mode="novice"] .btn-primary { font-size: 15.5px; padding: 11px 20px; }
+html[data-mode="novice"] .btn-primary { min-width: 150px; }
+html[data-mode="novice"] .current { font-size: 15px; }
+html[data-mode="novice"] .pct { font-size: 14px; }
+html[data-mode="novice"] .log { font-size: 14px; line-height: 24px; height: 312px; }
+html[data-mode="novice"] .tree summary { font-size: 14.5px; }
+html[data-mode="novice"] .tree summary .mark { font-size: 13.5px; }
+html[data-mode="novice"] .tree .leaf { font-size: 14px; }
+html[data-mode="novice"] .placeholder { font-size: 14.5px; }
+html[data-mode="novice"] .detail h2 { font-size: 17.5px; }
+html[data-mode="novice"] .detail-label { font-size: 13.5px; }
+html[data-mode="novice"] pre.ev, html[data-mode="novice"] pre.sug { font-size: 14px; line-height: 24px; }
+html[data-mode="novice"] pre.ev { max-height: 240px; }
+html[data-mode="novice"] pre.sug { max-height: 240px; }
+html[data-mode="novice"] .safe b { font-size: 14.5px; }
+html[data-mode="novice"] .safe span { font-size: 13.5px; }
+html[data-mode="novice"] .ri-title { font-size: 15px; }
+html[data-mode="novice"] .repair-item pre { font-size: 14px; line-height: 24px; max-height: 192px; }
+html[data-mode="novice"] .ac-badge b { font-size: 15px; }
+html[data-mode="novice"] .lv-tag { font-size: 13px; }
+html[data-mode="novice"] .ac-key { font-size: 13px; width: 64px; }
+html[data-mode="novice"] .ac-val { font-size: 14px; }
+html[data-mode="novice"] .stage-line { font-size: 14px; line-height: 22px; }
+html[data-mode="novice"] .stage-out { font-size: 13px; line-height: 20px; }
+html[data-mode="novice"] .rm-line { font-size: 14.5px; }
+html[data-mode="novice"] .rm-note { font-size: 13.5px; }
+html[data-mode="novice"] .modal-title { font-size: 18px; }
+html[data-mode="novice"] .modal-sub { font-size: 14.5px; }
+html[data-mode="novice"] .statusbar { font-size: 13.5px; line-height: 18px; }
+html[data-mode="novice"] .theme-label, html[data-mode="novice"] .theme-opt { font-size: 14px; }
+/* 小白隐藏：check 型原始证据（.raw-off 由 JS 按选中型挂/摘）+ 修复卡内嵌命令行（弹层内命令行不受影响） */
+html[data-mode="novice"] .raw-off { display: none !important; }
+html[data-mode="novice"] .action-card .ac-steps { display: none; }

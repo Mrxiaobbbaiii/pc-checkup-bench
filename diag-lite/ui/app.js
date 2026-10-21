@@ -1,7 +1,11 @@
 'use strict';
-/* diag ui v0.8 —— 纯原生 JS，零构建零 CDN（断网可用）
+/* diag ui v0.9.1 —— 纯原生 JS，零构建零 CDN（断网可用）
    文案口径=design 详版第十四节对照表（与 v0.7.1 GUI 逐句对齐）；功能对齐 v0.7.1：
-   树勾选（全勾/单勾，勾 2-4 禁用）+进度+日志三态着色+结果树+FAIL 复制+取消+关闭确认（网页内弹层）+浏览器看报告 */
+   树勾选（全勾/单勾，勾 2-4 禁用）+进度+日志三态着色+结果树+FAIL 复制+取消+关闭确认（网页内弹层）
+   v0.9.1 新增：小白/专家双视图一键切换（小白=大字大按钮+藏原始证据与命令行；专家=v0.9 全量原样；
+   版本串收敛 APP_VERSION 常量——v0.9 坑③计时器硬编码版本盖静态页脚的根治） */
+
+const APP_VERSION = 'v0.9.1';
 
 const $ = (s) => document.querySelector(s);
 
@@ -22,6 +26,7 @@ const S = {
   repairActions: null,   // v0.8.1 /api/repair/list 缓存（null=还没拿到）
   repairBusy: false,     // 本地镜像：修复进行中（禁其他修复/按钮态）
   repairDoneIds: {},     // 已执行过的动作 id → 结果（防重复渲染）
+  lastNode: null,        // v0.9.1 结果树最后选中节点（切视图模式后重放渲染）
 };
 
 const STATUS_WORD = { PASS: '✓ 正常', FAIL: '✗ 有问题', SKIP: '– 没查成' };
@@ -316,12 +321,12 @@ function startElapsed() {
     const s = Math.floor((Date.now() - S.runStartAt) / 1000);
     const mm = String(Math.floor(s / 60)).padStart(2, '0');
     const ss = String(s % 60).padStart(2, '0');
-    $('#status-right').textContent = 'diag v0.9 · 用时 ' + mm + ':' + ss;
+    $('#status-right').textContent = 'diag ' + APP_VERSION + ' · 用时 ' + mm + ':' + ss;
   }, 1000);
 }
 function stopElapsed() {
   if (S.elapsedTimer) { clearInterval(S.elapsedTimer); S.elapsedTimer = null; }
-  $('#status-right').textContent = 'diag v0.9';
+  $('#status-right').textContent = 'diag ' + APP_VERSION;
 }
 
 /* ---------- 报告与结果树（数据源=/api/report → engine JSON 报告，B 案） ---------- */
@@ -437,6 +442,7 @@ function buildLayerNode(t, l, idx) {
 function selectNode(node) {
   const tag = node.__data;
   if (!tag) return;
+  S.lastNode = node;
   const title = $('#sel-title');
   const ev = $('#ev-box');
   const sug = $('#sug-box');
@@ -446,6 +452,11 @@ function selectNode(node) {
   copyBtn.textContent = '复制修复方法';
   ev.textContent = '';
   sug.textContent = '';
+  // 小白模式只藏 check 型的原始证据（层/树/总结论的本就用人话写，对小白有用）；
+  // 切模式后经 applyMode 重放本函数刷新显隐
+  const rawOff = document.documentElement.dataset.mode === 'novice' && tag.type === 'check';
+  $('#ev-label').classList.toggle('raw-off', rawOff);
+  ev.classList.toggle('raw-off', rawOff);
   if (tag.type === 'check') {
     const c = tag.data;
     title.textContent = c.name + '  ' + statusWord(c.status);
@@ -989,6 +1000,25 @@ function initTheme() {
   $('#theme-done').addEventListener('click', () => $('#theme-overlay').classList.add('hidden'));
 }
 
+/* ---------- 视图模式（v0.9.1：小白/专家一键切换；默认小白；localStorage 记住；
+   显隐与字号全在 CSS（html[data-mode]），JS 只管状态与 check 型证据显隐重放） ---------- */
+function applyMode(mode) {
+  document.documentElement.dataset.mode = mode;
+  const btn = $('#btn-mode');
+  if (btn) btn.textContent = mode === 'novice' ? '小白视图' : '专家视图';
+  try { localStorage.setItem('diag-mode', mode); } catch (e) {}
+  // 结果中心已有选中节点时按新模式重放（check 型原始证据显隐随模式变）
+  if (S.lastNode) { try { selectNode(S.lastNode); } catch (e) {} }
+}
+function initMode() {
+  let m = 'novice';
+  try { const raw = localStorage.getItem('diag-mode'); if (raw === 'expert' || raw === 'novice') m = raw; } catch (e) {}
+  $('#btn-mode').addEventListener('click', () => {
+    applyMode(document.documentElement.dataset.mode === 'novice' ? 'expert' : 'novice');
+  });
+  applyMode(m);
+}
+
 /* ---------- 工具 ---------- */
 function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1005,6 +1035,7 @@ if (/[?&]probe/.test(location.search)) {
 }
 (async function init() {
   initTheme();
+  initMode();
   try {
     const r = await fetch('/api/meta', { cache: 'no-store' });
     S.meta = await r.json();

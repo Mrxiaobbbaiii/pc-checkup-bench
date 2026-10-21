@@ -1,5 +1,17 @@
 # diag CHANGELOG
 
+## 2026-10-21 v0.9.1 双视图+打磨片（第十四切片；小白/专家一键切换+两条挂账观感修复；engine 判定层零改动）
+
+- **范围与铁律兑现**：改动面=ui/ 三件+server.ps1 版本串两处（头注+$webVersion）；engine/checks/trees/tests 一字未动。改前基线 **152/152 双版本**（工作区干净态直跑，guicheck_tmp/v091-baseline-51.txt / v091-baseline-7.txt）；改后 **152/152 双版本**（v091-final-51.txt / v091-final-7.txt）。红级零触及（本片无任何修复执行路径改动）。
+- **小白/专家双视图（design 第二节 UI 口径落地）**：机制=`<html data-mode="novice|expert">`+右上「小白视图/专家视图」单按钮 toggle+localStorage 记忆（'diag-mode'）；字号显隐全在 CSS 末尾 `[data-mode="novice"]` 覆盖块，**专家模式=本块零覆盖即 v0.9 原样**。小白=16px 级大字（~40 个选择器逐点放大，行高整除配套：.log 24px×312px、pre 24px×240px 防半行切割）+大按钮（btn/btn-primary 15.5px+加 padding）+隐藏两类「命令细节」：①结果中心 check 型原始证据（app.js selectNode 按型挂 .raw-off，层/树/总结论的人话结论照常显示）②修复中心动作卡内嵌命令行；**弹层（黄级三行确认/红级指南）不裁剪=安全知情全量**（程序级验证：小白模式弹层内 .ac-steps display 非 none、三勾+还原点行+确认键默认禁用全在）。默认=小白（用户 1021 首次反馈「网页版字体太小」+diag 目标用户=群友小白双理由）；专家模式字号保持 v0.9 现状未动（嫌小再反馈）。切换时 applyMode 重放 selectNode 刷新证据显隐（S.lastNode 记录最后选中节点）。
+- **版本串收敛（v0.9 坑③根治）**：app.js 顶部 `APP_VERSION='v0.9.1'` 常量，计时器/停表两处引用同一常量，index.html 静态页脚同步 v0.9.1；版本升至 v0.9.1。
+- **打磨①浅色黄徽章对比度**：新增 `--yellow` 变量（dark=#ffd166 现状不动/light=#8a5a00 深琥珀），替换 style.css 全部 4 处硬编码（.safe.yellow 边框+b、.lv-tag.yellow 色+边框、.action-card.lv-yellow 边框）。对比度 WCAG 程序实测：旧值 #ffd166 白底 **1.44:1**（v0.8.1 挂账实锤）→新值白底 **5.93:1**、panel2 底 5.52:1，超 AA 线 4.5:1；深色模式现值 12.07:1 不动。
+- **打磨②窄视口导航断行**：根修=.tab/.icon-btn 加 white-space:nowrap（逐字竖排不可能复发）；≤720px 新断点=顶栏 flex-wrap 两行（第一行品牌+按钮、第二行三页签 flex:1 三等分）。程序级验证 500px 视口：三页签等高（小白 37.8px/专家 34.6px=各自单行）+scrollWidth=innerWidth 零横向溢出，小白/专家双态各截一张。
+- **真跑验收数据**：起 server（-NoBrowser+端口文件）→Edge 环境真跑全面体检 44 秒 35 项，结果中心真实 FAIL 集（net_dns_deadaddr/蓝屏 0x139 系全链/hw_memdiag_history/pf_service_timeouts/dv_network_filters 等 13 项）与历代 CLI 实证一致=判定零改动旁证；修复中心出绿卡（刷新 DNS 缓存）+黄卡（重置 Winsock）真数据渲染。
+- **guicheck 三查（8 图矩阵+程序级验证，flash 视觉岗 8/8 PASS 可验收）**：gc-v091-novice-wizard-dark / novice-results-dark（证据区隐藏）/ expert-results-dark（证据区显示+字号回小）/ expert-repair-light / expert-repair-light-yellow / novice-repair-light-yellow（命令行隐藏对比）/ novice-narrow500 / expert-narrow500 八图；程序级硬证据：小白 ev-box/ev-label display:none、小白卡内 ac-steps display:none、弹层知情全量、窄视口 tabHeights 等高+scrollWidth=500。视觉岗结论=无截断/重叠/断行/对比度问题。
+- **lite v0.9.1 同步**：ui/ 三件+server.ps1 共 4 文件拷进 diag-lite/，BOM 逐验（ps1 带/JS CSS HTML 不带，4/4 OK）+逐字节 diff ALL-IDENTICAL；本片不打 zip（双出口留 v1.0）。
+- **工艺坑（1021 实锤）**：①IAB 自动化环境 tab.close() 不触发 pagehide→sendBeacon 不发，server 走 60 秒无页兜底自杀（~110 秒后实测退出、引擎零残留）——真窗 pagehide 主信号 v0.8 已验不受影响，自动化收尾需预留兜底窗口；②IAB Playwright locator click 3 秒预算内超时（按钮 state 正常）→evaluate 直点 .click() 稳定，等价真实 handler。
+
 ## 2026-10-21 v0.9 黄级+回滚包+还原点片（第十三切片；修复域黄级全链+UI 逐项确认真流程；engine 判定层零改动）
 
 - **范围与铁律兑现**：v0.9=repair/ 黄级 3 动作+执行器回滚包/还原点段+server 黄级放行+ui 逐项确认真流程+测试 152；engine/checks/trees 一字未动。改前基线 **144/144 双版本**（PS5.1 直跑 guicheck_tmp/v09-baseline-51.txt；pwsh7 纯净态=git stash 暂存在途改动+黄级 JSON 移出后取证 v09-baseline-7-clean.txt——首跑被在途黄级 JSON 撞上，rep_schema「只许绿级」闸当场咬住=闸有效实证）；改后 **152/152 双版本**（v09-final-51.txt、v09-final-7.txt，含末轮人话文案修复后复跑）。
