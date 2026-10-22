@@ -64,7 +64,7 @@ if ($markCount -ge 2) {
     $suggestion = "近 5 次开机有 $markCount 次被 Windows 自动标记为慢启动（Warning/Critical=微软官方慢启动判定，不是本工具自定标准）。配合「启动负担层」的自启清单与服务超时证据定位元凶。`n$disablePath"
 } elseif ($avgMs -gt 60000) {
     $status = 'FAIL'
-    $suggestion = "近 5 次开机均值 $([math]::Round($avgMs / 1000)) 秒，超过 60 秒工程线。配合「启动负担层」证据定位：自启过多/服务超时/磁盘 IO 是三大常客。`n$disablePath"
+    $suggestion = "近 5 次开机均值 $([math]::Round($avgMs / 1000)) 秒，超过 60 秒警戒线。配合「启动负担层」证据定位：自启过多/服务超时/磁盘 IO 是三大常客。`n$disablePath"
 } elseif ($avgMs -ge 30000) {
     $status = 'PASS'
     $evidence = "$evidence`n偏慢（均值 $([math]::Round($avgMs / 1000)) 秒，30-60 秒区间），配合启动负担层看"

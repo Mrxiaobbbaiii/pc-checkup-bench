@@ -1,0 +1,20 @@
+{
+  "id": "bs_sfc_dism",
+  "name": "系统组件修复",
+  "level": "red",
+  "desc": "让 Windows 给自己做个大修。系统文件相当于电脑的内脏零件，蓝屏反反复复，常常是有些零件坏了或被改坏了。这招让电脑自己找出坏零件，从微软官方下载原装好件换上。适合：蓝屏反复出现、又查不出具体原因时的通用大招。",
+  "affect": "只换系统自己的官方零件，你的照片、聊天记录、软件一律不碰。修复中可能需要联网下载官方零件。全程约 15-40 分钟，期间电脑能用，但别打游戏剪视频。",
+  "undo": "不用反悔——它只会把坏的换成好的，不会改坏东西。万一修完反而冒出新毛病，用「系统还原」退回修之前的状态就行。",
+  "requires_admin": true,
+  "prechecks": [],
+  "steps": [
+    { "exe": "dism.exe", "args": ["/Online", "/Cleanup-Image", "/ScanHealth"], "desc": "第 1 步：右键屏幕左下角「开始」按钮→点「终端(管理员)」→粘贴此命令回车。给零件库做深度体检，约 5-15 分钟。" },
+    { "exe": "dism.exe", "args": ["/Online", "/Cleanup-Image", "/RestoreHealth"], "desc": "第 2 步：接着粘贴此命令回车。真修：坏件换原装件，约 10-20 分钟，进度到 100% 完事。" },
+    { "exe": "sfc.exe", "args": ["/scannow"], "desc": "第 3 步：最后粘贴此命令回车做整体复检，约 5-10 分钟。跑完按屏幕提示重启电脑。" }
+  ],
+  "rollback": [],
+  "rollback_note": "不用回滚：不会改坏东西；万一异常用「系统还原」退回修之前的状态",
+  "timeout_sec": 120,
+  "match_checks": ["bs_event_history", "bs_minidump_inventory", "bs_code_frequency", "bs_powerloss_distinction", "bs_whea_hardware", "bs_suspect_drivers"],
+  "verify_checks": []
+}

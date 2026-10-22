@@ -26,8 +26,8 @@ $suggestion = switch ($v.mode) {
     }
     'nxdomain' {
         "默认 DNS 回答 qq.com 不存在——qq.com 必然存在，这是 DNS 劫持/污染或 DNS 缓存投毒的特征。`n" +
-        "【修复命令，请自己执行】ipconfig /flushdns（先清缓存试试）`n" +
-        "【仍不行则换 DNS】netsh interface ip set dns `"<网卡名>`" static 223.5.5.5`n" +
+        "【先试无风险的】ipconfig /flushdns（清掉 DNS 缓存再试，无副作用）`n" +
+        "【修复命令，请自己执行】netsh interface ip set dns `"<网卡名>`" static 223.5.5.5（阿里公共 DNS）`n" +
         "【回滚】netsh interface ip set dns `"<网卡名>`" dhcp（或 static <原DNS>）"
     }
     'refused' {

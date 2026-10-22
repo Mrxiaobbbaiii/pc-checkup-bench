@@ -18,3 +18,6 @@ ui/brand.png
 diag-lite/ui/brand.png
 ui/bg-light.jpg
 diag-lite/ui/bg-light.jpg
+# 版权 brand.png 派生的 favicon（同 brand 不入库待遇）
+ui/favicon.png
+diag-lite/ui/favicon.png

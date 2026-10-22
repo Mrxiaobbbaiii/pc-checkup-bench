@@ -90,11 +90,11 @@ if ($old.Count -ge 5) {
     $status = 'FAIL'
     $list = ($old | ForEach-Object { Format-OldLine $_ }) -join "`n"
     $evidence = "$cmdTag`n共 $($old.Count) 个古董驱动在跑（扫描 $($items.Count) 个运行中驱动）:$unresLine`n$list"
-    $suggestion = "$($old.Count) 个 Win10 发布（2015-07）之前的驱动还在 2026 年系统上跑=兼容性地雷（蓝屏高发源）。网卡/声卡类走厂商官网或 Windows Update→可选更新 拿新版驱动；点名清单按文件名搜所属软件定位设备。`n【修复命令，请自己执行】无（设备管理器→对应设备→更新驱动程序）`n【回滚】设备管理器→驱动程序→回退驱动程序（或重装原版）"
+    $suggestion = "$($old.Count) 个 Win10 发布（2015-07）之前的驱动还在如今的系统上跑=兼容性地雷（蓝屏高发源）。网卡/声卡类走厂商官网或 Windows Update→可选更新 拿新版驱动；点名清单按文件名搜所属软件定位设备。`n【修复命令，请自己执行】无（设备管理器→对应设备→更新驱动程序）`n【回滚】设备管理器→驱动程序→回退驱动程序（或重装原版）"
 } elseif ($old.Count -ge 1) {
     $status = 'PASS'
     $list = ($old | ForEach-Object { Format-OldLine $_ }) -join "`n"
-    $evidence = "$cmdTag`n$($old.Count) 个年代久远驱动点名（扫描 $($items.Count) 个运行中驱动，未达 5 个工程线）:$unresLine`n$list"
+    $evidence = "$cmdTag`n$($old.Count) 个年代久远驱动点名（扫描 $($items.Count) 个运行中驱动，未达 5 个警戒线）:$unresLine`n$list"
     $suggestion = ''
 } else {
     $status = 'PASS'

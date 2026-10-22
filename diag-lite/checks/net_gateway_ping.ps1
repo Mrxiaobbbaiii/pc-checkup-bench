@@ -57,12 +57,13 @@ if ($gws.Count -eq 0) {
 $evidence = "[route print -4 / ping -n 1 -w 2000 <gw>]`n" + (($results | ForEach-Object { "{0} -> {1}  ({2})" -f $_.gateway, $(if ($_.reachable) { 'OK' } else { 'DEAD' }), $_.pingLine }) -join "`n")
 
 $suggestion = if ($status -eq 'FAIL') {
-    "默认网关 ping 不通：电脑到路由器这段断了。WiFi 场景先看信号格数/重连一次；有线场景换网线/换口。`n" +
-    "路由器若死机：断电 30 秒重启。`n" +
-    "【修复命令，请自己执行】无（本项修复是物理操作或重启路由器，无系统命令）`n" +
-    "【回滚】不适用"
+    "默认网关 ping 不通：电脑到路由器这段可能断了（WiFi 信号/网线/路由器死机）。`n" +
+    "注意：部分路由器会禁 ping（微软官方文档口径），ping 不通不一定是断网——先交叉验证：`n" +
+    "【先试无风险的】nslookup qq.com <网关IP>（能解析出地址=网关活着，本项结论不算数）`n" +
+    "【修复命令，请自己执行】WiFi 看信号重连；有线换网线/换口；路由器断电 30 秒重启。`n" +
+    "【回滚】不适用（物理操作）"
 } elseif (@($results | Where-Object { -not $_.reachable }).Count -gt 0) {
-    "部分网关不可达（见证据），存在可用网关，配合 net_gateway_conflict 的结论看是否清理死路由。"
+    "多网关环境：有一条网关活着=能正常上网；另一条没响应的记在证据备注里，暂不用管。"
 } else { '' }
 
 [PSCustomObject]@{

@@ -483,8 +483,8 @@ TZ_0 | -5.0
 10-17 | Information | 38900
 10-16 | Information | 44500
 '@ },
-    @{ check = 'pf_boot_duration'; note = '无Warning但均值75s(超60s工程线)'
-       expectStatus = 'FAIL'; expectEvidenceKeyword = '75000ms'; expectSuggestionKeyword = '工程线'
+    @{ check = 'pf_boot_duration'; note = '无Warning但均值75s(超60s警戒线)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '75000ms'; expectSuggestionKeyword = '警戒线'
        mock = @'
 10-20 | Information | 78000
 10-19 | Information | 72000

@@ -1,0 +1,31 @@
+{
+  "id": "prn_queue_clean",
+  "name": "清空打印队列",
+  "level": "yellow",
+  "desc": "把卡在打印列表里发不出去的任务全部清掉并重启打印服务。适合：文档卡在队列删不掉、打印机一直「正在打印」却没反应。",
+  "affect": "队列里所有等待中的任务会被清掉（办公共用打印机请先打招呼）；已打完的不受影响；打印机设置不动。",
+  "undo": "工具先把队列文件备份进回滚包；清掉的任务重新打印一次即可，一般无需还原。",
+  "requires_admin": true,
+  "restore_point": true,
+  "common": true,
+  "prechecks": [],
+  "backup_steps": [
+    { "exe": "net.exe", "args": ["stop", "spooler"], "desc": "停打印服务，解锁队列文件" },
+    { "exe": "cmd.exe", "args": ["/c", "copy /y \"%systemroot%\\System32\\spool\\PRINTERS\\*\" \"{BK}\\\""], "desc": "把队列文件备份进回滚包" }
+  ],
+  "undo_script": [
+    "copy /y \"{BK}\\*\" \"%systemroot%\\System32\\spool\\PRINTERS\\\"",
+    "net start spooler"
+  ],
+  "steps": [
+    { "exe": "cmd.exe", "args": ["/c", "del /q \"%systemroot%\\System32\\spool\\PRINTERS\\*\""], "desc": "清空队列文件" },
+    { "exe": "net.exe", "args": ["start", "spooler"], "desc": "把打印服务重新启动" }
+  ],
+  "rollback": [
+    { "exe": "net.exe", "args": ["start", "spooler"], "desc": "中止时把打印服务启回来" }
+  ],
+  "rollback_note": "撤销=管理员运行回滚包里的 undo-prn_queue_clean.bat（把备份的队列文件拷回并启动打印服务）",
+  "timeout_sec": 60,
+  "match_checks": [],
+  "verify_checks": []
+}

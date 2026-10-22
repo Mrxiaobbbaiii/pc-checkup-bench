@@ -48,7 +48,7 @@ if ($records.Count -eq 0) {
 } else {
     $status = 'FAIL'
     $evidence = $cmdTag + "`n" + (($records | ForEach-Object { '{0} | {1} | {2}' -f $_.time, $_.code, $_.dump }) -join "`n")
-    $suggestion = "近 90 天有 $($records.Count) 次真蓝屏（WER 1001 记录，日期/蓝屏码/dump 明细见证据）。蓝屏码含义与「同码复发=慢性病」判断看下一层 bs_code_frequency（对照 checks/bugcheck_codes.json 码书翻译）。`n【修复命令，请自己执行】无即时命令——先看归因层结论再动手（驱动/硬件方向修法完全不同）。`n【回滚】不适用（本项只读取证）"
+    $suggestion = "近 90 天有 $($records.Count) 次真蓝屏（WER 1001 记录——WER 是 Windows 的错误上报机制，日期/蓝屏码/dump 明细见证据）。蓝屏码什么含义、是不是「同码复发=慢性病」，看下一层「蓝屏码频次」（自带常见蓝屏码的人话翻译）。`n【修复命令，请自己执行】无即时命令——先看归因层结论再动手（驱动/硬件方向修法完全不同）。`n【回滚】不适用（本项只读取证）"
 }
 
 [PSCustomObject]@{

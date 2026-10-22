@@ -106,7 +106,7 @@ if ($filters.Count -ge 3) {
         if ($lb) { $line = "$line <- $lb" }
         $line
     }) -join "`n"
-    $evidence = "$cmdTag`n第三方过滤 $($filters.Count) 层（未达 3 层工程线）$msLine`n$fLines"
+    $evidence = "$cmdTag`n第三方过滤 $($filters.Count) 层（未达 3 层警戒线）$msLine`n$fLines"
     $suggestion = ''
 } else {
     $status = 'PASS'

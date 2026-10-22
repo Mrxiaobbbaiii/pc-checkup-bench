@@ -1,0 +1,33 @@
+{
+  "id": "upd_cache_clean",
+  "name": "清系统更新缓存",
+  "level": "yellow",
+  "desc": "清掉 Windows 更新已下载的安装包缓存并重启更新服务。适合：更新卡在下载或安装、反复报错、C 盘被更新缓存占了好几个 GB。",
+  "affect": "已下载未安装的更新包会被删（系统自动重新下载）；不影响已装更新；期间更新暂停几分钟；不碰你的文件。",
+  "undo": "不用撤销——缓存会自动重新下载；工具先备份缓存文件清单备查。",
+  "requires_admin": true,
+  "restore_point": true,
+  "common": true,
+  "prechecks": [],
+  "backup_steps": [
+    { "exe": "net.exe", "args": ["stop", "wuauserv"], "desc": "停 Windows 更新服务" },
+    { "exe": "net.exe", "args": ["stop", "bits"], "desc": "停后台传输服务，解锁缓存文件" },
+    { "exe": "cmd.exe", "args": ["/c", "dir /s /b \"%systemroot%\\SoftwareDistribution\\Download\" > \"{BK}\\cache-list.txt\" 2>&1"], "desc": "把缓存文件清单存进回滚包备查" }
+  ],
+  "undo_script": [
+    "echo No restore needed: Windows re-downloads the update cache automatically. (cached file list saved at {BK}\\cache-list.txt)"
+  ],
+  "steps": [
+    { "exe": "cmd.exe", "args": ["/c", "del /q /f /s \"%systemroot%\\SoftwareDistribution\\Download\\*\""], "desc": "清空更新下载缓存" },
+    { "exe": "net.exe", "args": ["start", "bits"], "desc": "重启后台传输服务" },
+    { "exe": "net.exe", "args": ["start", "wuauserv"], "desc": "重启 Windows 更新服务" }
+  ],
+  "rollback": [
+    { "exe": "net.exe", "args": ["start", "bits"], "desc": "中止时重启后台传输服务" },
+    { "exe": "net.exe", "args": ["start", "wuauserv"], "desc": "中止时重启 Windows 更新服务" }
+  ],
+  "rollback_note": "无需还原：缓存由系统自动重新下载；重下前的缓存文件清单已存进回滚包（cache-list.txt）备查",
+  "timeout_sec": 120,
+  "match_checks": [],
+  "verify_checks": []
+}

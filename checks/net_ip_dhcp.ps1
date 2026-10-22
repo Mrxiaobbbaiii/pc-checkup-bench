@@ -51,11 +51,11 @@ $evidenceLines += foreach ($b in $bad) { "BAD $b" }
 $evidence = "[netsh interface ip show config]`n" + ($evidenceLines -join "`n")
 
 $suggestion = if ($status -eq 'FAIL') {
-    "所有活动网卡都只拿到 169.254.* 自分配地址（或没有地址）：DHCP 没人应答，通常是没连上路由器，或路由器 DHCP 挂了。`n" +
+    "所有活动网卡都只拿到 169.254.* 自分配地址（或没有地址）：DHCP（自动给电脑分 IP 地址的服务）没人应答，通常是没连上路由器，或路由器 DHCP 挂了。`n" +
     "【修复命令，请自己执行】ipconfig /release 然后执行 ipconfig /renew`n" +
     "【回滚】无需回滚（release/renew 只重新要地址，不改配置）；若之前是手动 IP，用原参数 netsh interface ip set address 加回"
 } elseif ($bad.Count -gt 0) {
-    "存在异常网卡（见证据 BAD 行），但有正常网卡可用，不是当前断点。"
+    "有正常网卡可用=不是当前断点；异常网卡的记录在证据里备用，现在不用动。"
 } else { '' }
 
 [PSCustomObject]@{

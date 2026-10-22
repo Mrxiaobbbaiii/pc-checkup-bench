@@ -18,6 +18,14 @@ diag 修复域用例（v0.9 第十三切片；四断言=命令序列/回滚序�
   - rep_y_perm            ：黄级直跑路径 net session（非提权=失败+自动回滚/提权=成功）→ 权限负例断言
   - rep_y_rpfail          ：黄级+还原点请求（非提权=还原点建不成中止零副作用/提权=建点后照跑）→ 还原点负例断言
   - rep_y_winsock / rep_y_tcpip / rep_y_tcp ：三个真实黄级动作 NeverElevate 挡下（预检挡下零副作用+回滚包不生成）
+v0.9.8 扩库 5 动作（库 8→13，全部 common=true=常用修复）：
+  - rep_r_time_sync / rep_y_prn_queue / rep_y_upd_cache / rep_y_pwr_reset
+                            ：4 条真动作 forceNever 挡下（预检挡下零副作用，真跑留给真机演练）
+  - rep_g_icon_refresh      ：ui_icon_refresh 真跑断言——requires_admin=false，NeverElevate 拦不住
+                            （repair.ps1 只拦需提权动作），动作零破坏性（只刷图标显示缓存）
+  - rep_schema 升级         ：数线 13+白名单 +5 exe（w32tm/ie4uinit/net/powercfg/cmd）+cmd.exe 步 /c 前缀
+                            +「match_checks 为空须 common=true」+备份段至少一步把产物写进 {BK}（停服务等
+                            解锁步天然无 {BK}，原每步须含 {BK} 断言对扩库动作不可达，放宽为汇总断言）
 黄级 fixture 走 requires_admin=true 的提权内层路径（requireSilent：不可静默提权的机器自动转 NeverElevate，双语境确定性）。
 真实动作跑在临时仓副本（checks/ 拷贝、reports/ 独立），主仓 reports/ 零污染。
 #>
@@ -266,39 +274,56 @@ $global:DiagRepairCases = @(
             $actionsDir = Join-Path $root 'repair\actions'
             $checksNames = @(Get-ChildItem -LiteralPath (Join-Path $root 'checks') -File -Filter '*.ps1' | ForEach-Object { $_.BaseName })
             $jsons = @(Get-ChildItem -LiteralPath $actionsDir -File -Filter '*.json')
-            if ($jsons.Count -lt 6) { $bad += "actions count $($jsons.Count) < 6 (green 3 + yellow 3 ruled)" }
+            if ($jsons.Count -lt 13) { $bad += "actions count $($jsons.Count) < 13 (green 5 + yellow 6 + red 2 ruled)" }
             $seenIds = @{}
-            $exeAllow = @('ipconfig.exe', 'arp.exe', 'nbtstat.exe', 'netsh.exe', 'reg.exe')
+            $exeAllow = @('ipconfig.exe', 'arp.exe', 'nbtstat.exe', 'netsh.exe', 'reg.exe', 'w32tm.exe', 'ie4uinit.exe', 'net.exe', 'powercfg.exe', 'cmd.exe')
+            $exeAllowRed = @('sfc.exe', 'dism.exe', 'notepad.exe', 'ipconfig.exe')
             foreach ($jf in $jsons) {
                 $a = $null
                 try { $a = Get-Content -LiteralPath $jf.FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $bad += "unparsable: $($jf.Name)"; continue }
                 if ([string]$a.id -ne $jf.BaseName) { $bad += "id/file mismatch: $($jf.Name)" }
                 $lvl = [string]$a.level
-                if (@('green', 'yellow') -notcontains $lvl) { $bad += "level not green/yellow (red never ships): $($jf.Name)" }
+                if (@('green', 'yellow', 'red') -notcontains $lvl) { $bad += "level not green/yellow/red: $($jf.Name)" }
                 if ($seenIds[[string]$a.id]) { $bad += "duplicate id: $($a.id)" }
                 $seenIds[[string]$a.id] = $true
                 foreach ($mc in @($a.match_checks)) { if ($checksNames -notcontains [string]$mc) { $bad += "match_check not a real check: $mc" } }
                 foreach ($vc in @($a.verify_checks)) { if ($checksNames -notcontains [string]$vc) { $bad += "verify_check not a real check: $vc" } }
+                # v0.9.8：match_checks 为空的动作必须标 common=true（防「永不出现」的死动作）
+                if (-not @($a.match_checks).Count -and $a.common -ne $true) { $bad += "match_checks empty requires common=true: $($jf.Name)" }
                 if (@($a.steps).Count -lt 1) { $bad += "no steps: $($jf.Name)" }
+                $lvlAllow = $exeAllow; if ($lvl -eq 'red') { $lvlAllow = $exeAllowRed }
                 foreach ($st in @($a.steps)) {
-                    if ($exeAllow -notcontains [string]$st.exe) { $bad += "exe not in allowlist: $($st.exe)" }
+                    if ($lvlAllow -notcontains [string]$st.exe) { $bad += "exe not in allowlist: $($st.exe)" }
                     if (-not @($st.args).Count) { $bad += "step without args: $($jf.Name)" }
+                    if ([string]$st.exe -eq 'cmd.exe' -and [string]@($st.args)[0] -ne '/c') { $bad += "cmd.exe step must start with /c: $($jf.Name)" }
                 }
                 $ts = [int]$a.timeout_sec
                 if ($ts -lt 5 -or $ts -gt 120) { $bad += "timeout_sec out of 5..120: $($jf.Name)" }
                 if ($null -eq $a.rollback) { $bad += "rollback field missing: $($jf.Name)" }
+                foreach ($st in @($a.rollback)) {
+                    if ([string]$st.exe -eq 'cmd.exe' -and [string]@($st.args)[0] -ne '/c') { $bad += "cmd.exe rollback step must start with /c: $($jf.Name)" }
+                }
                 foreach ($pc in @($a.prechecks)) { if (@('no_static_arp') -notcontains [string]$pc) { $bad += "unknown precheck '$pc': $($jf.Name)" } }
                 foreach ($k in @('name', 'desc', 'affect', 'undo', 'rollback_note')) { if (-not [string]$a.$k) { $bad += "field '$k' empty: $($jf.Name)" } }
+                if ($lvl -eq 'red') {
+                    # 红级=guide-only 永不执行：不许带任何回滚包字段（无执行即无回滚），exe 走红级展示白名单
+                    if ($a.PSObject.Properties['backup_steps']) { $bad += "red with backup_steps: $($jf.Name)" }
+                    if ($a.PSObject.Properties['undo_script']) { $bad += "red with undo_script: $($jf.Name)" }
+                }
                 if ($lvl -eq 'yellow') {
                     # 回滚包契约：备份步+撤销脚本都要有，{BK} 占位符必须在场（撤销=把备份导回去）
                     if (-not @($a.backup_steps).Count) { $bad += "yellow without backup_steps: $($jf.Name)" }
                     else {
                         $nExport = 0
+                        $nBkStep = 0
                         foreach ($bst in @($a.backup_steps)) {
                             if ($exeAllow -notcontains [string]$bst.exe) { $bad += "backup exe not in allowlist: $($bst.exe)" }
-                            if ((@($bst.args) -join ' ') -notmatch '\{BK\}') { $bad += "backup step missing {BK}: $($jf.Name)" }
+                            if ((@($bst.args) -join ' ') -match '\{BK\}') { $nBkStep++ }
+                            if ([string]$bst.exe -eq 'cmd.exe' -and [string]@($bst.args)[0] -ne '/c') { $bad += "cmd.exe backup step must start with /c: $($jf.Name)" }
                             if ([string]$bst.exe -eq 'reg.exe') { $nExport++ }
                         }
+                        # v0.9.8 放宽：停服务等「解锁步」天然不写 {BK}，只要求备份段至少一步把产物写进回滚包
+                        if (-not $nBkStep) { $bad += "backup_steps none writes into {BK} package: $($jf.Name)" }
                         $nImport = 0
                         if (-not @($a.undo_script).Count) { $bad += "yellow without undo_script: $($jf.Name)" }
                         else {
@@ -731,5 +756,52 @@ foreach ($yAct in @(@('rep_y_winsock', 'net_winsock_reset'), @('rep_y_tcpip', 'n
             if (-not $log -or $log.ok -ne $false) { $bad += 'repair-log should record blocked run' }
             return $bad
         }
+    }
+}
+
+# ---- v0.9.8 扩库 5 动作：4 条 forceNever（预检挡下零副作用，真跑只在真机演练）----
+#      sys_time_sync 真跑会动系统时钟，黄 3 条绝不真跑——同 rep_y_winsock 断言模板
+foreach ($xAct in @(
+        @('rep_r_time_sync', 'sys_time_sync', $false),
+        @('rep_y_prn_queue', 'prn_queue_clean', $true),
+        @('rep_y_upd_cache', 'upd_cache_clean', $true),
+        @('rep_y_pwr_reset', 'pwr_plan_reset', $true))) {
+    $global:DiagRepairCases += @{
+        name = $xAct[0]
+        kind = 'real'
+        actionId = $xAct[1]
+        forceNever = $true
+        extraArgs = $(if ($xAct[2]) { @('-AllowYellow') } else { @() })
+        assert = {
+            param($res, $ctx)
+            $bad = @()
+            if ($res.ok -ne $false) { $bad += "expect ok=false (never really run in tests) got $($res.ok)"; return $bad }
+            if ([string]$res.fail_stage -ne 'precheck') { $bad += "expect fail_stage=precheck got $($res.fail_stage)" }
+            $notes = (@($res.stages.precheck.notes) -join '；')
+            if ($notes -notmatch '管理员') { $bad += "precheck note should mention admin: $notes" }
+            if (@($res.stages.exec.steps).Count -ne 0) { $bad += 'steps ran despite NeverElevate' }
+            if (Test-Path -LiteralPath (Join-Path $ctx.TmpRoot 'reports\rollback')) { $bad += 'rollback dir created despite precheck block' }
+            $log = Get-LastRepairLog $ctx.TmpRoot
+            if (-not $log -or $log.ok -ne $false) { $bad += 'repair-log should record blocked run' }
+            return $bad
+        }
+    }
+}
+
+# ---- v0.9.8 ui_icon_refresh：真跑断言（施工单「一律 forceNever」对本动作不可达：
+#      requires_admin=false，NeverElevate 只拦需提权动作；动作本身零破坏性=只刷图标显示缓存） ----
+$global:DiagRepairCases += @{
+    name = 'rep_g_icon_refresh'
+    kind = 'real'
+    actionId = 'ui_icon_refresh'
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        if ($res.ok -ne $true) { $bad += "expect ok=true got $($res.ok) (human=$($res.human) fail=$($res.fail_stage))"; return $bad }
+        $steps = @($res.stages.exec.steps)
+        if ($steps.Count -ne 1 -or [int]$steps[0].exit -ne 0) { $bad += 'icon refresh step not clean' }
+        $log = Get-LastRepairLog $ctx.TmpRoot
+        if (-not $log -or $log.ok -ne $true) { $bad += 'repair-log line missing/wrong' }
+        return $bad
     }
 }

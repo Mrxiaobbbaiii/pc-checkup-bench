@@ -97,7 +97,7 @@ $msLine = "微软自带 $msCount 个"
 if ($thirdParty -gt 30) {
     $status = 'FAIL'
     $evidence = "$cmdTag`n非微软在跑驱动 $thirdParty 个（共 $($rows.Count) 个运行中，$msLine）`n$coTable"
-    $suggestion = "第三方驱动体量 $thirdParty 个，超过 30 个工程线——全家桶/加速器/卸载残留的虚拟设备一层层叠出来的，驱动越多冲突面越大（断网/卡顿/蓝屏隐患）。按公司名对号：认识且在用的留着，卸载残留/早就不用的软件去 设置→应用 卸载对应全家桶。`n【修复命令，请自己执行】无（设置→应用 对照卸载）`n【回滚】需要时重新安装该软件"
+    $suggestion = "第三方驱动体量 $thirdParty 个，超过 30 条警戒线——全家桶/加速器/卸载残留的虚拟设备一层层叠出来的，驱动越多冲突面越大（断网/卡顿/蓝屏隐患）。按公司名对号：认识且在用的留着，卸载残留/早就不用的软件去 设置→应用 卸载对应全家桶。`n【修复命令，请自己执行】无（设置→应用 对照卸载）`n【回滚】需要时重新安装该软件"
 } elseif ($thirdParty -ge 15) {
     $status = 'PASS'
     $evidence = "$cmdTag`n非微软在跑驱动 $thirdParty 个（$msLine）——偏厚，卸载软件时对照`n$coTable"

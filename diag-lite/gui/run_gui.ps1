@@ -40,7 +40,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $engineScript = Join-Path $root 'engine\run.ps1'
 $reportsDir = Join-Path $root 'reports'
-$guiVersion = 'v0.7.1'
+$guiVersion = 'v1.0'
 $diagPs = (Get-Process -Id $PID).Path
 
 # ---------- 树知识（GUI 启动时只读 trees/*.yaml 数 checks，不自算判定） ----------
@@ -81,7 +81,7 @@ function Get-ExitHuman([int]$code) {
 $xamlText = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="diag 电脑体检台" Height="660" Width="920" MinWidth="840" MinHeight="580"
+        Title="电脑体检台" Height="660" Width="920" MinWidth="840" MinHeight="580"
         WindowStartupLocation="CenterScreen"
         Background="#0F3D66" Foreground="#F8FAFC"
         FontFamily="Microsoft YaHei UI" FontSize="13">
@@ -192,7 +192,7 @@ $xamlText = @'
     <!-- 底部：状态栏 -->
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Panel}" CornerRadius="8" Padding="12,6" Margin="0,8,0,0">
       <DockPanel>
-        <TextBlock x:Name="statusRight" Text="diag v0.7.1" Foreground="{StaticResource Skip}" FontSize="12" Margin="12,0,0,0"/>
+        <TextBlock x:Name="statusRight" Text="diag v1.0" Foreground="{StaticResource Skip}" FontSize="12" Margin="12,0,0,0"/>
         <TextBlock x:Name="statusLeft" Text="就绪" Foreground="{StaticResource Dim}" FontSize="12.5"/>
       </DockPanel>
     </Border>
@@ -362,7 +362,7 @@ foreach ($t in $menuOrder) {
 # ---------- 跑批启动（engine 子进程：-TreeName <名|all> [-Full] -NoMenu -ProgressFile -JsonReport） ----------
 function Start-Run {
     if (-not (Test-Path $engineScript)) {
-        [void][System.Windows.MessageBox]::Show($win, "找不到程序文件：$engineScript", 'diag 电脑体检台', 'OK', 'Error')
+        [void][System.Windows.MessageBox]::Show($win, "找不到程序文件：$engineScript", '电脑体检台', 'OK', 'Error')
         return
     }
     $formSel = Get-SelectionForm

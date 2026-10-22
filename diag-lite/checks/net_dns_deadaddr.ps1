@@ -68,7 +68,7 @@ $evidence = "[netsh interface ip show dns / show config]`n" +
 
 $suggestion = if ($status -eq 'FAIL') {
     $deadList = ($dead.dns | Select-Object -Unique) -join ' / '
-    "发现死地址嫌疑 DNS：$deadList（私有地址但不属于任何活动网卡网段——大概率是旧路由器/旧网段的残留地址，指向它的解析会全部超时）。`n" +
+    "发现死地址嫌疑 DNS：$deadList（私有地址但不属于任何活动网卡网段——大概率是旧路由器/旧网段的残留地址，指向它的解析会全部超时）。下面的命令把 DNS 改成阿里公共 DNS（223.5.5.5）。`n" +
     "【修复命令，请自己执行】netsh interface ip set dns `"<网卡名>`" static 223.5.5.5`n" +
     "【回滚】netsh interface ip set dns `"<网卡名>`" dhcp（若原来是 DHCP 自动获取）或 netsh interface ip set dns `"<网卡名>`" static <原DNS>"
 } else { '' }

@@ -20,10 +20,10 @@ $status = if ($v.ok) { 'PASS' } elseif ($v.mode -eq 'unknown') { 'SKIP' } else {
 $evidence = "[$cmd]`n" + $v.keyLine
 
 $suggestion = if ($status -eq 'FAIL') {
-    "公共 DNS 223.5.5.5 也解析不了：" + $(if ($v.mode -eq 'timeout') { "应答超时——若公网 ping 是通的，多半是 UDP 53 被拦截或运营商问题。" } else { "失败模式=$($v.mode)。" }) + "`n" +
+    "公共 DNS 223.5.5.5 也解析不了：" + $(if ($v.mode -eq 'timeout') { "应答超时——若公网 ping 是通的，多半是 DNS 查询用的 UDP 53 端口被拦截或运营商问题。" } else { "失败模式=$($v.mode)。" }) + "`n" +
     "可再试备用公共 DNS：`n" +
-    "【修复命令，请自己执行】nslookup qq.com 119.29.29.29（腾讯DNS，验证是否单点故障）`n" +
-    "【仍失败且网关通】联系运营商报修；【仅 223 失败】netsh interface ip set dns `"<网卡名>`" static 119.29.29.29`n" +
+    "【先试无风险的】nslookup qq.com 119.29.29.29（腾讯公共 DNS，验证是不是单点故障）`n" +
+    "【修复命令，请自己执行】netsh interface ip set dns `"<网卡名>`" static 119.29.29.29（仅 223 这一家不通时换；两家都不通但网关通=联系运营商报修）`n" +
     "【回滚】netsh interface ip set dns `"<网卡名>`" dhcp（或 static <原DNS>）"
 } else { '' }
 

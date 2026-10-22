@@ -93,7 +93,7 @@ if ($hits.Count -ge 1) {
             $fixPart = $h.advice.Substring(0, $idx).TrimEnd('。，； ')
             $rbPart = $h.advice.Substring($idx + 3).Trim()
         }
-        $parts += "自启项命中嫌疑名单：$($h.label)（pattern=$($h.pattern)）。`n【修复命令，请自己执行】$fixPart`n【回滚】$rbPart"
+        $parts += "自启项命中嫌疑名单：$($h.label)。`n【修复命令，请自己执行】$fixPart`n【回滚】$rbPart"
     }
     if ($overload) { $parts += "另：自启总数 $($cmds.Count) 项超过 20 项负担线，全清单见证据。逐个识别，不认识的不急着自己动，对照任务管理器→启动应用页。" }
     $suggestion = $parts -join "`n"

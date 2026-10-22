@@ -65,10 +65,10 @@ $warnOthers = @($disks | Where-Object { -not $_.isSys -and $_.pct -lt 10 -and $_
 if ($sys -and ($sys.pct -lt 10 -or $sys.freeGB -lt 20)) {
     $status = 'FAIL'
     $evidence = "$cmdTag`n$table"
-    $suggestion = "系统盘只剩 $($sys.freeGB)GB（$($sys.pct)%）——磁盘将满是固态掉速、系统更新失败的元凶（工程线：剩余 10% 或 20GB 任一触线）。`n【修复命令，请自己执行】无（手动操作：设置→系统→存储→清理建议 清理；再打开「存储感知」自动清理临时文件；大文件自行搬到非系统盘）`n【回滚】不适用（清理动作均系统自带、可重复执行）"
+    $suggestion = "系统盘只剩 $($sys.freeGB)GB（$($sys.pct)%）——磁盘将满是固态掉速、系统更新失败的元凶（警戒线：剩余 10% 或 20GB 任一触线）。`n【修复命令，请自己执行】无（手动操作：设置→系统→存储→清理建议 清理；再打开「存储感知」自动清理临时文件；大文件自行搬到非系统盘）`n【回滚】不适用（清理动作均系统自带、可重复执行）"
 } elseif ($sys -and $sys.pct -lt 15) {
     $status = 'PASS'
-    $evidence = "$cmdTag`n$table`n系统盘偏紧（$($sys.pct)%，10-15% 区间），接近掉速工程线"
+    $evidence = "$cmdTag`n$table`n系统盘偏紧（$($sys.pct)%，10-15% 区间），接近掉速警戒线"
     $suggestion = ''
 } else {
     $status = 'PASS'

@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag engine v0.6 —— 推进器（PowerShell 5.1+ / 7 双兼容，群友普及版）
+diag engine v1.0 —— 推进器（PowerShell 5.1+ / 7 双兼容，群友普及版；用户可见自称=「电脑体检台」，版本走 $engVersion 常量）
 用法：powershell -NoProfile -ExecutionPolicy Bypass -File engine\run.ps1 [-TreeName <树名|all>] [-Full] [-MockDir <dir>] [-OpenReport] [-NoMenu] [-ProgressFile <file>] [-JsonReport]
 树可选字段：verdict_title=报告结论标题（缺省"断点结论"）；report_name=报告大标题树名（缺省保持网络树文案，非网络树证据链副标转聚合取证）
   -Full      断点后继续跑完剩余层取证（默认断点即停，后续层 SKIP）
@@ -27,6 +27,7 @@ param(
     [string]$ProgressFile = '',
     [switch]$JsonReport
 )
+$engVersion = '1.0'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -43,7 +44,7 @@ if ($TreeName -eq 'all' -and $MockDir -eq '' -and -not $NoMenu) {
     $picked = ''
     for ($i = 1; $i -le 3; $i++) {
         Write-Host ''
-        Write-Host '================== diag 全面体检 v0.6 =================='
+        Write-Host "================== 电脑体检台 全面体检 v$engVersion =================="
         Write-Host '  回车 = 连跑五树，出一份合并体检报告（推荐，约几分钟）'
         Write-Host '    1 = 网络体检（上不了网 / 网页打不开）'
         Write-Host '    2 = 蓝屏体检（蓝屏过 / 莫名重启）'
@@ -74,7 +75,16 @@ function Write-ProgressEvent {
     foreach ($k in $order) {
         if ($Fields -and $Fields.ContainsKey($k) -and $null -ne $Fields[$k] -and ([string]$Fields[$k] -ne '')) { $o[$k] = $Fields[$k] }
     }
-    Add-Content -LiteralPath $ProgressFile -Value ([string]($o | ConvertTo-Json -Compress)) -Encoding UTF8
+    # 1021 竞态收口：PS5.1 Add-Content 不容忍并发读句柄（GUI/网页壳轮询读进度文件时偶发撞车），
+    # Stop 偏好下单次撞车=引擎中途退出。重试 5 次；全部失败=丢这一条事件（丢事件只影响进度显示，好过整树暴毙）。
+    # 判定与 stdout 零改动（135 基线前后双跑证明）。
+    $written = $false
+    for ($i = 0; $i -lt 5 -and -not $written; $i++) {
+        try {
+            Add-Content -LiteralPath $ProgressFile -Value ([string]($o | ConvertTo-Json -Compress)) -Encoding UTF8
+            $written = $true
+        } catch { Start-Sleep -Milliseconds 40 }
+    }
 }
 
 # ---------- 单检查项执行（子进程+总超时；经 Start-Job 数组传参，规避命令行空格/转义） ----------
@@ -116,7 +126,8 @@ function Get-TreeMeta {
     $verdictTitle = if ($TreeData.PSObject.Properties['verdict_title'] -and $TreeData.verdict_title) { [string]$TreeData.verdict_title } else { '断点结论' }
     $hasReportName = $TreeData.PSObject.Properties['report_name'] -and $TreeData.report_name
     $reportName = if ($hasReportName) { [string]$TreeData.report_name } else { '网络体检报告' }
-    $evidenceNote = if ($hasReportName) { '（按层，聚合取证）' } else { '（按层，从物理到应用）' }
+    $evidenceNote = if ($TreeData.PSObject.Properties['evidence_note'] -and $TreeData.evidence_note) { [string]$TreeData.evidence_note }
+        elseif ($hasReportName) { '（按层，聚合取证）' } else { '（按层，从物理到应用）' }
     $layerCn = @('零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十')
     $layerTotal = @($TreeData.layers).Count
     $layerCnStr = if ($layerTotal -ge 1 -and $layerTotal -le 10) { $layerCn[$layerTotal] } else { [string]$layerTotal }
@@ -191,8 +202,8 @@ function New-TextReport {
     $sym = @{ PASS = '[PASS]'; FAIL = '[FAIL]'; SKIP = '[SKIP]' }
     $sb = New-Object System.Text.StringBuilder
     [void]$sb.AppendLine("======================================================================")
-    [void]$sb.AppendLine("diag $ReportName v0.6   主机: $HostName   时间: $Ts")
-    [void]$sb.AppendLine("探测只读 | 证据必附 | 修复命令请自己执行（附回滚法）")
+    [void]$sb.AppendLine("电脑体检台 · $ReportName  v$engVersion   主机: $HostName   时间: $Ts")
+    [void]$sb.AppendLine("体检全程只读 | 证据必附 | 修法见报告与修复中心（绿色可代跑，红色只给步骤）")
     [void]$sb.AppendLine("======================================================================")
     [void]$sb.AppendLine("")
 
@@ -206,7 +217,7 @@ function New-TextReport {
         [void]$sb.AppendLine("")
         [void]$sb.AppendLine("一句人话：$($BreakLayer.verdict_fail)")
         [void]$sb.AppendLine("")
-        [void]$sb.AppendLine("【修复建议】（命令文本+回滚，请自己动手执行）")
+        [void]$sb.AppendLine("【修复方法】（绿色小修可在修复中心代跑；命令也可复制自己执行，附回滚法）")
         $n = 1
         foreach ($f in $failedChecks) { if ($f.suggestion) { [void]$sb.AppendLine("$n. [$($f.name)]"); [void]$sb.AppendLine("   " + ($f.suggestion -replace "`n", "`n   ")); [void]$sb.AppendLine(""); $n++ } }
     } else {
@@ -219,12 +230,13 @@ function New-TextReport {
 
     [void]$sb.AppendLine("【证据链】$EvidenceNote")
     foreach ($l in $LayerResults) {
-        $mark = switch ($l.state) { 'BREAK' { '▶断点' } 'PASS' { '·通过' } 'SKIPPED-AFTER-BREAK' { '↷跳过(前层断点)' } 'PASSED-EARLIER' { '·通过' } default { '·' } }
+        $mark = switch ($l.state) { 'BREAK' { '▶断点' } 'PASS' { '·通过' } 'SKIPPED-AFTER-BREAK' { '↷未查(前层有问题)' } 'PASSED-EARLIER' { '·通过' } default { '·' } }
         $layerIdx = [array]::IndexOf(@($TreeData.layers | ForEach-Object { $_.name }), $l.name) + 1
         [void]$sb.AppendLine("")
         [void]$sb.AppendLine("--- $mark  第$layerIdx 层: $($l.title) ---")
         if ($l.checks.Count -eq 0) {
-            [void]$sb.AppendLine("    （$($l.state)，未执行检查）")
+            $stateCn = switch ($l.state) { 'SKIPPED-AFTER-BREAK' { '前层有问题，这一层没查' } 'PASSED-EARLIER' { '前面层已全通' } default { [string]$l.state } }
+            [void]$sb.AppendLine("    （$stateCn，未执行检查）")
             continue
         }
         foreach ($c in $l.checks) {
@@ -233,7 +245,7 @@ function New-TextReport {
         }
     }
     [void]$sb.AppendLine("")
-    [void]$sb.AppendLine("报告生成：diag engine v0.6（探测全程只读，未改动任何系统设置）")
+    [void]$sb.AppendLine("报告生成：电脑体检台 v$engVersion（体检全程只读，未改动任何系统设置）")
     return $sb.ToString()
 }
 
@@ -322,7 +334,7 @@ function New-FixCardsHtml {
     $withSug = @($failedChecks | Where-Object { $_.suggestion })
     if ($withSug.Count -lt 1) { return '' }
     $h = New-Object System.Text.StringBuilder
-    [void]$h.AppendLine('<div class="card"><h2 class="sec">【修复建议】（命令文本+回滚，请自己动手执行）</h2>')
+    [void]$h.AppendLine('<div class="card"><h2 class="sec">【修复方法】（绿色小修可在修复中心代跑；命令也可复制自己执行，附回滚法）</h2>')
     $n = 1
     foreach ($f in $withSug) {
         [void]$h.AppendLine('<div class="fix-card"><div class="fix-title">' + $n + '. [' + (Escape-Html $f.name) + ']</div>')
@@ -347,7 +359,7 @@ function New-EvidenceChainHtml {
             'BREAK' { $mark = '▶断点'; $mcls = 'm-fail'; $openAttr = ' open' }
             'PASS' { $mark = '·通过'; $mcls = 'm-pass' }
             'PASSED-EARLIER' { $mark = '·通过'; $mcls = 'm-pass' }
-            'SKIPPED-AFTER-BREAK' { $mark = '↷跳过(前层断点)'; $mcls = 'm-skip' }
+            'SKIPPED-AFTER-BREAK' { $mark = '↷未查(前层有问题)'; $mcls = 'm-skip' }
             default { $mark = '·'; $mcls = 'm-skip' }
         }
         $cPass = @($l.checks | Where-Object { $_.status -eq 'PASS' }).Count
@@ -362,7 +374,8 @@ function New-EvidenceChainHtml {
         [void]$h.AppendLine('<summary><span class="' + $mcls + '">' + $mark + '</span> 第' + $layerIdx + '层: ' + (Escape-Html $l.title) + $cntStr + '</summary>')
         [void]$h.AppendLine('<div class="body">')
         if (@($l.checks).Count -eq 0) {
-            [void]$h.AppendLine('<div class="empty-note">（' + (Escape-Html $l.state) + '，未执行检查）</div>')
+            $stateCn = switch ($l.state) { 'SKIPPED-AFTER-BREAK' { '前层有问题，这一层没查' } 'PASSED-EARLIER' { '前面层已全通' } default { [string]$l.state } }
+            [void]$h.AppendLine('<div class="empty-note">（' + (Escape-Html $stateCn) + '，未执行检查）</div>')
         } else {
             foreach ($c in $l.checks) {
                 $bcls = switch ($c.status) { 'PASS' { 'b-pass' } 'FAIL' { 'b-fail' } default { 'b-skip' } }
@@ -386,14 +399,14 @@ function New-HtmlReport {
     [void]$h.AppendLine('<style>' + $css + '</style></head>')
     [void]$h.AppendLine('<body><div class="wrap">')
     [void]$h.AppendLine('<div class="banner"><h1>' + (Escape-Html $ReportName) + '</h1>')
-    [void]$h.AppendLine('<div class="meta">主机: ' + (Escape-Html $HostName) + ' &middot; ' + (Escape-Html $TimeStamp) + ' &middot; diag engine v0.6</div>')
-    [void]$h.AppendLine('<div class="meta">探测只读 | 证据必附 | 修复命令请自己执行（附回滚法）</div></div>')
+    [void]$h.AppendLine('<div class="meta">主机: ' + (Escape-Html $HostName) + ' &middot; ' + (Escape-Html $TimeStamp) + ' &middot; 电脑体检台 v' + $engVersion + '</div>')
+    [void]$h.AppendLine('<div class="meta">体检全程只读 | 证据必附 | 修法见报告与修复中心（绿色可代跑，红色只给步骤）</div></div>')
     [void]$h.Append((New-VerdictCardHtml -Results $Results -BreakLayer $BreakLayer -TreeData $TreeData -VerdictTitle $VerdictTitle -LayerCnStr $LayerCnStr))
     if ($BreakLayer) {
         [void]$h.Append((New-FixCardsHtml -Results $Results -BreakLayer $BreakLayer))
     }
     [void]$h.Append((New-EvidenceChainHtml -Results $Results -TreeData $TreeData -EvidenceNote $EvidenceNote))
-    [void]$h.AppendLine('<footer>报告生成：diag engine v0.6（探测全程只读，未改动任何系统设置）</footer>')
+    [void]$h.AppendLine('<footer>报告生成：电脑体检台 v' + $engVersion + '（体检全程只读，未改动任何系统设置）</footer>')
     [void]$h.AppendLine('</div></body></html>')
     return $h.ToString()
 }
@@ -409,8 +422,8 @@ function New-MergedHtmlReport {
     [void]$h.AppendLine('<style>' + $css + "`n" + $cssMerge + '</style></head>')
     [void]$h.AppendLine('<body><div class="wrap">')
     [void]$h.AppendLine('<div class="banner"><h1>全面体检报告</h1>')
-    [void]$h.AppendLine('<div class="meta">主机: ' + (Escape-Html $HostName) + ' &middot; ' + (Escape-Html $TimeStamp) + ' &middot; diag engine v0.6</div>')
-    [void]$h.AppendLine('<div class="meta">探测只读 | 证据必附 | 修复命令请自己执行（附回滚法）</div></div>')
+    [void]$h.AppendLine('<div class="meta">主机: ' + (Escape-Html $HostName) + ' &middot; ' + (Escape-Html $TimeStamp) + ' &middot; 电脑体检台 v' + $engVersion + '</div>')
+    [void]$h.AppendLine('<div class="meta">体检全程只读 | 证据必附 | 修法见报告与修复中心（绿色可代跑，红色只给步骤）</div></div>')
     [void]$h.AppendLine('<div class="card"><h2 class="sec">五树总览</h2>')
     [void]$h.AppendLine('<table class="ov"><tr><th>体检树</th><th>结论</th><th>FAIL 项</th></tr>')
     foreach ($o in $Overview) {
@@ -420,7 +433,7 @@ function New-MergedHtmlReport {
     }
     [void]$h.AppendLine('</table></div>')
     foreach ($sec in $SectionHtmls) { [void]$h.Append($sec) }
-    [void]$h.AppendLine('<footer>报告生成：diag engine v0.6（探测全程只读，未改动任何系统设置）</footer>')
+    [void]$h.AppendLine('<footer>报告生成：电脑体检台 v' + $engVersion + '（体检全程只读，未改动任何系统设置）</footer>')
     [void]$h.AppendLine('</div></body></html>')
     return $h.ToString()
 }
@@ -448,16 +461,18 @@ function New-JsonPayload {
             })
         }
     }
-    return [ordered]@{ engine = 'diag v0.6'; host = $HostName; time = $Ts; trees = $trees }
+    return [ordered]@{ engine = "电脑体检台 v$engVersion"; host = $HostName; time = $Ts; trees = $trees }
 }
 
-# ---------- reports/ 保留策略（拍板 11：diag-* 的 .html/.txt/.md/.json 按文件名时间戳降序保留最新 50 份） ----------
+# ---------- reports/ 保留策略（拍板 11：diag-* 的 .html/.txt/.md/.json 保留最新 50 份） ----------
 function Trim-Reports {
     $repDir = Join-Path $root 'reports'
     if (-not (Test-Path $repDir)) { return }
+    # 1021 修正：按文件名内嵌时间戳排序，不能按整名字典序——跨树前缀时 diag-all-*（字母 a）
+    # 恒排"最旧"，目录到 50 上限时合并报告会被先裁掉（真机实锤：写完即被删→下载 404）。
     $files = @(Get-ChildItem -LiteralPath $repDir -File -Filter 'diag-*' -ErrorAction SilentlyContinue |
         Where-Object { $_.Extension -in '.html', '.txt', '.md', '.json' } |
-        Sort-Object Name -Descending)
+        Sort-Object -Descending -Property @{e = { if ($_.Name -match '^diag-[A-Za-z0-9_]+-(\d{8}-\d{6})\.(html|txt|md|json)$') { $Matches[1] } else { '00000000-000000' } }}, @{e = { $_.Name }})
     $old = @($files | Select-Object -Skip 50)
     if ($old.Count -gt 0) {
         foreach ($f in $old) { Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue }
@@ -477,7 +492,7 @@ if ($TreeName -eq 'all') {
     $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $hostName = $env:COMPUTERNAME
 
-    Write-Output "diag 全面体检报告 v0.6"
+    Write-Output "电脑体检台 · 全面体检报告 v$engVersion"
     Write-Output ""
 
     $anyFailAll = $false

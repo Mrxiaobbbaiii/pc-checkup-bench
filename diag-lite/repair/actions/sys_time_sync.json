@@ -1,0 +1,19 @@
+{
+  "id": "sys_time_sync",
+  "name": "同步系统时间",
+  "level": "green",
+  "desc": "让 Windows 立刻跟互联网时间服务器对一次表。适合：时间或日期不对，导致网页打不开报「证书错误」、软件登录异常。",
+  "affect": "只把时钟对准，不改时区、不动任何文件。",
+  "undo": "不用撤销——对表只会让时间更准；想手改可右键右下角时钟调整。",
+  "requires_admin": true,
+  "common": true,
+  "prechecks": [],
+  "steps": [
+    { "exe": "w32tm.exe", "args": ["/resync"], "desc": "立即与时间服务器对表" }
+  ],
+  "rollback": [],
+  "rollback_note": "无需回滚：对表只会让时间更准",
+  "timeout_sec": 30,
+  "match_checks": [],
+  "verify_checks": []
+}

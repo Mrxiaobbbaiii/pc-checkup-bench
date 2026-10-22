@@ -3,7 +3,7 @@
   "version": "0.1",
   "updated": "2026-10-19",
   "codes": [
-    { "code": "0x1A",  "name": "MEMORY_MANAGEMENT",              "category": "memory",  "cause": "内存管理出错：坏内存条/超频不稳/XMP 不兼容高发，跑 memtest86+ 验证", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0x1a--memory-management" },
+    { "code": "0x1A",  "name": "MEMORY_MANAGEMENT",              "category": "memory",  "cause": "内存管理出错：坏内存条/超频不稳/XMP（内存一键超频档）不兼容高发，跑 memtest86+ 验证", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0x1a--memory-management" },
     { "code": "0x50",  "name": "PAGE_FAULT_IN_NONPAGED_AREA",    "category": "memory",  "cause": "引用了不该访问的内存：坏内存或驱动越界，先查内存再查最近装的驱动", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0x50--page-fault-in-nonpaged-area" },
     { "code": "0x7A",  "name": "KERNEL_DATA_INPAGE_ERROR",       "category": "memory",  "cause": "内核数据从页面文件读失败：磁盘坏道/线缆接触/页面文件所在盘故障", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0x7a--kernel-data-inpage-error" },
     { "code": "0x77",  "name": "KERNEL_STACK_INPAGE_ERROR",      "category": "memory",  "cause": "内核栈页读入失败：同 0x7A，优先查磁盘与存储线缆", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0x77--kernel-stack-inpage-error" },
@@ -16,7 +16,7 @@
     { "code": "0xC5",  "name": "DRIVER_CORRUPTED_EXPOOL",        "category": "driver",  "cause": "驱动把内存池写坏了：同 0xC2，驱动嫌疑", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0xc5--driver-corrupted-expool" },
     { "code": "0xBE",  "name": "ATTEMPTED_WRITE_TO_READONLY_MEMORY", "category": "driver", "cause": "驱动试图写只读内存：驱动 bug，常见于老驱动配新系统", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0xbe--attempted-write-to-readonly-memory" },
     { "code": "0x9F",  "name": "DRIVER_POWER_STATE_FAILURE",     "category": "driver",  "cause": "驱动没在时限内完成电源切换请求：睡眠/唤醒蓝屏高发，网卡/存储驱动嫌疑", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0x9f--driver-power-state-failure" },
-    { "code": "0x139", "name": "KERNEL_SECURITY_CHECK_FAILURE",  "category": "driver",  "cause": "内核检测到关键数据结构被破坏：驱动栈损坏/坏内存/注入类软件高发（本机 1013 案主犯=加速器捆绑过滤驱动）", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0x139--kernel-security-check-failure" },
+    { "code": "0x139", "name": "KERNEL_SECURITY_CHECK_FAILURE",  "category": "driver",  "cause": "内核检测到关键数据结构被破坏：驱动栈损坏/坏内存/注入类软件（如加速器捆绑过滤驱动）高发", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0x139--kernel-security-check-failure" },
     { "code": "0x13A", "name": "KERNEL_MODE_HEAP_CORRUPTION",    "category": "driver",  "cause": "内核模式堆被写坏：驱动或内存故障", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0x13a--kernel-mode-heap-corruption" },
     { "code": "0x109", "name": "CRITICAL_STRUCTURE_CORRUPTION",  "category": "driver",  "cause": "关键内核结构被改：驱动 bug 或内存坏，开 Driver Verifier 可定位", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0x109---critical-structure-corruption" },
     { "code": "0x124", "name": "WHEA_UNCORRECTABLE_ERROR",       "category": "hardware", "cause": "硬件报了无法恢复的错：CPU/内存/PCIe/供电超载或超频不稳，查温度与超频设置", "ref": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0x124---whea-uncorrectable-error" },

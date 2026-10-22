@@ -80,7 +80,7 @@ $global:DiagScenarios = @(
            net_dns_public       = $mockNsOkPublic
        } }
     @{ name = 'gateway_dead_breakpoint'; expectExit = 2
-       keywords = @('断点在：网关', '跳过(前层断点)', 'DNS 层')
+       keywords = @('断点在：网关', '未查(前层有问题)', 'DNS 层')
        mocks    = @{
            net_adapter_list     = $mockAdapterPass
            net_ip_dhcp          = $mockIpPass

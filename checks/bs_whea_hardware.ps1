@@ -44,7 +44,7 @@ if ($items.Count -ge 1) {
     $lines = ($items | Select-Object -First 10 | ForEach-Object { '{0} | {1}' -f $_.date, $_.summary }) -join "`n"
     $evidence = "$cmdTag`n$lines"
     if ($items.Count -gt 10) { $evidence += "`n…（共 $($items.Count) 条，只列前 10）" }
-    $suggestion = "近 30 天有 $($items.Count) 条 WHEA 硬件层报错（日期+摘要见证据）：内存/CPU/PCIe/供电硬件嫌疑。`n【修复命令，请自己执行】跑 Windows 内存诊断 mdsched.exe（重启后自动检测内存，约十几分钟）；台式机顺手查温度与超频设置（XMP/超频先回默认观察）。`n【回滚】不适用（只读检测；BIOS 设置如改动，记住原值可改回）"
+    $suggestion = "近 30 天有 $($items.Count) 条 WHEA 硬件层报错（WHEA=Windows 硬件报错机制；日期+摘要见证据）：内存/CPU/PCIe/供电硬件嫌疑。`n【修复命令，请自己执行】跑 Windows 内存诊断 mdsched.exe（重启后自动检测内存，约十几分钟）；台式机顺手查温度与超频设置（XMP 内存超频档/手动超频先回默认观察）。`n【回滚】不适用（只读检测；BIOS 设置如改动，记住原值可改回）"
 } else {
     $status = 'PASS'
     $evidence = "$cmdTag`n近 30 天无 WHEA 硬件报错（0 条）"

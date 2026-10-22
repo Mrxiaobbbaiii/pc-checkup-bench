@@ -51,7 +51,7 @@ $cmdTag = '[Win32_ComputerSystem/Win32_OperatingSystem]'
 if ($physGB -lt 4) {
     $status = 'FAIL'
     $evidence = "$cmdTag`n物理内存 ${physGB}GB（Win11 官方最低线 4GB）`ncommit ${commitUsedGB}/${commitTotalGB}GB (${commitPct}%)"
-    $suggestion = "物理内存 ${physGB}GB 低于 Windows 11 官方最低要求（4GB）——2026 年日常使用必卡：浏览器多开、微信+网页同开就顶满。根治=加内存条（老笔记本一般可加到 8/16GB）；过渡=同时少开程序、浏览器标签页控制在 10 个以内。`n【修复命令，请自己执行】无（硬件升级）`n【回滚】不适用"
+    $suggestion = "物理内存 ${physGB}GB 低于 Windows 11 官方最低要求（4GB）——日常使用必卡：浏览器多开、微信+网页同开就顶满。根治=加内存条（老笔记本一般可加到 8/16GB）；过渡=同时少开程序、浏览器标签页控制在 10 个以内。`n【修复命令，请自己执行】无（硬件升级）`n【回滚】不适用"
 } elseif ($commitPct -gt 90) {
     $status = 'FAIL'
     $evidence = "$cmdTag`n物理内存 ${physGB}GB`ncommit ${commitUsedGB}/${commitTotalGB}GB (${commitPct}%) ← 内存+页面文件双吃紧"

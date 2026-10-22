@@ -62,7 +62,7 @@ if ($hits.Count -ge 1) {
             $fixPart = $h.advice.Substring(0, $idx).TrimEnd('。，； ')
             $rbPart = $h.advice.Substring($idx + 3).Trim()
         }
-        $parts += "命中嫌疑名单：$($h.label)（pattern=$($h.pattern)）正在本机运行。`n【修复命令，请自己执行】$fixPart`n【回滚】$rbPart"
+        $parts += "命中嫌疑名单：$($h.label)，正在这台电脑上运行。`n【修复命令，请自己执行】$fixPart`n【回滚】$rbPart"
     }
     $suggestion = $parts -join "`n"
 } else {
