@@ -15,14 +15,33 @@ $parts = @()
 if ($MockRaw -ne '') {
     $parts = @($MockRaw -split '===PART===' | ForEach-Object { $_.Trim("`r`n") })
 } else {
-    $routeRaw = (& route print -4 2>&1 | Out-String)
+    $routeRaw = $(
+        # 5.1 下 route/nslookup 的 stderr 在 EAP=Stop 时会变终止错误；取原生输出期间放宽 EAP，取完还原。
+        $oldEap = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            (& route print -4 2>&1 | Out-String)
+        } finally {
+            $ErrorActionPreference = $oldEap
+        }
+    )
     $gws = @()
     foreach ($line in ($routeRaw -split "`r?`n")) {
         if ($line -match '^\s*0\.0\.0\.0\s+0\.0\.0\.0\s+(\d{1,3}(?:\.\d{1,3}){3})\s+') { $gws += $Matches[1] }
     }
     $gws = @($gws | Select-Object -Unique)
     $parts = @($routeRaw)
-    foreach ($g in $gws) { $parts += ("###GW $g`n" + ((& nslookup qq.com $g 2>&1 | Out-String))) }
+    foreach ($g in $gws) {
+        $parts += ("###GW $g`n" + $(
+            $oldEap = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = 'Continue'
+                (& nslookup qq.com $g 2>&1 | Out-String)
+            } finally {
+                $ErrorActionPreference = $oldEap
+            }
+        ))
+    }
 }
 
 $routePart = $parts[0]

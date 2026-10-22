@@ -11,7 +11,17 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '_lib.ps1')
 
 $cmd = 'nslookup qq.com'
-$raw = if ($MockRaw -ne '') { $MockRaw } else { (& nslookup qq.com 2>&1 | Out-String) }
+$raw = if ($MockRaw -ne '') { $MockRaw } else { $(
+    # 5.1 下 nslookup 会把 "Non-authoritative answer:" 写 stderr；EAP=Stop + 2>&1 会把它当终止错误。
+    # 仅在取原生输出期间放宽 EAP，取完立刻还原；判定逻辑与证据字段不变。
+    $oldEap = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        (& nslookup qq.com 2>&1 | Out-String)
+    } finally {
+        $ErrorActionPreference = $oldEap
+    }
+) }
 
 $v = Get-NslookupVerdict $raw
 $status = if ($v.ok) { 'PASS' } elseif ($v.mode -eq 'unknown') { 'SKIP' } else { 'FAIL' }

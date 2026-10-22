@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag engine v1.0 —— 推进器（PowerShell 5.1+ / 7 双兼容，群友普及版；用户可见自称=「电脑体检台」，版本走 $engVersion 常量）
+diag engine v1.0.1 —— 推进器（PowerShell 5.1+ / 7 双兼容，群友普及版；用户可见自称=「电脑体检台」，版本走 $engVersion 常量）
 用法：powershell -NoProfile -ExecutionPolicy Bypass -File engine\run.ps1 [-TreeName <树名|all>] [-Full] [-MockDir <dir>] [-OpenReport] [-NoMenu] [-ProgressFile <file>] [-JsonReport]
 树可选字段：verdict_title=报告结论标题（缺省"断点结论"）；report_name=报告大标题树名（缺省保持网络树文案，非网络树证据链副标转聚合取证）
   -Full      断点后继续跑完剩余层取证（默认断点即停，后续层 SKIP）
@@ -27,7 +27,7 @@ param(
     [string]$ProgressFile = '',
     [switch]$JsonReport
 )
-$engVersion = '1.0'
+$engVersion = '1.0.1'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
