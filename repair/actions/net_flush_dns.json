@@ -13,6 +13,7 @@
   "rollback": [],
   "rollback_note": "无需回滚：缓存会自动重建",
   "timeout_sec": 20,
-  "match_checks": ["net_dns_default", "net_dns_public", "net_dns_deadaddr", "net_dns_gateway_proxy"],
-  "verify_checks": ["net_dns_public", "net_dns_deadaddr"]
+  "caveat": "如果 DNS 服务器本身是个死地址，刷缓存不会把它变好——那要改 DNS 地址（见修复中心「要自己动手的」）。",
+  "match_checks": ["net_dns_public"],
+  "verify_checks": ["net_dns_public"]
 }

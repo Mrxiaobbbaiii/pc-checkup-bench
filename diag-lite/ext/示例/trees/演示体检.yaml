@@ -1,0 +1,19 @@
+{
+  "_comment": "ext 扩展树示例：把本文件复制到 ext/trees/（文件名=树 ID，如 demo.yaml），重启网页版后树选择器里会出现「演示体检（ext 示例）」",
+  "tree": "demo",
+  "version": "1.0",
+  "display_name": "演示体检（ext 示例）",
+  "desc": "扩展树示例：开机时长检查",
+  "report_name": "演示体检报告",
+  "verdict_title": "断点结论",
+  "evidence_note": "（按层，ext 扩展示例）",
+  "layers": [
+    {
+      "name": "uptime",
+      "title": "开机时长",
+      "checks": ["demo_ext_check"],
+      "verdict_fail": "开机超过 30 天：先重启一次再观察，很多小毛病会自己消失。"
+    }
+  ],
+  "verdict_all_pass": "演示体检全绿：开机时长正常。想加自己的检查，看 ext/README.txt 的三步说明。"
+}

@@ -9,31 +9,60 @@
 <script src="app.js" defer></script>
 </head>
 <body>
+<a class="skip-link" href="#main">跳到主内容</a>
+
 <header class="topbar">
   <div class="brand">
     <!-- logo 快改后门：替换 ui/brand.png 即换图（server 需带对应静态映射），勿写死进样式 -->
     <span class="brand-mark"><img src="brand.png" alt=""></span>
-    <div class="brand-text"><b>电脑体检台</b><span>体检只读不动手 · 修不修、怎么修你说了算</span></div>
+    <div class="brand-text"><b>电脑体检台</b></div>
   </div>
-  <nav class="tabs" id="tabs">
-    <button class="tab active" data-view="wizard">体检向导</button>
-    <button class="tab" data-view="results">结果中心</button>
-    <button class="tab" data-view="repair">修复中心</button>
+  <nav class="tabs" id="tabs" aria-label="主导航">
+    <button class="tab active" data-view="wizard"><span class="tab-full">体检向导</span><span class="tab-short">向导</span></button>
+    <button class="tab" data-view="results"><span class="tab-full">结果中心</span><span class="tab-short">结果</span></button>
+    <button class="tab" data-view="repair"><span class="tab-full">修复中心</span><span class="tab-short">修复</span></button>
   </nav>
   <div class="top-actions">
-    <button class="icon-btn" id="btn-theme" title="换个样子：明暗 + 强调色"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.9 A6.1 6.1 0 0 1 8 14.1 Z" fill="currentColor"/></svg>主题</button>
-    <button class="icon-btn" id="btn-bg" title="看完整背景图"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.7" y="2.7" width="12.6" height="10.6" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="5.7" cy="6.3" r="1.15" fill="currentColor"/><path d="M3.4 12.2 L7 8.6 L9.4 11 L11.4 9.2 L13.7 11.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>背景</button>
-    <button class="icon-btn danger" id="btn-close" title="关闭"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.2 4.2 L11.8 11.8 M11.8 4.2 L4.2 11.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>关闭</button>
+    <button class="icon-btn" id="btn-appearance" aria-haspopup="menu" aria-expanded="false" aria-controls="appearance-menu" title="外观：明暗、强调色、背景原画">
+      <svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.9 A6.1 6.1 0 0 1 8 14.1 Z" fill="currentColor"/></svg>
+      <span class="ic-label">外观</span>
+    </button>
+    <button class="icon-btn danger icon-only" id="btn-close" aria-label="关闭电脑体检台" title="关闭">
+      <svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.2 4.2 L11.8 11.8 M11.8 4.2 L4.2 11.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <!-- 外观菜单（v1.1.0 A 段：主题/强调色/背景三个入口合并，窄窗只留图标） -->
+  <div class="menu hidden" id="appearance-menu" role="menu" aria-labelledby="btn-appearance">
+    <div class="menu-title">外观</div>
+    <div class="menu-row">
+      <span class="menu-label">明暗</span>
+      <div class="seg" id="theme-seg">
+        <button class="seg-btn" role="menuitemradio" data-theme-opt="dark">深色</button>
+        <button class="seg-btn" role="menuitemradio" data-theme-opt="light">浅色</button>
+      </div>
+    </div>
+    <div class="menu-row">
+      <span class="menu-label">强调色</span>
+      <div class="swatches" id="accent-row"></div>
+    </div>
+    <div class="menu-sep"></div>
+    <button class="menu-item" id="btn-bg" role="menuitem">看背景原画（含画师署名）</button>
+    <button class="menu-item" id="appearance-reset" role="menuitem">恢复默认外观</button>
   </div>
 </header>
 
-<main>
-  <!-- 视图一：体检向导（v0.9.9 回归单列纵向流：标题→选择→按钮→跑批，一根视线从上到下） -->
+<main id="main">
+  <!-- 视图一：体检向导（单列纵向流：说明→三步→选择→开始→进度） -->
   <section class="view active" id="view-wizard">
     <div class="hero">
       <h1>给电脑做个全面体检</h1>
-      <p>全程只读：只看、不动你电脑的任何设置</p>
+      <p>全程只读：只看、不动你电脑的任何设置。第一次用，跟着下面三步走就行。</p>
     </div>
+    <ol class="steps-strip" aria-label="使用步骤">
+      <li><b>1</b><span>选范围<small>默认全面体检，查得最全</small></span></li>
+      <li><b>2</b><span>点开始<small>等 1–3 分钟，可以中途取消</small></span></li>
+      <li><b>3</b><span>看问题<small>按高/中/低排好，每项能跳去修</small></span></li>
+    </ol>
     <div class="card" id="select-card">
       <div class="card-title">选择要查的项目</div>
       <div class="check-grid" id="check-grid">
@@ -47,69 +76,96 @@
       <label class="check-item fast" id="chk-fast-item">
         <input type="checkbox" id="chk-fast">
         <span class="box"></span>
-        <span class="txt"><b>快速模式（每类查到问题就跳过剩余细项，更快）</b><small>默认不勾=全部查完（证据最全）。勾上=每一类查到问题就跳过该类剩余细项（全选时五类各自生效），更快但查得少</small></span>
+        <span class="txt"><b>快速模式（每类查到问题就跳过剩余细项，更快）</b><small>不勾＝每类全部查完（证据最全）；勾上＝查到问题就跳过该类剩余细项</small></span>
       </label>
       <div class="hint" id="sel-hint">选好后点下面的「开始体检」</div>
     </div>
     <div class="cta-row">
       <button class="btn-primary" id="btn-run">开始体检</button>
+      <span class="cta-note">只读、不装东西、不改设置</span>
     </div>
     <div class="card hidden" id="run-card">
       <div class="run-head">
-        <div class="current" id="current-label">选好后点「开始体检」</div>
+        <div class="current" id="current-label">正在准备…</div>
         <div class="pct" id="pct-label">0 / 0 项</div>
       </div>
       <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
-      <div class="log" id="log-box"></div>
+      <div class="log" id="log-box" role="log" aria-live="polite"></div>
     </div>
   </section>
 
-  <!-- 视图二：结果中心 -->
+  <!-- 视图二：结果中心（v1.1.0 A 段：问题优先——按严重度归并，全部检查项另开一页） -->
   <section class="view" id="view-results">
-    <!-- v0.9.7 排版重构：大结论横幅（跑完自动填充，纯显示层） -->
     <div class="verdict-banner hidden" id="verdict-banner"></div>
-    <div class="toolbar">
-      <button class="btn" id="btn-browser" disabled>浏览器看完整报告</button>
-      <button class="btn" id="btn-folder">打开报告文件夹</button>
-      <button class="btn" id="btn-again">再跑一次</button>
+
+    <div class="card empty-state hidden" id="result-empty">
+      <div class="empty-glyph" aria-hidden="true">✦</div>
+      <h3>还没有体检结果</h3>
+      <p>跑完一轮体检，这里会按「高 / 中 / 低」把问题列出来，每一项都能直接跳到修复方式。</p>
+      <button class="btn-primary" id="btn-empty-run">去跑体检</button>
     </div>
-    <div class="split">
-      <div class="card tree-card"><div class="tree" id="result-tree"><div class="placeholder">查完的结果会显示在这里</div></div></div>
-      <div class="detail">
-        <h2 id="sel-title">查完的结果会显示在这里</h2>
-        <details class="ev-fold" id="ev-fold">
-          <summary id="ev-label">看原始记录（这一项查了什么）</summary>
-          <pre class="ev" id="ev-box"></pre>
-        </details>
-        <div class="detail-label" id="detail-label">怎么修</div>
-        <pre class="sug" id="sug-box"></pre>
-        <button class="btn" id="btn-copy" disabled>复制修复方法</button>
+
+    <div id="results-body" class="hidden">
+      <div class="results-bar">
+        <div class="seg" id="result-filter" role="tablist" aria-label="结果视图">
+          <button class="seg-btn active" id="filter-problems" data-filter="problems" role="tab" aria-selected="true">只看问题<span class="seg-count" id="cnt-problems"></span></button>
+          <button class="seg-btn" id="filter-all" data-filter="all" role="tab" aria-selected="false">全部检查项<span class="seg-count" id="cnt-all"></span></button>
+        </div>
+        <div class="results-actions">
+          <button class="btn" id="btn-browser" disabled>完整报告</button>
+          <button class="btn" id="btn-folder">报告文件夹</button>
+          <button class="btn" id="btn-again">再跑一次</button>
+        </div>
       </div>
+      <div class="split">
+        <div class="card tree-card">
+          <div class="problems hidden" id="problem-list"></div>
+          <div class="tree hidden" id="result-tree"></div>
+        </div>
+        <div class="detail">
+          <div class="detail-head">
+            <h2 id="sel-title">选择一个检查项</h2>
+            <button class="btn" id="btn-goto-repair" hidden>去修复</button>
+          </div>
+          <div class="detail-hint hidden" id="detail-hint"></div>
+          <details class="ev-fold" id="ev-fold">
+            <summary id="ev-label">看原始记录（这一项查了什么）</summary>
+            <pre class="ev" id="ev-box"></pre>
+          </details>
+          <div class="detail-label" id="detail-label">怎么修</div>
+          <pre class="sug" id="sug-box"></pre>
+          <button class="btn" id="btn-copy" disabled>复制修复方法</button>
+        </div>
+      </div>
+      <details class="glossary" id="glossary">
+        <summary>术语小抄（SKIP / WHEA / 驱动过滤层 / 还原点…）</summary>
+        <dl id="glossary-list"></dl>
+      </details>
     </div>
   </section>
 
-  <!-- 视图三：修复中心（v0.8.1：绿级动作可代跑，按报告 FAIL 项匹配；黄红只给向导。v0.9.9：说明压成一行，列表按动作聚合去重） -->
+  <!-- 视图三：修复中心（绿=可代跑，黄=确认后代跑，红=只给步骤；常用修复折叠到最后） -->
   <section class="view" id="view-repair">
     <div class="hero small">
       <h1>修复中心</h1>
-      <p>查出问题以后来这里修：<b style="color:var(--pass)">绿色</b>直接代跑 · <b style="color:var(--yellow)">黄色</b>确认后代跑 · <b style="color:var(--fail)">红色</b>只给步骤</p>
+      <p>先看问题，再决定修不修。<span class="lv-inline green">绿色</span>可以直接代跑，<span class="lv-inline yellow">黄色</span>逐项确认后才会动，<span class="lv-inline red">红色</span>只给步骤、工具永远不动手。红色动作弄错可能开不了机，一定先看完「怎么撤销」。</p>
     </div>
     <div class="card">
       <div class="card-title repair-count-title">这轮查出来的问题<span class="ri-count" id="ri-count"></span></div>
-      <div id="repair-list"><div class="placeholder">还没有检查结果——先去「体检向导」跑一轮体检</div></div>
+      <div id="repair-list"><div class="placeholder">还没有检查结果——先去「体检向导」跑一轮；下面的常用修复不用体检也能用。</div></div>
     </div>
   </section>
 </main>
 
 <footer class="statusbar">
   <span id="status-left" data-state="idle">就绪</span>
-    <span id="status-right"><span class="ver-chip">电脑体检台 v1.0.1</span></span>
+  <span id="status-right"><span class="ver-chip">电脑体检台 v1.1.0</span></span>
 </footer>
 
 <!-- 关闭确认弹层（网页内弹层，不用同步模态框） -->
-<div class="overlay hidden" id="overlay">
+<div class="overlay hidden" id="overlay" role="dialog" aria-modal="true" aria-labelledby="ov-title">
   <div class="modal">
-    <div class="modal-title">体检没跑完，确定退出？</div>
+    <div class="modal-title" id="ov-title">体检没跑完，确定退出？</div>
     <div class="modal-sub">退出会停掉正在跑的检查，这一轮不会出报告。</div>
     <div class="modal-btns">
       <button class="btn-primary" id="modal-stay">继续检查</button>
@@ -118,23 +174,10 @@
   </div>
 </div>
 
-<!-- 主题选择弹层 -->
-<div class="overlay hidden" id="theme-overlay">
-  <div class="modal">
-    <div class="modal-title">换个样子</div>
-    <div class="theme-row"><span class="theme-label">明暗</span>
-      <button class="theme-opt" data-theme-opt="dark">深色</button>
-      <button class="theme-opt" data-theme-opt="light">浅色</button>
-    </div>
-    <div class="theme-row"><span class="theme-label">强调色</span><div id="accent-row"></div></div>
-    <div class="modal-btns"><button class="btn-primary" id="theme-done">好了</button></div>
-  </div>
-</div>
-
 <!-- 复制兜底弹层（自动复制失败的极端环境：文字已选好，按 Ctrl+C 即可） -->
-<div class="overlay hidden" id="copy-overlay">
+<div class="overlay hidden" id="copy-overlay" role="dialog" aria-modal="true" aria-labelledby="copy-title">
   <div class="modal">
-    <div class="modal-title">复制修复方法</div>
+    <div class="modal-title" id="copy-title">复制修复方法</div>
     <div class="modal-sub">自动复制没成功。下面的文字已经替你选好了——按 Ctrl+C 复制，再点「好了」。</div>
     <textarea id="copy-ta" readonly rows="9"></textarea>
     <div class="modal-btns"><button class="btn-primary" id="copy-ok">好了</button></div>
@@ -159,16 +202,16 @@
 </div>
 
 <!-- 收尾告别层（服务已停、窗口待关时兜底显示） -->
-<div class="overlay hidden" id="bye-overlay">
+<div class="overlay hidden" id="bye-overlay" role="dialog" aria-modal="true" aria-labelledby="bye-title">
   <div class="modal">
-    <div class="modal-title">已退出</div>
+    <div class="modal-title" id="bye-title">已退出</div>
     <div class="modal-sub">体检服务已停止，后台没有留下任何进程。这个窗口现在可以关掉了。</div>
     <div class="modal-btns"><button class="btn-primary" id="bye-ok">好的</button></div>
   </div>
 </div>
 
 <!-- 修复执行前确认弹层（绿色需管理员预告 / 黄色逐项确认三行+回滚包先行+可选还原点） -->
-<div class="overlay hidden" id="repair-modal">
+<div class="overlay hidden" id="repair-modal" role="dialog" aria-modal="true" aria-labelledby="rm-title">
   <div class="modal">
     <div class="modal-title" id="rm-title">修复确认</div>
     <div class="modal-sub" id="rm-sub"></div>
@@ -180,13 +223,16 @@
   </div>
 </div>
 
-<!-- 红级分步指南弹层（警示色；工具永不代跑） -->
-<div class="overlay hidden" id="guide-overlay">
+<!-- 红级分步指南弹层（警示色；工具永不代跑；整段可复制） -->
+<div class="overlay hidden" id="guide-overlay" role="dialog" aria-modal="true" aria-labelledby="gd-title">
   <div class="modal guide-modal">
-    <div class="modal-title warn-title">⚠ 高风险操作 · 只给步骤，工具不会代跑</div>
+    <div class="modal-title warn-title" id="gd-title">⚠ 高风险操作 · 只给步骤，工具不会代跑</div>
     <div class="modal-sub" id="gd-sub"></div>
     <div id="gd-rows"></div>
-    <div class="modal-btns"><button class="btn-primary" id="gd-ok">我看明白了</button></div>
+    <div class="modal-btns">
+      <button class="btn" id="gd-copy">复制全部步骤</button>
+      <button class="btn-primary" id="gd-ok">我看明白了</button>
+    </div>
   </div>
 </div>
 </body>

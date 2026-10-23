@@ -15,6 +15,7 @@ $diagPs = (Get-Process -Id $PID).Path
 . (Join-Path $PSScriptRoot 'scenarios.ps1')
 . (Join-Path $PSScriptRoot 'cases_b.ps1')
 . (Join-Path $PSScriptRoot 'cases_repair.ps1')
+. (Join-Path $PSScriptRoot 'cases_ext.ps1')
 
 $results = @()
 
@@ -203,6 +204,58 @@ foreach ($rc in $global:DiagRepairCases) {
     if ($bad) { Add-Result 'repair' $rc.name '' $false (($bad | Select-Object -First 3) -join '; ') }
     else { Add-Result 'repair' $rc.name '' $true }
     Remove-Item -LiteralPath $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# ---------- ⑤ ext 扩展口子用例（v1.1.0：ext 树/检查加载、内置优先冲突忽略、缺脚本契约；临时仓跑，主仓零污染） ----------
+foreach ($xc in $global:DiagExtCases) {
+    $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-ext-" + $xc.name + "-" + $PID)
+    if (Test-Path $tmpRoot) { Remove-Item $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue }
+    New-Item -ItemType Directory -Path $tmpRoot -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $tmpRoot 'reports') -Force | Out-Null
+    Copy-Item -Recurse -Force (Join-Path $root 'engine') (Join-Path $tmpRoot 'engine')
+    Copy-Item -Recurse -Force (Join-Path $root 'checks') (Join-Path $tmpRoot 'checks')
+    Copy-Item -Recurse -Force (Join-Path $root 'trees') (Join-Path $tmpRoot 'trees')
+    foreach ($rel in $xc.extFiles.Keys) {
+        $dst = Join-Path $tmpRoot ($rel -replace '/', '\')
+        New-Item -ItemType Directory -Path (Split-Path $dst -Parent) -Force | Out-Null
+        [System.IO.File]::WriteAllText($dst, $xc.extFiles[$rel], (New-Object System.Text.UTF8Encoding($true)))
+    }
+    $engineArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $tmpRoot 'engine/run.ps1'), '-TreeName', $xc.tree, '-NoSaveReport', '-NoMenu')
+    if ($xc.useMock) {
+        # mock 空目录契约：engine mock 模式下缺 mock 文件的检查=SKIP（missing-mock）
+        $mockDir = Join-Path $tmpRoot 'mocks'
+        New-Item -ItemType Directory -Path $mockDir -Force | Out-Null
+        foreach ($kv in $xc.mocks.GetEnumerator()) { Set-Content -Path (Join-Path $mockDir ($kv.Key + '.txt')) -Value $kv.Value -Encoding UTF8 }
+        $engineArgs += @('-MockDir', $mockDir)
+    }
+    $errFile = Join-Path $tmpRoot 'stderr.tmp'
+    $engineOut = ''; $errText = ''; $exitCode = -1
+    try {
+        # native stderr 重定向在 EAP=Stop 下会把 stderr 首行变成终止错误（同 v1.0.1 DNS 检查坑）：
+        # 外层降 Continue + finally 恢复，2> 才是纯文件重定向
+        $prevEap = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            $engineOut = (& $diagPs @engineArgs 2> $errFile | Out-String)
+            $exitCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $prevEap
+        }
+        $errText = Get-Content $errFile -Raw -ErrorAction SilentlyContinue
+    } catch {
+        Add-Result 'ext' $xc.name '' $false ("engine crashed: $($_.Exception.Message)")
+        continue
+    } finally {
+        Remove-Item $errFile -Force -ErrorAction SilentlyContinue
+    }
+    $bad = @()
+    if ($exitCode -ne $xc.expectExit) { $bad += "exitcode expect $($xc.expectExit) got $exitCode" }
+    foreach ($kw in $xc.expectOut) { if ($engineOut -notmatch [regex]::Escape($kw)) { $bad += "stdout missing: $kw" } }
+    foreach ($kw in $xc.expectErr) { if ("$errText" -notmatch [regex]::Escape($kw)) { $bad += "stderr missing: $kw" } }
+    foreach ($kw in $xc.expectNotOut) { if ($engineOut -match [regex]::Escape($kw)) { $bad += "stdout must NOT contain: $kw" } }
+    if ($bad.Count -gt 0) { Add-Result 'ext' $xc.name '' $false ($bad -join '; ') }
+    else { Add-Result 'ext' $xc.name '' $true }
+    Remove-Item $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 # ---------- 汇总 ----------

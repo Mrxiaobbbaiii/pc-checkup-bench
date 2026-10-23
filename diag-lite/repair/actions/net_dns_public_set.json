@@ -1,0 +1,36 @@
+{
+  "id": "net_dns_public_set",
+  "name": "改为公共 DNS",
+  "level": "yellow",
+  "desc": "把「已连接」的物理网卡 DNS 改成公共地址（阿里 223.5.5.5 / 腾讯 119.29.29.29），绕过旧路由器/旧网段留下的死地址。只改 DNS，不动 IP、网关和 Wi-Fi 密码。",
+  "affect": "只影响域名解析，不改 IP 和上网方式；已经打开的网页可能要刷新一次。原 DNS 会先备份，撤销时恢复原值（原来是自动获取就恢复成自动获取）。",
+  "undo": "执行前自动把每块网卡的 DNS 原值备份到备份目录，并生成一键撤销脚本 restore-dns.bat；用管理员运行它即可恢复。",
+  "requires_admin": true,
+  "restore_point": true,
+  "prechecks": [],
+  "steps": [
+    {
+      "exe": "cmd.exe",
+      "args": ["/c", "powershell -NoProfile -ExecutionPolicy Bypass -Command $as=@(Get-NetAdapter -Physical); foreach($a in $as){ if($a.Status -eq 'Up'){ Set-DnsClientServerAddress -InterfaceIndex $a.ifIndex -ServerAddresses @('223.5.5.5','119.29.29.29') } }; Write-Output 'dns set'"],
+      "desc": "用管理员 PowerShell 把已连接网卡的 DNS 改成 223.5.5.5 / 119.29.29.29",
+      "display": "自动执行"
+    }
+  ],
+  "backup_steps": [
+    {
+      "exe": "cmd.exe",
+      "args": ["/c", "powershell -NoProfile -ExecutionPolicy Bypass -Command $as=@(Get-NetAdapter -Physical); $o=@(); foreach($a in $as){ $s=@((Get-DnsClientServerAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv4).ServerAddresses); $o+=@{ifIndex=$a.ifIndex;name=$a.Name;servers=$s} }; $json=ConvertTo-Json -InputObject @($o) -Compress; Set-Content -LiteralPath '{BK}\\dns-backup.json' -Value $json -Encoding UTF8; Write-Output ('backup ' + @($o).Count + ' adapters')"],
+      "desc": "备份当前每块网卡的 DNS 原值",
+      "display": "自动备份到临时目录"
+    }
+  ],
+  "rollback": [],
+  "rollback_note": "不自动回滚；撤销脚本 restore-dns.bat 会按备份把每块网卡恢复成原来的 DNS（没有原值的恢复成自动获取）。",
+  "undo_script": [
+    "powershell -NoProfile -ExecutionPolicy Bypass -Command $b=@(ConvertFrom-Json -InputObject (Get-Content -LiteralPath '{BK}\\dns-backup.json' -Raw)); foreach($e in $b){ if(@($e.servers).Count -gt 0){ Set-DnsClientServerAddress -InterfaceIndex $e.ifIndex -ServerAddresses @($e.servers) } else { Set-DnsClientServerAddress -InterfaceIndex $e.ifIndex -ResetServerAddresses } }; Write-Output 'dns restored'"
+  ],
+  "timeout_sec": 60,
+  "match_checks": ["net_dns_deadaddr"],
+  "verify_checks": ["net_dns_deadaddr", "net_dns_public"],
+  "caveat": "路由器自身故障、VPN/虚拟机网卡的 DNS 不在处理范围；如果原 DNS 是路由器自动下发的，撤销后会恢复成自动获取。"
+}

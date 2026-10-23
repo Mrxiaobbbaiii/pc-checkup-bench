@@ -40,7 +40,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $engineScript = Join-Path $root 'engine\run.ps1'
 $reportsDir = Join-Path $root 'reports'
-$guiVersion = 'v1.0.1'
+$guiVersion = 'v1.1.0'
 $diagPs = (Get-Process -Id $PID).Path
 
 # ---------- 树知识（GUI 启动时只读 trees/*.yaml 数 checks，不自算判定） ----------
@@ -192,7 +192,7 @@ $xamlText = @'
     <!-- 底部：状态栏 -->
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Panel}" CornerRadius="8" Padding="12,6" Margin="0,8,0,0">
       <DockPanel>
-        <TextBlock x:Name="statusRight" Text="diag v1.0.1" Foreground="{StaticResource Skip}" FontSize="12" Margin="12,0,0,0"/>
+        <TextBlock x:Name="statusRight" Text="diag v1.1.0" Foreground="{StaticResource Skip}" FontSize="12" Margin="12,0,0,0"/>
         <TextBlock x:Name="statusLeft" Text="就绪" Foreground="{StaticResource Dim}" FontSize="12.5"/>
       </DockPanel>
     </Border>

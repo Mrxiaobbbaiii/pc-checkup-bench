@@ -1,7 +1,7 @@
 {
-  "_comment": "diag 网络排查树 v0.1。JSON 语法=合法 YAML 1.2 子集：本机未装 powershell-yaml 模块，diag 必须断网可用（零依赖），故用内置 ConvertFrom-Json 解析；未来装了 powershell-yaml 可平滑迁到自由 YAML 缩进写法。",
+  "_comment": "diag 网络排查树 v0.2。JSON 语法=合法 YAML 1.2 子集：本机未装 powershell-yaml 模块，diag 必须断网可用（零依赖），故用内置 ConvertFrom-Json 解析；未来装了 powershell-yaml 可平滑迁到自由 YAML 缩进写法。",
   "tree": "network",
-  "version": "0.1",
+  "version": "0.2",
   "report_name": "网络体检报告",
   "verdict_title": "断点结论",
   "evidence_note": "（按层，从物理到应用）",
@@ -30,7 +30,13 @@
       "title": "DNS 层（域名解析）",
       "checks": ["net_dns_deadaddr", "net_dns_default", "net_dns_gateway_proxy", "net_dns_public"],
       "verdict_fail": "断点在 DNS 层：公网通了但域名解不出（死地址/劫持/DNS 服务挂）。改用可达的 DNS 通常立即可修。"
+    },
+    {
+      "name": "app",
+      "title": "应用层（系统代理 / hosts / VPN）",
+      "checks": ["net_proxy_vpn"],
+      "verdict_fail": "断点在应用层：网络本身是通的，是系统代理、hosts 或 VPN 虚拟网卡在捣乱。先关代理、再清 hosts 可疑行。"
     }
   ],
-  "verdict_all_pass": "网络栈全通（网卡→网关→公网→DNS 四层全绿）。若浏览器仍打不开网页 → 嫌疑在应用层：代理设置/hosts 文件/浏览器自身。排查顺序：1) 关浏览器代理插件试试；2) 检查系统代理【命令请自己执行】netsh winhttp show proxy；3) 查 hosts 剔除异常行【命令请自己执行】type C:\\Windows\\System32\\drivers\\etc\\hosts"
+  "verdict_all_pass": "网络栈全通（网卡→网关→公网→DNS→应用层五层全绿）。若浏览器仍打不开网页：关浏览器代理插件、检查系统代理【命令请自己执行】netsh winhttp show proxy、查 hosts 剔除异常行【命令请自己执行】type C:\\Windows\\System32\\drivers\\etc\\hosts"
 }

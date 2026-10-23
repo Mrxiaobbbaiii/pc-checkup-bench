@@ -1,6 +1,7 @@
 ﻿#Requires -Version 5.1
 <#
-diag web server v1.0.1 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用）
+diag web server v1.1.0 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用；
+      v1.1.0 起加载 ext	rees 与 extepairctions：只新增不覆盖，同名冲突忽略+crash log 告警）
 用法（bat 启动器代跑）：powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File server.ps1
       开发/测试附加参数：-MockDir <dir>（透传 engine 模拟模式，自动化测试专用，默认关=真跑）
                           -NoBrowser（不拉 Edge，配合 -PortFile 供自动化测试读端口）
@@ -32,7 +33,7 @@ $root = $PSScriptRoot
 $engineScript = Join-Path $root 'engine\run.ps1'
 $uiDir = Join-Path $root 'ui'
 $reportsDir = Join-Path $root 'reports'
-$webVersion = 'v1.0.1'
+$webVersion = 'v1.1.0'
 $diagPs = (Get-Process -Id $PID).Path
 
 # ---------- 子进程 stdout 排水器（C# 空回调：scriptblock delegate 无 runspace 回调线程会炸进程；v0.6 已验机制照搬）
@@ -83,6 +84,32 @@ foreach ($t in $menuOrder) {
     }
 }
 
+# ---------- v1.1.0 ext 扩展树（ext\trees\*.yaml，内容格式同内置；只新增不覆盖：同名冲突忽略+crash log 告警） ----------
+$extTreesDir = Join-Path $root 'ext\trees'
+if (Test-Path -LiteralPath $extTreesDir) {
+    foreach ($ef in (Get-ChildItem -LiteralPath $extTreesDir -File -Filter '*.yaml' | Sort-Object Name)) {
+        $extId = [System.IO.Path]::GetFileNameWithoutExtension($ef.Name)
+        if ($menuOrder -contains $extId) { Write-CrashLog ('ext tree ignored (conflicts with built-in): ' + $ef.Name); continue }
+        if (@($treeDefs | Where-Object { $_.id -eq $extId }).Count -gt 0) { Write-CrashLog ('ext tree ignored (duplicate ext): ' + $ef.Name); continue }
+        try {
+            $etd = Get-Content -LiteralPath $ef.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+            $extName = if ($etd.PSObject.Properties['display_name'] -and $etd.display_name) { [string]$etd.display_name } else { $extId }
+            $extDesc = if ($etd.PSObject.Properties['desc'] -and $etd.desc) { [string]$etd.desc } else { '扩展体检（ext）' }
+            $extLayers = @(); $extTotal = 0
+            foreach ($l in $etd.layers) {
+                $extChecks = @($l.checks)
+                $extLayers += [ordered]@{ name = [string]$l.name; title = [string]$l.title; checks = @($extChecks) }
+                $extTotal += $extChecks.Count
+            }
+            $treeDefs += [ordered]@{
+                id = $extId; name = $extName; desc = $extDesc
+                tip = '查：' + (@($etd.layers | ForEach-Object { $_.title }) -join ' → ')
+                layers = $extLayers; total = $extTotal; ext = $true
+            }
+        } catch { Write-CrashLog ('ext tree json bad: ' + $ef.Name + ' : ' + $_.Exception.Message) }
+    }
+}
+
 # ---------- 修复动作知识（启动时只读 repair/actions/*.json；绿+黄级可代跑，红级留向导位） ----------
 $repairDefs = @()
 $repairScript = Join-Path $root 'repair\repair.ps1'
@@ -94,6 +121,19 @@ if (Test-Path -LiteralPath $repairActionsDir) {
             if ([string]$a.id -and [string]$a.level -and @($a.steps).Count) { $repairDefs += $a }
             else { Write-CrashLog ('repair action skipped (no id/level/steps): ' + $af.Name) }
         } catch { Write-CrashLog ('repair action json bad: ' + $af.Name + ' : ' + $_.Exception.Message) }
+    }
+}
+
+# ---------- v1.1.0 ext 扩展修复动作（ext\repair\actions\*.json；只新增不覆盖：id 与内置冲突忽略+crash log 告警；红级照样零执行） ----------
+$extActionsDir = Join-Path $root 'ext\repair\actions'
+if (Test-Path -LiteralPath $extActionsDir) {
+    foreach ($af in (Get-ChildItem -LiteralPath $extActionsDir -File -Filter '*.json' | Sort-Object Name)) {
+        try {
+            $a = Get-Content -LiteralPath $af.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+            if (-not ([string]$a.id -and [string]$a.level -and @($a.steps).Count)) { Write-CrashLog ('ext repair action skipped (no id/level/steps): ' + $af.Name); continue }
+            if (@($repairDefs | Where-Object { [string]$_.id -eq [string]$a.id }).Count -gt 0) { Write-CrashLog ('ext repair action ignored (id conflicts with built-in): ' + [string]$a.id); continue }
+            $repairDefs += $a
+        } catch { Write-CrashLog ('ext repair action json bad: ' + $af.Name + ' : ' + $_.Exception.Message) }
     }
 }
 
@@ -319,7 +359,7 @@ function Read-Body($req) {
 }
 
 # ---------- 路由（任意请求=心跳；单线程事件循环无并发竞态） ----------
-$staticMap = @{ '/' = @('index.html', 'text/html; charset=utf-8'); '/index.html' = @('index.html', 'text/html; charset=utf-8'); '/app.js' = @('app.js', 'text/javascript; charset=utf-8'); '/style.css' = @('style.css', 'text/css; charset=utf-8'); '/bg.jpg' = @('bg.jpg', 'image/jpeg'); '/brand.png' = @('brand.png', 'image/png'); '/bg-light.jpg' = @('bg-light.jpg', 'image/jpeg'); '/favicon.png' = @('favicon.png', 'image/png') }
+$staticMap = @{ '/' = @('index.html', 'text/html; charset=utf-8'); '/index.html' = @('index.html', 'text/html; charset=utf-8'); '/app.js' = @('app.js', 'text/javascript; charset=utf-8'); '/style.css' = @('style.css', 'text/css; charset=utf-8'); '/custom.css' = @('custom.css', 'text/css; charset=utf-8'); '/bg.jpg' = @('bg.jpg', 'image/jpeg'); '/brand.png' = @('brand.png', 'image/png'); '/bg-light.jpg' = @('bg-light.jpg', 'image/jpeg'); '/favicon.png' = @('favicon.png', 'image/png') }
 
 function Invoke-Route($ctx) {
     $req = $ctx.Request; $res = $ctx.Response

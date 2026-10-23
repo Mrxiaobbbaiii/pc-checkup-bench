@@ -939,5 +939,90 @@ USB\VID_9999&PID_8888\0001
        expectStatus = 'SKIP'; expectEvidenceKeyword = '查不到'
        mock = @'
 QUERY-ERROR
+'@ },
+
+    # ---------- 34. pf_app_crashes（v1.1.0 应用崩溃） ----------
+    @{ check = 'pf_app_crashes'; note = '0 次(应用都稳定)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '0 次'
+       mock = '' },
+    @{ check = 'pf_app_crashes'; note = '同一应用崩 2 次(点名)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = 'chrome.exe'; expectSuggestionKeyword = '更新'
+       mock = @'
+1000 | chrome.exe | 2026-10-20 10:00
+1002 | chrome.exe | 2026-10-21 11:00
+'@ },
+    @{ check = 'pf_app_crashes'; note = '3 个应用各 1 次(系统性)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '共 3 次'; expectSuggestionKeyword = '内存'
+       mock = @'
+1000 | a.exe | 2026-10-20 10:00
+1000 | b.exe | 2026-10-20 11:00
+1002 | c.exe | 2026-10-20 12:00
+'@ },
+    @{ check = 'pf_app_crashes'; note = 'Application 日志不可读(SKIP)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = '查不到'
+       mock = @'
+QUERY-ERROR
+'@ },
+
+    # ---------- 35. hw_disk_errors（v1.1.0 文件系统错误） ----------
+    @{ check = 'hw_disk_errors'; note = '0 条(文件系统正常)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '0 条'
+       mock = '' },
+    @{ check = 'hw_disk_errors'; note = 'NTFS 55(结构损坏信号)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '55'; expectSuggestionKeyword = 'chkdsk'
+       mock = @'
+55 | C: | 2026-10-20 10:00
+'@ },
+    @{ check = 'hw_disk_errors'; note = '153×2(偶发延迟 PASS 附注)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '153 少量'
+       mock = @'
+153 | C: | 2026-10-20 10:00
+153 | C: | 2026-10-21 10:00
+'@ },
+    @{ check = 'hw_disk_errors'; note = '153×3(长期写延迟)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '153'; expectSuggestionKeyword = 'chkdsk'
+       mock = @'
+153 | C: | 2026-10-20 10:00
+153 | C: | 2026-10-21 10:00
+153 | C: | 2026-10-22 10:00
+'@ },
+    @{ check = 'hw_disk_errors'; note = 'System 日志不可读(SKIP)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = '查不到'
+       mock = @'
+QUERY-ERROR
+'@ },
+
+    # ---------- 36. net_proxy_vpn（v1.1.0 应用层） ----------
+    @{ check = 'net_proxy_vpn'; note = '代理关+hosts 净(干净)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '未启用'
+       mock = @'
+PROXY | 0 | |
+HOSTS | 0
+ADAPTER | WLAN | Intel(R) Wi-Fi 6 AX201 | Up | False
+'@ },
+    @{ check = 'net_proxy_vpn'; note = '系统代理开启(点名)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '系统代理'; expectSuggestionKeyword = 'netsh winhttp reset proxy'
+       mock = @'
+PROXY | 1 | 127.0.0.1:7890 |
+HOSTS | 0
+'@ },
+    @{ check = 'net_proxy_vpn'; note = 'hosts 有自定义条目'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = 'hosts'; expectSuggestionKeyword = 'hosts'
+       mock = @'
+PROXY | 0 | |
+HOSTS | 2
+ADAPTER | WLAN | Intel(R) Wi-Fi 6 AX201 | Up | False
+'@ },
+    @{ check = 'net_proxy_vpn'; note = '只有 VPN 连上(只提示不算故障)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '虚拟网卡'
+       mock = @'
+PROXY | 0 | |
+HOSTS | 0
+ADAPTER | OpenVPN TAP | TAP-Windows Adapter V9 | Up | True
+'@ },
+    @{ check = 'net_proxy_vpn'; note = '读取失败(SKIP)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = '查不到'
+       mock = @'
+QUERY-ERROR
 '@ }
 )

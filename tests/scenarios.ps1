@@ -52,9 +52,34 @@ $mockNsOk = "Server:  UnKnown`nAddress:  192.168.1.1`n`nNon-authoritative answer
 $mockNsTimeout = "DNS request timed out.`n    timeout was 2 seconds."
 $mockNsOkPublic = "Server:  public1.alidns.com`nAddress:  223.5.5.5`n`nNon-authoritative answer:`nName:    qq.com`nAddresses:  113.108.81.189"
 
+$mockProxyClean = @'
+PROXY | 0 | |
+HOSTS | 0
+ADAPTER | WLAN | Intel(R) Wi-Fi 6 AX201 | Up | False
+'@
+
+$mockProxyHit = @'
+PROXY | 1 | 127.0.0.1:7890 |
+HOSTS | 2
+ADAPTER | WLAN | Intel(R) Wi-Fi 6 AX201 | Up | False
+'@
+
+$mockAppCrashClean = ''
+$mockAppCrashHit = @'
+1000 | WeChat.exe | 2026-10-20 10:00
+1002 | WeChat.exe | 2026-10-21 11:00
+1000 | chrome.exe | 2026-10-21 12:00
+'@
+
+$mockDiskErrorClean = ''
+$mockDiskErrorHit = @'
+55 | C: | 2026-10-20 10:00
+153 | C: | 2026-10-21 11:00
+'@
+
 $global:DiagScenarios = @(
     @{ name = 'full_pass_all_green'; expectExit = 0
-       keywords = @('四层全通', '网络栈全通', '应用层')
+       keywords = @('五层全通', '网络栈全通', '应用层')
        mocks    = @{
            net_adapter_list     = $mockAdapterPass
            net_ip_dhcp          = $mockIpPass
@@ -65,6 +90,7 @@ $global:DiagScenarios = @(
            net_dns_default      = $mockNsOk
            net_dns_gateway_proxy = $routeSingle + "`n===PART===`n" + "###GW 192.168.1.1`n" + $mockNsOk
            net_dns_public       = $mockNsOkPublic
+           net_proxy_vpn        = $mockProxyClean
        } }
     @{ name = 'dns_deadaddr_breakpoint'; expectExit = 2
        keywords = @('断点在：DNS 层', '死地址嫌疑', 'netsh interface ip set dns', '【回滚】')
@@ -148,16 +174,18 @@ $global:DiagScenarios += @(
        mocks    = @{
            hw_disk_health     = "Samsung SSD 970 | SSD | Healthy | OK"
            hw_smart_predict   = "Samsung SSD 970 | 2 | 0 | 40.0 | false"
+           hw_disk_errors     = $mockDiskErrorClean
            hw_battery_wear    = "Designed | 48000`nFullCharged | 43200"
            hw_thermal         = "TZ_0 | 45.0"
            hw_memdiag_history = "03-02 | 1102"
            bs_whea_hardware   = ''
        } }
     @{ name = 'hw_local_case'; tree = 'hardware'; full = $true; expectExit = 2
-       keywords = @('隐患结论', 'WHEA', 'Warning', '硬件体检报告')
+       keywords = @('隐患结论', 'WHEA', 'Warning', '硬件体检报告', '文件系统')
        mocks    = @{
            hw_disk_health     = "WDC WD10 | HDD | Warning | Predictive Failure"
            hw_smart_predict   = "WDC WD10 | 25 | 0 | 41.5 | false"
+           hw_disk_errors     = $mockDiskErrorHit
            hw_battery_wear    = "Designed | 48000`nFullCharged | 21600"
            hw_thermal         = "TZ_0 | 85.0"
            hw_memdiag_history = "03-02 | 1101"
@@ -180,9 +208,10 @@ $global:DiagScenarios += @(
            pf_disk_space             = "C: | 237 | 118 | sys`nD: | 931 | 512 | -"
            pf_memory_pressure        = '15.9 | 31.9 | 19.1'
            pf_disk_saturation        = "0 C: | 1 | 0.001`n===SAMPLE===`n0 C: | 2 | 0.001"
+           pf_app_crashes            = $mockAppCrashClean
        } }
     @{ name = 'pf_local_case'; tree = 'performance'; full = $true; expectExit = 2
-       keywords = @('性能瓶颈结论', '性能体检报告', '95', '30000 毫秒')
+       keywords = @('性能瓶颈结论', '性能体检报告', '95', '30000 毫秒', '应用崩溃')
        mocks    = @{
            pf_boot_duration          = "10-20 | Warning | 95300`n10-19 | Warning | 88210`n10-18 | Information | 41200"
            pf_boot_degradation_events = "101 | WeChat.exe | 3200`n101 | 360Safe.exe | 2800`n103 | XxxGuard | 4100"
@@ -191,6 +220,7 @@ $global:DiagScenarios += @(
            pf_disk_space             = "C: | 237 | 11.2 | sys`nD: | 931 | 512 | -"
            pf_memory_pressure        = '15.9 | 31.9 | 1.6'
            pf_disk_saturation        = "0 C: | 5 | 0.038`n===SAMPLE===`n0 C: | 6 | 0.041"
+           pf_app_crashes            = $mockAppCrashHit
        } }
 )
 
@@ -290,6 +320,7 @@ $global:DiagScenarios += @(
            net_dns_default       = $mockNsOk
            net_dns_gateway_proxy = $routeSingle + "`n===PART===`n" + "###GW 192.168.1.1`n" + $mockNsOk
            net_dns_public        = $mockNsOkPublic
+           net_proxy_vpn         = $mockProxyClean
            # 蓝屏（full-clean 集）
            bs_event_history         = ''
            bs_powerloss_distinction = ''
@@ -300,6 +331,7 @@ $global:DiagScenarios += @(
            # 硬件（full-clean 集）
            hw_disk_health     = "Samsung SSD 970 | SSD | Healthy | OK"
            hw_smart_predict   = "Samsung SSD 970 | 2 | 0 | 40.0 | false"
+           hw_disk_errors     = $mockDiskErrorClean
            hw_battery_wear    = "Designed | 48000`nFullCharged | 43200"
            hw_thermal         = "TZ_0 | 45.0"
            hw_memdiag_history = "03-02 | 1102"
@@ -311,6 +343,7 @@ $global:DiagScenarios += @(
            pf_disk_space             = "C: | 237 | 118 | sys`nD: | 931 | 512 | -"
            pf_memory_pressure        = '15.9 | 31.9 | 19.1'
            pf_disk_saturation        = "0 C: | 1 | 0.001`n===SAMPLE===`n0 C: | 2 | 0.001"
+           pf_app_crashes            = $mockAppCrashClean
            # 驱动（full-clean 集）
            dv_driver_signature     = $dvSigClean
            dv_driver_age           = $dvAgeClean

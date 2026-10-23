@@ -22,6 +22,8 @@
   "rollback": [],
   "rollback_note": "撤销=管理员运行回滚包里的 undo-net_winsock_reset.bat 后重启电脑",
   "timeout_sec": 30,
-  "match_checks": ["dv_network_filters"],
-  "verify_checks": ["dv_network_filters"]
+  "common": true,
+  "caveat": "Winsock 重置不会卸载网络过滤驱动（加速器/杀软加的那几层）；过滤层多本身也不算故障，别指望它把层数降下来。",
+  "match_checks": [],
+  "verify_checks": []
 }

@@ -1,7 +1,7 @@
-﻿{
-  "_comment": "diag 性能排查树 v0.4。JSON 语法=合法 YAML 1.2 子集（零依赖断网可用，同 network/bluescreen/hardware）。性能树=三层聚合取证型：FAIL≠当前故障断点，而是「发现性能瓶颈/隐患」，建议配 -Full 跑满三层攒证据（性能体检.bat 已带 -Full）。SKIP≠PASS：日志不可读/计数器不暴露/查询失败=看不到，不是没问题。",
+{
+  "_comment": "diag 性能排查树 v0.5。JSON 语法=合法 YAML 1.2 子集（零依赖断网可用，同 network/bluescreen/hardware）。性能树=三层聚合取证型：FAIL≠当前故障断点，而是「发现性能瓶颈/隐患」，建议配 -Full 跑满三层攒证据（性能体检.bat 已带 -Full）。SKIP≠PASS：日志不可读/计数器不暴露/查询失败=看不到，不是没问题。",
   "tree": "performance",
-  "version": "0.4",
+  "version": "0.5",
   "report_name": "性能体检报告",
   "verdict_title": "性能瓶颈结论",
   "layers": [
@@ -19,9 +19,9 @@
     },
     {
       "name": "runtime",
-      "title": "卡顿现场（磁盘/内存/IO）",
-      "checks": ["pf_disk_space", "pf_memory_pressure", "pf_disk_saturation"],
-      "verdict_fail": "卡顿三现场至少一项报警：磁盘水位/内存压力/磁盘 IO 堵塞——平时卡顿的直接现场证据。"
+      "title": "卡顿现场（磁盘/内存/IO/应用崩溃）",
+      "checks": ["pf_disk_space", "pf_memory_pressure", "pf_disk_saturation", "pf_app_crashes"],
+      "verdict_fail": "卡顿现场至少一项报警：磁盘水位/内存压力/磁盘 IO 堵塞/应用反复崩溃——平时卡顿的直接现场证据。"
     }
   ],
   "verdict_all_pass": "开机、启动负担、卡顿三层均未发现明显性能瓶颈（SKIP 项=本机未暴露该项数据，非无问题）。体感仍卡的方向：具体应用自身/浏览器多标签页/杀毒扫描进行中，隔几天再体检看趋势。"

@@ -1,4 +1,22 @@
-# diag CHANGELOG
+﻿# diag CHANGELOG
+
+## 2026-10-23 v1.1.0 美化+覆盖+封装片（第二十五切片；A 美化可用性 + B 功能覆盖 + C ext 口子/安装卸载脚本；DSH 执行 A/B，zcode 接力 C，判定层既有 33 项零改动）
+
+**A 段（DSH 10-22）**：页眉减负（副标去重、主题/背景/关闭三钮合并「外观」弹层+图标关闭、窄窗短标签）；结果页按问题归并（蓝屏/上网/硬件/驱动/应用崩溃/速度六族，跨树重复去重、0x139 三项合并，「只看问题/全部」切换、严重度三档、每项「去修复」锚点高亮）；修复中心问题修复置顶、常用修复折叠末尾标注「没跑体检也能用」；错误 match_checks 修正（bs_sfc_dism/net_flush_dns/net_hosts_clean/net_winsock_reset 四卡加「这项不解决」）；字号四档 15.5/17/20/32（小字恢复≥15.5，26px 行高红线不动）；空态/重复文案收敛；红级指南加「复制全部步骤」；权限不足 SKIP 给管理员重跑提示；术语小抄 10 条；:focus-visible/aria-label/级别文字+符号双表达。
+
+**B 段（DSH 10-22）**：新检查 `pf_app_crashes`（WER 1000/1002 近 30 天按应用聚合，同应用≥2 或总数≥3 FAIL）、`hw_disk_errors`（NTFS 55/98 任一 FAIL；153≥3 FAIL）、`net_proxy_vpn`（系统代理/PAC/hosts 非默认 FAIL，VPN 虚拟网卡附注；network 新增 app 层=5 层）；新黄级修复 `net_dns_public_set`（只改已连接物理网卡，原值备份+一键撤销）；tests 157→171。真跑实锤：本机近 30 天 235 次应用崩溃/卡死，SystemOptimizer.exe 占 197 次。
+
+**C 段（zcode 10-23）**：
+- **ext 扩展口子**：engine 单树加载与检查脚本 ext 补缺（`ext	rees\*.yaml`、`ext\checks\*.ps1`；内置优先，同名冲突忽略+stderr 告警；all 模式仍=内置五树）；server 启动扫 `ext	rees\*.yaml`（display_name/desc/ext 标记透出 /api/meta）与 `extepairctions\*.json`（id 与内置查重），冲突/坏 JSON 写 crash log；`ext\README.txt`+示例检查/树/动作（红级指南示例，零风险）；ext 树网页版树选择器自动出现（`ext:true` 标记，全面体检联动排除 ext 树防「勾了却不跑」误解）；`ui\custom.css` 存在则加载（fetch 探测，缺文件 404 静默零控制台错误）。
+- **一键安装/卸载**：`一键安装.bat`（免管理员 robocopy 装 `%LOCALAPPDATA%\电脑体检台`，/IS /IT 覆盖升级，天然保留目标 ext/reports，装完开目录）；`一键卸载.bat`（保留分支=pusHD 后 move ext/reports 到 `电脑体检台-ext备份/-reports备份`；全删分支二次确认；rd 后零代码）。
+- **版本串统一 v1.1.0**：app.js APP_VERSION/头注、index 页脚、server 头+$webVersion、engine 头+$engVersion、gui×2、cases_b 断言、全面体检.bat×2、使用说明、build.ps1×4、路书状态行；build 守卫 8→10 bat+ext 四件在位。
+- **tests +3 ext 用例**（ext 树/检查加载、同名冲突内置优先、缺脚本 SKIP 契约；临时仓自带内容主仓零污染）→174。
+
+**坑（本轮烧录）**：①测试 runner 里 native stderr `2>` 重定向在 `$ErrorActionPreference='Stop'` 下把 stderr 首行变终止错误（同 v1.0.1 DNS 5.1 坑根因），外层降 Continue+finally 恢复；②卸载 bat 自删：rd 删到 cmd 自己握着的 bat 句柄报「正在使用」，`(goto) 2>nul & rd` 收尾且其后零代码（连 echo 都不能有）；③**cmd 内置命令（if exist/move/dir）对「中文目录段+更深一层子目录」路径静默解析失败**（TARGET 级可达、子层必假，存在性判定与移动全哑），pushd 进目标后用纯 ASCII 相对路径绕行；rd 目标一层中文不受影响；④python heredoc 经工具层转义不可靠（\$、\r 事件），bat/复杂转义一律 python wb 二进制整体写+回读断言；⑤server bye 后自杀有条件，彩排残留进程 cwd 占目录致 rd 失败——排障先 taskkill 查残留 powershell。
+
+**验证读数**：`testsun_tests.ps1` 174/174 × PowerShell 5.1 + pwsh7；net_dns 真跑 3/3；全量真跑 38 项 PASS 20 / FAIL 14 / SKIP 4（access-denied/no-battery/query-error/no-data 全带原因）0 bad-json（`reports\diag-all-20261023-103424.json`，SKIP 比上轮 +1=pf_boot_duration 当日无 100 事件，数据波动非代码）；zip 87 条逐字节同（37 checks+5 trees+ext 7+10 bat 全 CRLF 无 BOM，版本串 v1.1.0 无残留，无 bg/真报告）；e2e 中文+空格路径解压→全面体检.bat exit 0→报告五树齐全标 v1.1.0；安装版 ext 树 engine 实跑 FAIL 断点 ✓+/api/meta 六树含 demo ✓+网页版勾选逻辑程序级断言（ext 默认不勾/单勾可跑/footer 文案）✓；卸载 keep 分支（两备份落位+目录删净）与 full 分支（全删）+二次安装闭环 ✓。
+
+**判定层**：既有 33 检查/五树/13 动作判定逻辑与阈值零改动（新增 3 检查为独立文件+network.yaml 新 app 层属 B 段既定范围）。
 
 ## 2026-10-22 v1.0.1 收口片（第二十四切片；DNS 5.1 静默「跳过」修复 + 版本串统一；判定层零改动）
 

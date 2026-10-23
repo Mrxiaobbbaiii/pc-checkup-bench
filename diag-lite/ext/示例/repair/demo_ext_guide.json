@@ -1,0 +1,20 @@
+{
+  "id": "demo_ext_guide",
+  "name": "【ext 示例】查看开机时长并重启",
+  "level": "red",
+  "desc": "ext 扩展动作示例：连续开机超过 30 天，内存里的碎片和没释放的资源会越积越多，重启一次就清空。这是红级（red）动作——程序只给你步骤，永远不会替你执行。",
+  "affect": "重启会关闭所有打开的程序，先保存手头工作。",
+  "undo": "无需回滚——重启不改动任何设置和文件。",
+  "requires_admin": false,
+  "prechecks": [],
+  "steps": [
+    {"exe": "powershell.exe", "args": ["-NoProfile", "-Command", "(Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime"], "desc": "第 1 步（可选）：右键「开始」→「终端」，粘贴这条命令回车，看看具体开了多少天。"},
+    {"exe": "", "args": [], "desc": "第 2 步：点「开始」→「电源」→「重启」，等电脑自己走完就好。"}
+  ],
+  "rollback": [],
+  "rollback_note": "无需回滚",
+  "timeout_sec": 0,
+  "caveat": "这是 ext/repair/actions 的示例文件：红级只显示步骤；想做程序可代跑的动作，先读 ext/README.txt 的安全等级说明。",
+  "match_checks": ["demo_ext_check"],
+  "verify_checks": []
+}

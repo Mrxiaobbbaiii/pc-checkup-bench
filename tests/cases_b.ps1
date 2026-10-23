@@ -46,7 +46,7 @@ $global:DiagBCases = @(
            $jfiles = Get-LatestJson $ctx.Root
            if ($jfiles.Count -ne 1) { $bad += "json files expect 1 got $($jfiles.Count)"; return $bad }
            $j = Get-Content $jfiles[0].FullName -Raw -Encoding UTF8 | ConvertFrom-Json
-           if ($j.engine -ne '电脑体检台 v1.0.1') { $bad += "engine field: $($j.engine)" }
+           if ($j.engine -ne '电脑体检台 v1.1.0') { $bad += "engine field: $($j.engine)" }
            if (@($j.trees).Count -ne 1) { $bad += "trees expect 1 got $(@($j.trees).Count)" }
            $t0 = $j.trees[0]
            if ($t0.tree -ne 'network') { $bad += "tree name: $($t0.tree)" }
@@ -56,7 +56,9 @@ $global:DiagBCases = @(
            $i = 0
            foreach ($l in $t0.layers) {
                if ($l.name -ne $def.layers[$i].name) { $bad += "layer order at $i" }
-               if (@($l.checks).Count -ne @($def.layers[$i].checks).Count) { $bad += "layer $($l.name) checks count mismatch" }
+               if ($l.state -eq 'SKIPPED-AFTER-BREAK') {
+                   if (@($l.checks).Count -ne 0) { $bad += "layer $($l.name) skipped layer has checks" }
+               } elseif (@($l.checks).Count -ne @($def.layers[$i].checks).Count) { $bad += "layer $($l.name) checks count mismatch" }
                foreach ($c in @($l.checks)) {
                    if ($c.status -notin @('PASS', 'FAIL', 'SKIP')) { $bad += "bad status $($c.status)" }
                    if ($c.status -eq 'FAIL' -and [string]::IsNullOrWhiteSpace($c.suggestion)) { $bad += "FAIL $($c.name) without suggestion" }
@@ -70,7 +72,7 @@ $global:DiagBCases = @(
            if ($null -eq $ev) { $bad += 'progress file missing'; return $bad }
            $evs = @($ev | ForEach-Object { $_ | ConvertFrom-Json })
            $checks = @($evs | Where-Object { $_.event -eq 'check' })
-           $expect = Get-TreeCheckSeq (Join-Path $ctx.Root 'trees') @('network')
+           $expect = @(Get-TreeCheckSeq (Join-Path $ctx.Root 'trees') @('network') | Where-Object { $_ -notmatch '^network/app/' })
            if ($checks.Count -ne $expect.Count) { $bad += "check events expect $($expect.Count) got $($checks.Count)" }
            for ($k = 0; $k -lt [Math]::Min($checks.Count, $expect.Count); $k++) {
                $got = "$($checks[$k].tree)/$($checks[$k].layer)/$($checks[$k].check)"
@@ -164,7 +166,7 @@ $global:DiagBCases = @(
            $jfiles = Get-LatestJson $ctx.Root
            if ($jfiles.Count -ne 0) { $bad += "default-off produced $($jfiles.Count) json file(s)" }
            if (Test-Path $ctx.Prog) { $bad += 'progress file should not exist (param not given)' }
-           if ($ctx.Out -notmatch [regex]::Escape('四层全通')) { $bad += 'stdout baseline keyword missing' }
+           if ($ctx.Out -notmatch [regex]::Escape('五层全通')) { $bad += 'stdout baseline keyword missing' }
            return $bad
        } }
 )

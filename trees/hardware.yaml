@@ -1,15 +1,15 @@
 {
-  "_comment": "diag 硬件排查树 v0.3。JSON 语法=合法 YAML 1.2 子集（零依赖断网可用，同 network/bluescreen）。硬件树=三层聚合取证型：FAIL≠当前故障断点，而是「发现硬件隐患」，建议配 -Full 跑满三层攒证据（硬件体检.bat 已带 -Full）。bs_whea_hardware 跨树复用（checks 零改动）。SKIP≠PASS：计数器不暴露/权限不够/无该硬件=看不到，不是没问题。",
+  "_comment": "diag 硬件排查树 v0.4。JSON 语法=合法 YAML 1.2 子集（零依赖断网可用，同 network/bluescreen）。硬件树=三层聚合取证型：FAIL≠当前故障断点，而是「发现硬件隐患」，建议配 -Full 跑满三层攒证据（硬件体检.bat 已带 -Full）。bs_whea_hardware 跨树复用（checks 零改动）。SKIP≠PASS：计数器不暴露/权限不够/无该硬件=看不到，不是没问题。",
   "tree": "hardware",
-  "version": "0.3",
+  "version": "0.4",
   "report_name": "硬件体检报告",
   "verdict_title": "隐患结论",
   "layers": [
     {
       "name": "storage",
-      "title": "存储（磁盘健康与 SMART）",
-      "checks": ["hw_disk_health", "hw_smart_predict"],
-      "verdict_fail": "存储层有隐患：磁盘健康状态异常或 SMART 预警——硬件里最常见的死件，先备份数据再谈别的。"
+      "title": "存储（磁盘健康 / SMART / 文件系统）",
+      "checks": ["hw_disk_health", "hw_smart_predict", "hw_disk_errors"],
+      "verdict_fail": "存储层有隐患：磁盘健康状态异常、SMART 预警或文件系统报错——硬件里最常见的死件，先备份数据再谈别的。"
     },
     {
       "name": "power_thermal",

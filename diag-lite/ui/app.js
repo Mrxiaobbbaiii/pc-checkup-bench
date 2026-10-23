@@ -1,22 +1,29 @@
 'use strict';
-/* diag ui v0.9.4 「电脑体检台」—— 纯原生 JS，零构建零 CDN（断网可用）
-   文案口径=design 详版第十四节对照表（与 v0.7.1 GUI 逐句对齐）；功能对齐 v0.7.1：
-   树勾选（全勾/单勾，勾 2-4 禁用）+进度+日志三态着色+结果树+FAIL 复制+取消+关闭确认（网页内弹层）
-   v0.9.2：小白/专家双视图退役（大字态转正唯一档）；原始证据/修复卡命令行改 <details> 折叠；
-   检查项挂人话名映射 CHECK_HUMAN（纯显示层，数据与匹配逻辑零改动，leaf 悬停可见英文原名）；
-   版本串收敛 APP_VERSION 常量——v0.9 坑③计时器硬编码版本盖静态页脚的根治
-   v0.9.5：文案批 1（级名统一/体检措辞/复查行人话名）；红级弹层矮屏滚动（guide-modal 限高+出滚条）
-   v0.9.6：文案批 2 ui 触点（黄级确认注/复查行毫秒折秒）；与 engine/检查项文案统一「电脑体检台」口径
-   v0.9.9：观感减负——向导回单列纵向流；修复中心按动作聚合去重（红卡×7→×1）+三区小节；
-   修复结果大结论+下一步按钮（五段明细折叠）；非叶子节点提示文字走 label（不占 sug 大块）
-   v0.9.8：修复扩库（库 8→13）——「常用修复」区（common:true 动作=没跑体检也能用的日常小修，
-   列表第 0 区，无报告/零问题也显示）；CMD_MAP 补新动作命令人话映射
-   v1.0：发群封装片——版本串升 v1.0，界面零改动
-   v1.0.1：DNS 5.1 修复收口片——三个 DNS 检查在 5.1 下静默「跳过」修复；版本串升 v1.0.1 */
+/* 电脑体检台 UI · v1.1.0 本体（A 段美化可用性 2026-10-22 + C 段 ext 口子/版本串 2026-10-23）：
+   —— v1.1.0 C 段：APP_VERSION 升 v1.1.0；新增 ui/custom.css 可选加载（fetch 探测，缺文件静默）
+   —— 结果页：问题优先。按「问题族」展示层归并（跨树同名去重、同一次蓝屏的多项合并），
+      严重度三档（高/中/低），「只看问题 / 全部检查项」双视图，每张卡可锚到修复中心；
+      SKIP 单独成组并解释「没查成 ≠ 有问题」，缺管理员权限的项给「以管理员重跑」提示。
+   —— 修复中心：问题修复置顶，常用修复折叠到最后；同一动作只渲染一次；错配的 match_checks
+      在数据层修正，并在卡上补「这项不解决：…」提示。
+   —— 页眉合并为「外观」菜单；字号四档；键盘焦点可见；红级指南可整段复制。
+   只读承诺、绿/黄/红三级语义、五段修复结果、server/engine 接口全部保持 v1.0.1 原样。 */
 
-const APP_VERSION = 'v1.0.1';
+const APP_VERSION = 'v1.1.0';
 
-const $ = (s) => document.querySelector(s);
+/* v1.1.0 ext 口子：ui/custom.css 存在则加载（免重打包换肤）；不存在=404 静默跳过，控制台零报错 */
+fetch('custom.css', { cache: 'no-store' })
+  .then((r) => {
+    if (!r.ok) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'custom.css';
+    document.head.appendChild(link);
+  })
+  .catch(() => {});
+
+const $ = (s, root) => (root || document).querySelector(s);
+const $$ = (s, root) => [...(root || document).querySelectorAll(s)];
 
 const S = {
   meta: null,            // /api/meta：五棵树定义（层/检查项/文案）
@@ -27,37 +34,142 @@ const S = {
   lastSeq: 0,
   htmlUrl: '',
   reportPayload: null,   // /api/report 缓存（结果树+修复中心共用）
+  entries: null,         // 展示层归并后的检查项（跨树同名只留一条）
   currentSuggestion: '',
   runStartAt: 0,
   pollTimer: null,
   elapsedTimer: null,
   beatFail: 0,
-  repairActions: null,   // v0.8.1 /api/repair/list 缓存（null=还没拿到）
+  repairActions: null,   // /api/repair/list 缓存（null=还没拿到）
   repairBusy: false,     // 本地镜像：修复进行中（禁其他修复/按钮态）
   repairDoneIds: {},     // 已执行过的动作 id → 结果（防重复渲染）
   lastNode: null,        // 结果树最后选中节点
+  resultFilter: 'problems',
 };
 
 const STATUS_WORD = { PASS: '✓ 正常', FAIL: '✗ 有问题', SKIP: '– 没查成' };
 const LAYER_NUM = ['①', '②', '③', '④', '⑤', '⑥'];
 
-/* 检查项人话名映射（v0.9.2 纯显示层：界面不出现英文裸名；未收录项原样显示 id）
-   数据源与修复匹配逻辑仍用英文原名，零改动 */
+/* 检查项人话名映射（纯显示层；数据与修复匹配仍用英文原名） */
 const CHECK_HUMAN = {
   net_adapter_list: '网卡与连线', net_ip_dhcp: 'IP 地址获取', net_gateway_conflict: '网关配置冲突',
   net_gateway_ping: '网关连通', net_public_ping: '公网连通', net_dns_deadaddr: 'DNS 死地址',
   net_dns_default: '默认 DNS 配置', net_dns_gateway_proxy: 'DNS 网关代理', net_dns_public: '公共 DNS 解析',
+  net_proxy_vpn: '系统代理 / hosts / VPN',
   bs_event_history: '蓝屏记录（近 90 天）', bs_powerloss_distinction: '断电与蓝屏区分', bs_code_frequency: '蓝屏码频次',
   bs_whea_hardware: '硬件报错记录', bs_minidump_inventory: '转储文件盘点', bs_suspect_drivers: '嫌疑驱动名单',
-  hw_disk_health: '磁盘健康', hw_smart_predict: 'SMART 健康预测', hw_battery_wear: '电池损耗',
+  hw_disk_health: '磁盘健康', hw_disk_errors: '文件系统错误', hw_smart_predict: 'SMART 健康预测', hw_battery_wear: '电池损耗',
   hw_thermal: '温度热区', hw_memdiag_history: '内存诊断史',
   dv_driver_signature: '驱动签名', dv_driver_age: '驱动年代', dv_thirdparty_inventory: '第三方驱动数量',
   dv_network_filters: '网络过滤驱动', dv_device_errors: '设备错误（黄三角）', dv_driver_load_failures: '驱动加载失败',
   pf_boot_duration: '开机用时', pf_boot_degradation_events: '开机变慢事件', pf_startup_items: '开机自启项',
   pf_service_timeouts: '服务超时', pf_disk_space: '磁盘剩余空间', pf_memory_pressure: '内存压力',
-  pf_disk_saturation: '磁盘繁忙度',
+  pf_disk_saturation: '磁盘繁忙度', pf_app_crashes: '应用崩溃 / 卡死',
 };
 function humanCheck(n) { return CHECK_HUMAN[n] || n; }
+
+/* 一句话人话解释：每条检查在详情里先讲「这是什么」 */
+const CHECK_INFO = {
+  net_adapter_list: '电脑认不认得出网卡，网线/无线有没有连上。',
+  net_ip_dhcp: 'IP 地址是不是自动获取，有没有拿到有效地址。',
+  net_gateway_conflict: '同一个局域网里，有没有两台设备抢同一个网关。',
+  net_gateway_ping: '电脑能不能连上路由器（网关）。',
+  net_public_ping: '连不连得上外网（用公共地址试）。',
+  net_dns_deadaddr: 'DNS 服务器地址是不是一个根本不通的死地址。',
+  net_dns_default: '系统默认的 DNS 配置是否正常。',
+  net_dns_gateway_proxy: 'DNS 有没有被网关或代理劫持。',
+  net_dns_public: '改用公共 DNS 后，能不能正常解析网址。',
+  net_proxy_vpn: '系统代理、hosts 文件和 VPN/虚拟网卡有没有在背后改网络。',
+  bs_event_history: '最近 90 天有没有蓝屏记录。',
+  bs_powerloss_distinction: '区分是断电重启，还是真的蓝屏。',
+  bs_code_frequency: '同一个蓝屏代码是不是反复出现。',
+  bs_whea_hardware: 'Windows 有没有记录硬件级报错（WHEA）。',
+  bs_minidump_inventory: '有没有留下蓝屏转储文件，可供分析原因。',
+  bs_suspect_drivers: '蓝屏记录里有没有反复出现的嫌疑驱动。',
+  hw_disk_health: '硬盘自检（SMART）状态是否健康。',
+  hw_disk_errors: '硬盘文件系统有没有报结构损坏或写入延迟（NTFS 事件）。',
+  hw_smart_predict: '用 SMART 数据预测硬盘会不会很快坏。',
+  hw_battery_wear: '笔记本电池损耗到什么程度。',
+  hw_thermal: 'CPU、硬盘温度有没有过热。',
+  hw_memdiag_history: '以前跑过的内存诊断有没有报过错。',
+  dv_driver_signature: '驱动有没有正规数字签名。',
+  dv_driver_age: '驱动是不是太老了。',
+  dv_thirdparty_inventory: '装了多少第三方驱动（越少越稳）。',
+  dv_network_filters: '网络过滤驱动有几层（某些加速器、杀软会加层）。',
+  dv_device_errors: '设备管理器里有没有黄色感叹号。',
+  dv_driver_load_failures: '驱动加载失败的次数多不多。',
+  pf_boot_duration: '开机用了多久。',
+  pf_boot_degradation_events: '有没有「开机明显变慢」的记录。',
+  pf_startup_items: '开机自启项有多少、占不占资源。',
+  pf_service_timeouts: '系统服务有没有频繁超时。',
+  pf_disk_space: '磁盘还剩多少空间。',
+  pf_memory_pressure: '内存够不够用，有没有频繁换页。',
+  pf_disk_saturation: '磁盘是不是长期 100% 忙。',
+  pf_app_crashes: '最近 30 天有哪些应用反复崩溃或卡死。',
+};
+
+/* 严重度三档（纯显示层，不参与判定）：高=要尽快处理，中=建议处理，低=知道就行 */
+const CHECK_SEVERITY = {
+  bs_event_history: 'high', bs_code_frequency: 'high', bs_minidump_inventory: 'high',
+  bs_whea_hardware: 'medium', bs_suspect_drivers: 'medium', bs_powerloss_distinction: 'low',
+  hw_smart_predict: 'high', hw_thermal: 'high', hw_memdiag_history: 'high', hw_disk_health: 'medium',
+  hw_battery_wear: 'low',
+  net_adapter_list: 'high', net_public_ping: 'high', net_gateway_ping: 'medium', net_ip_dhcp: 'medium',
+  net_gateway_conflict: 'medium', net_dns_deadaddr: 'medium', net_dns_default: 'medium',
+  net_dns_public: 'medium', net_dns_gateway_proxy: 'medium',
+  dv_driver_signature: 'medium', dv_device_errors: 'high', dv_network_filters: 'medium',
+  dv_driver_load_failures: 'medium', dv_driver_age: 'low', dv_thirdparty_inventory: 'low',
+  pf_disk_space: 'high', pf_memory_pressure: 'medium', pf_disk_saturation: 'medium',
+  pf_service_timeouts: 'medium', pf_boot_degradation_events: 'medium', pf_boot_duration: 'low',
+  pf_startup_items: 'low', pf_app_crashes: 'medium',
+  hw_disk_errors: 'high', net_proxy_vpn: 'medium',
+};
+const SEV_META = {
+  high: { word: '高', desc: '要尽快处理', cls: 'high' },
+  medium: { word: '中', desc: '建议处理', cls: 'medium' },
+  low: { word: '低', desc: '知道就行', cls: 'low' },
+};
+function checkSeverity(name) { return CHECK_SEVERITY[name] || 'medium'; }
+const SEV_RANK = { high: 0, medium: 1, low: 2 };
+
+/* 展示层问题族：把几十个检查项归成人能看懂的问题清单；note 解释「这几项可能是一件事」 */
+const PROBLEM_GROUPS = [
+  { id: 'bsod', title: '蓝屏与稳定性', prefix: 'bs_', note: '蓝屏记录、蓝屏码频次、转储文件盘点说的可能是同一件事：最近蓝屏过。硬件报错和嫌疑驱动也放这里一起看。' },
+  { id: 'network', title: '上网与网络', prefix: 'net_', note: '按「网卡 → IP → 网关 → 公网 → DNS → 应用层（代理/hosts/VPN）」的顺序查，通常是链路上某一环断了。' },
+  { id: 'hardware', title: '硬件健康', prefix: 'hw_', note: '硬盘、文件系统、内存、温度这些硬件项的体检结果；「没查成」多半是没权限或机器没有这个部件。' },
+  { id: 'driver', title: '驱动', prefix: 'dv_', note: '驱动越老、越多、越没签名，系统越容易不稳；网络过滤层多了也可能拖慢上网。' },
+  { id: 'app', title: '应用崩溃与卡死', prefix: 'pf_app_', note: '同一个软件反复崩溃/卡死时看这里；多个不同软件都崩，也可能是内存/驱动问题。' },
+  { id: 'perf', title: '开机与运行速度', prefix: 'pf_', note: '开机用时、自启项、服务超时、内存和磁盘压力——电脑慢往往不是单一原因。' },
+];
+function groupFor(name) {
+  const g = PROBLEM_GROUPS.find((x) => name.indexOf(x.prefix) === 0);
+  return g || { id: 'other', title: '其他', note: '' };
+}
+
+/* 术语小抄：第一次用的人不读说明也能对上号 */
+const GLOSSARY = {
+  'SKIP（没查成）': '这次没查成，既不是正常，也不是发现问题。常见原因：要管理员权限、机器没这个硬件、系统没留记录。按提示处理后可重跑。',
+  'WHEA': 'Windows 硬件错误架构记录。出现 WHEA 往往指向内存、CPU、硬盘等硬件或电源问题，不是普通软件报错。',
+  '驱动过滤层': '夹在系统和网卡之间的驱动（杀软、加速器、VPN 常会装）。层数多不一定是坏事，但网络出问题时它们是嫌疑对象。',
+  '还原点': 'Windows 的系统快照。修复前建一个，出问题可以整体退回去。',
+  '转储文件（.dmp）': '蓝屏时系统写下的现场记录，用来分析是哪个驱动或硬件导致蓝屏。',
+  '0x139': '一个蓝屏错误代码，全称 KERNEL_SECURITY_CHECK_FAILURE，常见于驱动或内存问题。',
+  '管理员权限': 'Windows 的最高操作权限。硬盘 SMART、温度等检查和部分修复需要它；右键程序选「以管理员身份运行」。',
+  '第三方驱动': '不是微软自带、由其他软件安装的驱动。',
+  '快速模式': '每一类查到问题就跳过该类剩余细项，更快，但证据会少一些。',
+  '内存压力': '物理内存不够时，系统把数据挪到硬盘，表现为卡顿。',
+};
+
+const ADMIN_SKIP_TEXT = '这项要管理员权限才能查。右键「全面体检.bat」→「以管理员身份运行」，再跑一轮就能看到结果。';
+const ADMIN_SKIP = {
+  hw_smart_predict: '这项要读硬盘的 SMART 数据，Windows 只允许管理员读。右键「全面体检.bat」→「以管理员身份运行」再跑一轮。',
+  hw_thermal: '读温度传感器要管理员权限。右键「全面体检.bat」→「以管理员身份运行」再跑一轮。',
+};
+const SKIP_TAG = {
+  hw_battery_wear: '机器没电池',
+  pf_boot_duration: '系统没留记录',
+  hw_memdiag_history: '系统没留记录',
+};
 
 function statusWord(st) { return STATUS_WORD[st] || '– 没查成'; }
 function exitHuman(code) {
@@ -84,53 +196,71 @@ function addLog(text, cls) {
 
 /* ---------- 视图切换 ---------- */
 function switchView(name) {
-  document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
+  $$('.view').forEach((v) => v.classList.remove('active'));
   $('#view-' + name).classList.add('active');
-  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === name));
+  $$('.tab').forEach((t) => {
+    const on = t.dataset.view === name;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
   if (name === 'repair') buildRepairList();
+  if (name === 'results') updateResultsShell();
 }
 $('#tabs').addEventListener('click', (e) => {
   const t = e.target.closest('.tab');
   if (t) switchView(t.dataset.view);
 });
 
-/* ---------- 心跳（页面存活=server 存活；窗关=心跳断→server 杀引擎自杀） ---------- */
+/* 心跳：页面存活=server 存活；窗关=心跳断→server 杀引擎自杀 */
 setInterval(() => {
   fetch('/api/heartbeat', { method: 'POST', cache: 'no-store' }).catch(() => {});
 }, 1000);
 
-/* ---------- 勾选逻辑（对齐 v0.7.1：勾全面=五树联动勾选并禁用单改） ---------- */
+/* ---------- 勾选逻辑（勾全面=五树联动勾选并禁用单改） ---------- */
 function buildChecks() {
   const grid = $('#check-grid');
   S.meta.trees.forEach((t) => {
+    const isExt = !!t.ext;   // v1.1.0：ext 扩展树不属于「全面体检」（engine all=内置五树），默认不勾、联动不带上
     const label = document.createElement('label');
-    label.className = 'check-item tree-item';
+    label.className = 'check-item tree-item' + (isExt ? ' ext-item' : '');
     label.dataset.tree = t.id;
-    label.title = t.tip;
-    label.innerHTML = '<input type="checkbox" class="chk-tree" checked>' +
+    label.title = t.tip + (isExt ? '（扩展树：不属于「全面体检」，单独勾它单跑）' : '');
+    label.innerHTML = '<input type="checkbox" class="chk-tree"' + (isExt ? '' : ' checked') + '>' +
       '<span class="box"></span>' +
-      '<span class="txt"><b>' + esc(t.name) + '（' + esc(t.desc) + '）</b><small>' + esc(t.tip) + '</small></span>';
+      '<span class="txt"><b>' + esc(t.name) + '（' + esc(t.desc) + '）</b></span>';
     grid.appendChild(label);
   });
   const all = $('#chk-all');
-  all.addEventListener('change', () => {
-    document.querySelectorAll('.tree-item').forEach((it) => {
-      it.querySelector('input').checked = all.checked;
-      it.classList.toggle('disabled', all.checked);
+  const setTreeDisabled = (locked) => {
+    $$('.tree-item').forEach((it) => {
+      it.querySelector('input').disabled = locked;
+      it.classList.toggle('disabled', locked);
     });
+  };
+  setTreeDisabled(all.checked);
+  all.addEventListener('change', () => {
+    $$('.tree-item').forEach((it) => {
+      it.querySelector('input').checked = all.checked && !it.classList.contains('ext-item');
+    });
+    setTreeDisabled(all.checked);
     updateSelUi();
   });
-  document.querySelectorAll('.tree-item input').forEach((inp) => {
-    inp.addEventListener('change', updateSelUi);
-  });
+  $$('.tree-item input').forEach((inp) => inp.addEventListener('change', updateSelUi));
   $('#chk-fast').addEventListener('change', updateSelUi);
 }
 function getSelectionForm() {
-  const picked = [...document.querySelectorAll('.tree-item input')].filter((i) => i.checked).map((i) => i.closest('.tree-item').dataset.tree);
-  if (picked.length === 5) return 'all';
+  // v1.1.0：all=内置五树全勾且 ext 树没勾；ext 树只能单独选一棵跑
+  const builtinTotal = $$('.tree-item:not(.ext-item)').length;
+  const builtinChecked = $$('.tree-item:not(.ext-item) input:checked').length;
+  const extChecked = $$('.tree-item.ext-item input:checked').length;
+  if (builtinChecked === builtinTotal && extChecked === 0) return 'all';
+  const picked = $$('.tree-item input').filter((i) => i.checked).map((i) => i.closest('.tree-item').dataset.tree);
   if (picked.length === 1) return picked[0];
   if (picked.length === 0) return 'none';
   return 'invalid-2-4';
+}
+function treeCheckCount(t) {
+  return (t.layers || []).reduce((n, l) => n + (l.checks || []).length, 0);
 }
 function updateSelUi() {
   if (S.appState === 'running') return;
@@ -139,13 +269,31 @@ function updateSelUi() {
   const sel = getSelectionForm();
   const hint = $('#sel-hint');
   if (S.appState === 'idle') {
-    if (sel === 'invalid-2-4') { btn.disabled = true; hint.textContent = '只支持查一项或全部——勾 2 到 4 项不行'; hint.className = 'hint warn'; setStatus('只支持查一项或全部——勾 2 到 4 项不行', ''); }
-    else if (sel === 'none') { btn.disabled = true; hint.textContent = '先勾选要查的项目'; hint.className = 'hint warn'; setStatus('先勾选要查的项目', ''); }
-    else { btn.disabled = false; hint.textContent = '选好后点下面的「开始体检」'; hint.className = 'hint'; setStatus('就绪', ''); }
+    if (sel === 'invalid-2-4') {
+      btn.disabled = true;
+      hint.textContent = '只支持查一类或全部——勾 2 到 4 类不行。要么全选，要么只留一类。';
+      hint.className = 'hint warn';
+      setStatus('选择不合法：勾 2 到 4 类不行', '');
+    } else if (sel === 'none') {
+      btn.disabled = true;
+      hint.textContent = '至少勾一类再开始。';
+      hint.className = 'hint warn';
+      setStatus('先勾选要查的项目', '');
+    } else {
+      btn.disabled = false;
+      const tree = sel === 'all' ? null : S.meta.trees.find((t) => t.id === sel);
+      const n = tree ? treeCheckCount(tree) : 0;
+      hint.textContent = tree
+        ? '将只查「' + tree.name + '」这一类，共 ' + n + ' 项 · 只读，不改任何设置'
+        : '将查五类全部 · 预计 1–3 分钟 · 只读，不改任何设置';
+      hint.className = 'hint';
+      setStatus('就绪', '');
+    }
+    btn.textContent = '开始体检';
   } else {
     btn.disabled = false;
     btn.textContent = '再跑一次';
-    hint.textContent = '上轮已结束，点「再跑一次」重新选、重新查';
+    hint.textContent = '上轮已结束。点「再跑一次」可以重新选、重新查。';
     hint.className = 'hint';
   }
 }
@@ -173,6 +321,7 @@ async function startRun() {
   });
   S.seqPos = 0; S.lastSeq = 0; S.beatFail = 0;
   S.appState = 'running';
+  S.reportPayload = null; S.entries = null; S.htmlUrl = '';
   try {
     const r = await fetch('/api/start', {
       method: 'POST', cache: 'no-store',
@@ -202,7 +351,7 @@ function enterRunningUi(treeArg) {
   $('#run-card').closest('.view').classList.add('running');
   setTimeout(() => { $('#run-card').scrollIntoView({ behavior: 'auto', block: 'nearest' }); }, 60);
   $('#select-card').classList.add('disabled');
-  document.querySelectorAll('#select-card input').forEach((i) => (i.disabled = true));
+  $$('#select-card input').forEach((i) => (i.disabled = true));
   const btn = $('#btn-run');
   btn.textContent = '取消';
   btn.disabled = false;
@@ -227,7 +376,7 @@ async function cancelRun() {
   $('#btn-run').disabled = true;
 }
 
-/* ---------- 轮询 /api/events（500ms，对齐 GUI DispatcherTimer） ---------- */
+/* ---------- 轮询 /api/events（500ms） ---------- */
 function startPolling() {
   stopPolling();
   S.pollTimer = setInterval(pollEvents, 500);
@@ -256,8 +405,7 @@ async function pollEvents() {
   if (payload.state && payload.state !== S.appState && payload.state !== 'running') {
     finalize(payload);
   } else if (payload.state === 'running' && S.appState !== 'running') {
-    // 页面刷新后恢复：server 还在跑
-    recoverRunning(payload);
+    recoverRunning(payload); // 页面刷新后恢复：server 还在跑
   }
 }
 
@@ -288,8 +436,6 @@ function handleEvent(ev) {
     const t = S.meta.trees.find((x) => x.id === ev.tree);
     const name = t ? t.name : ev.tree;
     addLog('—— ' + name + '完成：' + (ev.status === 'FAIL' ? '发现问题' : '全部正常') + ' ——', 'st-dim');
-  } else if (ev.event === 'done') {
-    // htmlUrl/jsonUrl 在 finalize 经 /api/report 取
   }
 }
 function stClass(st) { return st === 'PASS' ? 'st-pass' : st === 'FAIL' ? 'st-fail' : 'st-skip'; }
@@ -297,7 +443,6 @@ function stClass(st) { return st === 'PASS' ? 'st-pass' : st === 'FAIL' ? 'st-fa
 function recoverRunning(payload) {
   S.appState = 'running';
   S.lastSeq = 0;
-  // 重放全量事件重建日志与进度
   $('#log-box').innerHTML = '';
   addLog('—— 页面刷新过，接着显示进度 ——', 'st-dim');
   (payload.events || []).forEach((ev) => handleEvent(ev));
@@ -306,7 +451,8 @@ function recoverRunning(payload) {
   S.fast = payload.runFull === false;
   const btn = $('#btn-run');
   btn.textContent = '取消'; btn.disabled = false; btn.classList.add('running');
-  document.querySelectorAll('#select-card input').forEach((i) => (i.disabled = true));
+  $('#select-card').classList.add('disabled');
+  $$('#select-card input').forEach((i) => (i.disabled = true));
   $('#run-card').classList.remove('hidden');
   $('#pct-label').textContent = S.seqPos + ' / ' + S.expectSeq.length + ' 项';
   startElapsed();
@@ -323,7 +469,7 @@ function finalize(payload) {
     addLog('—— 体检完成（' + secHuman + ' 秒）· ' + (payload.exit === 0 ? '全部正常' : '发现问题') + ' ——',
       payload.exit === 0 ? 'st-pass' : 'st-fail');
     $('#progress-fill').style.width = '100%';
-    setCurrent('查完了。左边看每项结果，也可以点「浏览器看完整报告」');
+    setCurrent('查完了。右边按高/中/低列了问题，点一条就能看怎么修');
     setStatus('体检完成（' + secHuman + ' 秒）· ' + exitHuman(payload.exit), payload.exit === 0 ? '' : 'err');
     loadReport().then(() => {
       switchView('results');
@@ -342,7 +488,7 @@ function finalize(payload) {
   }
 }
 
-/* ---------- 用时（状态栏右侧，对齐 GUI 每秒刷） ---------- */
+/* ---------- 用时（状态栏右侧） ---------- */
 function startElapsed() {
   stopElapsed();
   S.elapsedTimer = setInterval(() => {
@@ -357,27 +503,124 @@ function stopElapsed() {
   $('#status-right').innerHTML = '<span class="ver-chip">电脑体检台 ' + APP_VERSION + '</span>';
 }
 
-/* ---------- 报告与结果树（数据源=/api/report → engine JSON 报告，B 案） ---------- */
+/* ---------- 报告 ---------- */
 async function loadReport() {
   try {
     const r = await fetch('/api/report', { cache: 'no-store' });
     const j = await r.json();
-    if (j.error || !j.report) { S.reportPayload = null; return false; }
+    if (j.error || !j.report) { S.reportPayload = null; S.entries = null; updateResultsShell(); return false; }
     S.reportPayload = j;
     buildResultTree();
     buildRepairList();
+    updateResultsShell();
     return true;
-  } catch (e) { return false; }
+  } catch (e) { updateResultsShell(); return false; }
 }
 
+function updateResultsShell() {
+  const has = !!S.reportPayload;
+  $('#result-empty').classList.toggle('hidden', has);
+  $('#results-body').classList.toggle('hidden', !has);
+  if (!has) {
+    $('#verdict-banner').classList.add('hidden');
+    $('#problem-list').innerHTML = '';
+    $('#result-tree').innerHTML = '';
+    return;
+  }
+  $('#btn-browser').disabled = !S.htmlUrl;
+  $('#btn-folder').disabled = false;
+}
+
+/* 展示层归并：跨树同名只留一条；同名取最坏状态；建议/证据补空 */
+function collectChecks() {
+  if (!S.reportPayload) return [];
+  const map = new Map();
+  const trees = S.reportPayload.report.trees || [];
+  trees.forEach((t) => {
+    (t.layers || []).forEach((l) => {
+      (l.checks || []).forEach((c) => {
+        let e = map.get(c.name);
+        if (!e) {
+          e = {
+            name: c.name, status: c.status, evidence: c.evidence || '', suggestion: c.suggestion || '',
+            trees: [t.report_name], checks: [c],
+          };
+          map.set(c.name, e);
+        } else {
+          if (e.trees.indexOf(t.report_name) < 0) e.trees.push(t.report_name);
+          if (c.status === 'FAIL') e.status = 'FAIL';
+          else if (c.status === 'SKIP' && e.status !== 'FAIL') e.status = 'SKIP';
+          if (!e.evidence && c.evidence) e.evidence = c.evidence;
+          if (!e.suggestion && c.suggestion) e.suggestion = c.suggestion;
+        }
+      });
+    });
+  });
+  return [...map.values()];
+}
+
+/* ---------- 结果中心：大结论 ---------- */
+function renderVerdictBanner(hide) {
+  const vb = $('#verdict-banner');
+  if (!vb) return;
+  if (hide || !S.reportPayload) { vb.classList.add('hidden'); return; }
+  const j = S.reportPayload.report;
+  const isAll = (j.trees || []).length > 1;
+  const entries = S.entries || collectChecks();
+  const fails = entries.filter((e) => e.status === 'FAIL');
+  const skips = entries.filter((e) => e.status === 'SKIP');
+  const cnt = { high: 0, medium: 0, low: 0 };
+  fails.forEach((e) => { const k = checkSeverity(e.name); cnt[k] = (cnt[k] || 0) + 1; });
+  const ok = S.reportPayload.exit === 0 && fails.length === 0;
+
+  vb.innerHTML = '';
+  vb.classList.toggle('bad', !ok);
+  vb.classList.toggle('ok', ok);
+  const big = document.createElement('div');
+  big.className = 'vb-big ' + (ok ? 'ok' : 'bad');
+  big.textContent = ok ? '全部正常' : '发现问题 · 共 ' + fails.length + ' 项';
+  const sub = document.createElement('div');
+  sub.className = 'vb-sub';
+  if (ok) {
+    sub.textContent = (isAll ? '五类检查全部完成' : '本轮检查完成') +
+      (skips.length ? '，有 ' + skips.length + ' 项没查成（不是有问题，原因见下）。' : '，没有发现隐患。');
+  } else {
+    sub.textContent = '已按严重度排好：先看「高」，再看「中」。每一条都能直接跳到修复方式。' +
+      (skips.length ? '另有 ' + skips.length + ' 项没查成，不是有问题。' : '');
+  }
+  vb.appendChild(big);
+  vb.appendChild(sub);
+
+  const stats = document.createElement('div');
+  stats.className = 'vb-stats';
+  [['high', '高'], ['medium', '中'], ['low', '低']].forEach(([k, word]) => {
+    if (!cnt[k]) return;
+    const sp = document.createElement('span');
+    sp.className = 'vb-sev ' + k;
+    sp.textContent = word + ' ' + cnt[k];
+    stats.appendChild(sp);
+  });
+  if (!fails.length) {
+    const sp = document.createElement('span');
+    sp.className = 'vb-sev';
+    sp.textContent = '没查成 ' + skips.length;
+    stats.appendChild(sp);
+  }
+  vb.appendChild(stats);
+
+  const btn = document.createElement('button');
+  btn.className = 'btn-primary vb-btn';
+  btn.textContent = ok ? '看全部检查项' : '去修复中心';
+  btn.addEventListener('click', () => { if (ok) setResultFilter('all'); else switchView('repair'); });
+  vb.appendChild(btn);
+  vb.classList.remove('hidden');
+}
+
+/* ---------- 结果中心：全部检查项树 ---------- */
 function buildResultTree() {
   const tree = $('#result-tree');
   tree.innerHTML = '';
-  if (!S.reportPayload) {
-    tree.innerHTML = '<div class="placeholder">查完的结果会显示在这里</div>';
-    renderVerdictBanner(true);
-    return;
-  }
+  if (!S.reportPayload) return;
   const j = S.reportPayload.report;
   const time = (j.time || '').replace(/:\d\d$/, '');
   const isAll = (j.trees || []).length > 1;
@@ -388,51 +631,25 @@ function buildResultTree() {
   root.open = true;
   const rootSum = document.createElement('summary');
   rootSum.style.fontWeight = '700';
-  rootSum.style.fontSize = '13.5px';
   rootSum.style.color = exit === 0 ? 'var(--pass)' : 'var(--fail)';
   rootSum.appendChild(document.createTextNode(rootText));
   root.appendChild(rootSum);
   root.__data = { type: 'root', title: rootText, exitCode: exit, time: time };
-  rootSum.addEventListener('click', (e) => { e.stopPropagation(); selectNode(rootSum.parentElement); });
+  rootSum.addEventListener('click', (e) => { e.stopPropagation(); selectNode(root); });
 
   const children = document.createElement('div');
   children.className = 'node-children';
-  (j.trees || []).forEach((t) => {
-    children.appendChild(buildTreeSection(t));
-  });
+  (j.trees || []).forEach((t) => children.appendChild(buildTreeSection(t)));
   root.appendChild(children);
   tree.appendChild(root);
-  const treeCard = document.querySelector('.tree-card');
-  if (treeCard) treeCard.scrollTop = 0;
+
+  S.entries = collectChecks();
   selectNode(root);
   renderVerdictBanner(false);
-}
-
-/* v0.9.7 排版重构：大结论横幅（纯显示层——结论大字+下一步动作主按钮，文案贴统一口径） */
-function renderVerdictBanner(hide) {
-  const vb = $('#verdict-banner');
-  if (!vb) return;
-  if (hide || !S.reportPayload) { vb.classList.add('hidden'); return; }
-  const j = S.reportPayload.report;
-  const isAll = (j.trees || []).length > 1;
-  let failCnt = 0;
-  (j.trees || []).forEach((t) => (t.layers || []).forEach((l) => (l.checks || []).forEach((c) => { if (c.status === 'FAIL') failCnt++; })));
-  const ok = S.reportPayload.exit === 0;
-  vb.innerHTML = '';
-  const big = document.createElement('div');
-  big.className = 'vb-big ' + (ok ? 'ok' : 'bad');
-  big.textContent = ok ? '全部正常' : '发现问题 · 共 ' + failCnt + ' 项';
-  const sub = document.createElement('div');
-  sub.className = 'vb-sub';
-  sub.textContent = ok
-    ? (isAll ? '五类检查全部完成，没有发现隐患。' : '本轮检查完成，没有发现隐患。')
-    : '每一项的修复方法都在修复中心：绿色小修可直接代跑。';
-  const btn = document.createElement('button');
-  btn.className = 'btn-primary vb-btn';
-  btn.textContent = ok ? '看看每项结果' : '去修复中心';
-  btn.addEventListener('click', () => switchView(ok ? 'results' : 'repair'));
-  vb.appendChild(big); vb.appendChild(sub); vb.appendChild(btn);
-  vb.classList.remove('hidden');
+  const first = buildProblemList() || S.entries.find((e) => e.status === 'SKIP');
+  if (first) renderCheckDetail(first);
+  setResultFilter(S.resultFilter);
+  updateResultsShell();
 }
 
 function buildTreeSection(t) {
@@ -448,13 +665,11 @@ function buildTreeSection(t) {
   sum.appendChild(document.createTextNode(t.report_name));
   sec.appendChild(sum);
   sec.__data = { type: 'tree', data: t, breakTitle: breakTitle };
-  sum.addEventListener('click', (e) => { e.stopPropagation(); selectNode(sum.parentElement); });
+  sum.addEventListener('click', (e) => { e.stopPropagation(); selectNode(sec); });
 
   const kids = document.createElement('div');
   kids.className = 'node-children';
-  (t.layers || []).forEach((l, i) => {
-    kids.appendChild(buildLayerNode(t, l, i));
-  });
+  (t.layers || []).forEach((l, i) => kids.appendChild(buildLayerNode(t, l, i)));
   sec.appendChild(kids);
   return sec;
 }
@@ -473,12 +688,11 @@ function buildLayerNode(t, l, idx) {
   const markSpan = document.createElement('span');
   markSpan.className = 'mark ' + mcls;
   markSpan.textContent = mark;
-  sum.style.color = mcls === 'fail' ? 'var(--fail)' : mcls === 'skip' ? 'var(--skip)' : 'var(--pass)';
   sum.appendChild(tSpan);
   sum.appendChild(markSpan);
   det.appendChild(sum);
   det.__data = { type: 'layer', data: l, treeName: t.report_name };
-  sum.addEventListener('click', (e) => { e.stopPropagation(); selectNode(sum.parentElement); });
+  sum.addEventListener('click', (e) => { e.stopPropagation(); selectNode(det); });
 
   const kids = document.createElement('div');
   kids.className = 'node-children';
@@ -489,16 +703,234 @@ function buildLayerNode(t, l, idx) {
     leaf.title = c.name;
     leaf.appendChild(document.createTextNode(statusWord(c.status) + '  ' + humanCheck(c.name)));
     leaf.__data = { type: 'check', data: c, treeName: t.report_name };
-    leaf.addEventListener('click', () => selectNode(leaf));
+    leaf.addEventListener('click', () => {
+      renderCheckDetail({ name: c.name, status: c.status, evidence: c.evidence || '', suggestion: c.suggestion || '', trees: [t.report_name] });
+    });
     kids.appendChild(leaf);
   });
   det.appendChild(kids);
   return det;
 }
 
-/* ---------- 选中渲染（对齐 GUI：check/layer/tree/root 四型） ---------- */
+/* ---------- 结果中心：问题清单（展示层归并 + 严重度） ---------- */
+function buildProblemList() {
+  const box = $('#problem-list');
+  if (!box) return null;
+  box.innerHTML = '';
+  const entries = S.entries || collectChecks();
+  if (!entries.length) return null;
+  const fails = entries.filter((e) => e.status === 'FAIL');
+  const skips = entries.filter((e) => e.status === 'SKIP' && !fails.some((f) => f.name === e.name));
+  const groups = [];
+  PROBLEM_GROUPS.forEach((g) => {
+    const items = fails.filter((e) => groupFor(e.name).id === g.id)
+      .sort((a, b) => (SEV_RANK[checkSeverity(a.name)] - SEV_RANK[checkSeverity(b.name)]) || a.name.localeCompare(b.name));
+    if (items.length) groups.push({ g, items });
+  });
+  groups.sort((a, b) => {
+    const ra = Math.min(...a.items.map((e) => SEV_RANK[checkSeverity(e.name)]));
+    const rb = Math.min(...b.items.map((e) => SEV_RANK[checkSeverity(e.name)]));
+    return ra - rb;
+  });
+
+  if (!fails.length) {
+    const card = document.createElement('div');
+    card.className = 'problem-card sev-low';
+    card.innerHTML = '<div class="pc-head"><span class="sev-badge low">✓</span><b>这一轮没有查出问题</b></div>' +
+      '<div class="pc-note">' + (skips.length ? '还有 ' + skips.length + ' 项没查成，放到下面单独说。' : '所有检查项都正常，不用修。') + '</div>';
+    box.appendChild(card);
+  }
+
+  groups.forEach(({ g, items }) => {
+    const sev = items.map((e) => checkSeverity(e.name)).sort((a, b) => SEV_RANK[a] - SEV_RANK[b])[0];
+    const meta = SEV_META[sev];
+    const card = document.createElement('div');
+    card.className = 'problem-card sev-' + sev;
+    const head = document.createElement('div');
+    head.className = 'pc-head';
+    const badge = document.createElement('span');
+    badge.className = 'sev-badge ' + meta.cls;
+    badge.textContent = meta.word;
+    const title = document.createElement('b');
+    title.textContent = g.title;
+    const count = document.createElement('span');
+    count.className = 'pc-count';
+    count.textContent = items.length + ' 项';
+    head.appendChild(badge); head.appendChild(title); head.appendChild(count);
+    card.appendChild(head);
+    if (g.note) {
+      const note = document.createElement('div');
+      note.className = 'pc-note';
+      note.textContent = g.note;
+      card.appendChild(note);
+    }
+    const list = document.createElement('div');
+    list.className = 'pc-items';
+    items.forEach((e) => {
+      const btn = document.createElement('button');
+      btn.className = 'pc-item';
+      btn.dataset.check = e.name;
+      const st = document.createElement('span');
+      st.className = 'pc-st st-fail';
+      st.textContent = '✗';
+      const nm = document.createElement('span');
+      nm.textContent = humanCheck(e.name);
+      const tr = document.createElement('span');
+      tr.className = 'pc-tree';
+      tr.textContent = e.trees.map((x) => String(x).replace(/报告$/, '')).join(' / ');
+      btn.appendChild(st); btn.appendChild(nm); btn.appendChild(tr);
+      btn.addEventListener('click', () => renderCheckDetail(e));
+      list.appendChild(btn);
+    });
+    card.appendChild(list);
+    const foot = document.createElement('div');
+    foot.className = 'pc-foot';
+    const go = document.createElement('button');
+    go.className = 'btn';
+    go.textContent = '去修复';
+    go.addEventListener('click', () => focusRepair(items.filter((e) => e.suggestion).map((e) => e.name)));
+    foot.appendChild(go);
+    card.appendChild(foot);
+    box.appendChild(card);
+  });
+
+  if (skips.length) {
+    const card = document.createElement('div');
+    card.className = 'problem-card sev-skip';
+    const head = document.createElement('div');
+    head.className = 'pc-head';
+    const badge = document.createElement('span');
+    badge.className = 'sev-badge';
+    badge.textContent = '—';
+    const title = document.createElement('b');
+    title.textContent = '没查成（不是有问题）';
+    const count = document.createElement('span');
+    count.className = 'pc-count';
+    count.textContent = skips.length + ' 项';
+    head.appendChild(badge); head.appendChild(title); head.appendChild(count);
+    card.appendChild(head);
+    const note = document.createElement('div');
+    note.className = 'pc-note';
+    note.textContent = '这些项这次没拿到结果，不代表正常，也不代表坏了。常见原因是缺管理员权限、机器没这个部件、系统没留记录；按提示处理后可以重跑。';
+    card.appendChild(note);
+    const list = document.createElement('div');
+    list.className = 'pc-items';
+    skips.forEach((e) => {
+      const btn = document.createElement('button');
+      btn.className = 'pc-item';
+      btn.dataset.check = e.name;
+      const st = document.createElement('span');
+      st.className = 'pc-st st-skip';
+      st.textContent = '–';
+      const nm = document.createElement('span');
+      nm.textContent = humanCheck(e.name);
+      const tr = document.createElement('span');
+      tr.className = 'pc-tree';
+      tr.textContent = isAdminSkip(e.name, e.evidence) ? '需管理员' : (SKIP_TAG[e.name] || '没结果');
+      btn.appendChild(st); btn.appendChild(nm); btn.appendChild(tr);
+      btn.addEventListener('click', () => renderCheckDetail(e));
+      list.appendChild(btn);
+    });
+    card.appendChild(list);
+    box.appendChild(card);
+  }
+
+  return (groups.length ? groups[0].items[0] : null) || fails[0] || skips[0] || null;
+}
+
+function setResultFilter(f) {
+  S.resultFilter = f === 'all' ? 'all' : 'problems';
+  const onProblems = S.resultFilter === 'problems';
+  const entries = S.entries || collectChecks();
+  const failCnt = entries.filter((e) => e.status === 'FAIL').length;
+  const pb = $('#filter-problems'), fa = $('#filter-all');
+  if (pb) {
+    pb.classList.toggle('active', onProblems);
+    pb.setAttribute('aria-selected', onProblems ? 'true' : 'false');
+    $('#cnt-problems').textContent = ' ' + failCnt;
+  }
+  if (fa) {
+    fa.classList.toggle('active', !onProblems);
+    fa.setAttribute('aria-selected', !onProblems ? 'true' : 'false');
+    $('#cnt-all').textContent = ' ' + entries.length;
+  }
+  $('#problem-list').classList.toggle('hidden', !onProblems);
+  $('#result-tree').classList.toggle('hidden', onProblems);
+}
+$('#result-filter').addEventListener('click', (e) => {
+  const b = e.target.closest('.seg-btn');
+  if (b) setResultFilter(b.dataset.filter);
+});
+
+/* ---------- 结果中心：详情面板 ---------- */
+function renderCheckDetail(entry) {
+  if (!entry) return;
+  const title = $('#sel-title');
+  const ev = $('#ev-box');
+  const sug = $('#sug-box');
+  const label = $('#detail-label');
+  const copyBtn = $('#btn-copy');
+  const hint = $('#detail-hint');
+  const goto = $('#btn-goto-repair');
+  const fold = $('#ev-fold');
+  const st = entry.status;
+  S.currentSuggestion = '';
+  copyBtn.disabled = true;
+  copyBtn.textContent = '复制修复方法';
+  sug.classList.remove('hidden');
+  goto.hidden = true;
+  hint.classList.add('hidden');
+  hint.innerHTML = '';
+
+  title.textContent = humanCheck(entry.name) + '  ' + statusWord(st);
+  title.style.color = st === 'PASS' ? 'var(--pass)' : st === 'FAIL' ? 'var(--fail)' : 'var(--skip)';
+
+  const info = CHECK_INFO[entry.name] || '';
+  const sev = checkSeverity(entry.name);
+  if (st === 'FAIL') {
+    goto.hidden = false;
+    goto.onclick = () => focusRepair([entry.name]);
+    hint.innerHTML = '<p><b>这是什么：</b>' + esc(info || '这一项检查了系统和硬件的对应状态。') + '</p>' +
+      '<p><b>影响程度：</b>' + SEV_META[sev].word + ' · ' + SEV_META[sev].desc +
+      (entry.trees.length > 1 ? ' · 在 ' + esc(entry.trees.join('、')) + ' 里都查到了' : '') + '</p>';
+    hint.classList.remove('hidden');
+    if (!entry.suggestion) {
+      hint.innerHTML += '<p><b>注意：</b>这项没给出修复方法（异常），请把报告发给维护者。</p>';
+    }
+    label.textContent = '怎么修';
+    sug.textContent = entry.suggestion || '（这项有问题但没给修复方法——异常，请反馈）';
+    if (entry.suggestion) { S.currentSuggestion = entry.suggestion; copyBtn.disabled = false; }
+  } else if (st === 'SKIP') {
+    const admin = isAdminSkip(entry.name, entry.evidence);
+    const adminNote = ADMIN_SKIP[entry.name] || (admin ? ADMIN_SKIP_TEXT : '');
+    hint.innerHTML = '<p><b>这是什么：</b>' + esc(info || '这一项检查了系统和硬件的对应状态。') + '</p>' +
+      '<p><b>没查成 ≠ 有问题：</b>这次没拿到结果，不代表正常，也不代表坏了。' +
+      (admin ? '这项要管理员权限才能查。' : '') + '</p>';
+    hint.classList.remove('hidden');
+    label.textContent = '怎么处理';
+    sug.textContent = adminNote || entry.suggestion || '这次没查成，不影响其他项。按上面的原因处理后再跑一轮，就能看到结果。';
+  } else {
+    hint.innerHTML = '<p><b>这是什么：</b>' + esc(info || '这一项检查了系统和硬件的对应状态。') + '</p>' +
+      '<p>这项正常，不需要修。</p>';
+    hint.classList.remove('hidden');
+    label.textContent = '检查结果';
+    sug.textContent = '这项正常，不需要修。';
+  }
+
+  $('#ev-label').textContent = '看原始记录（这一项查了什么）';
+  ev.textContent = entry.evidence || '（这项没有留下原始记录）';
+  fold.open = false;
+  S.lastNode = null;
+  $$('.pc-item').forEach((b) => b.classList.toggle('active', b.dataset.check === entry.name));
+}
+function isAdminSkip(name, evidence) {
+  if (ADMIN_SKIP[name]) return true;
+  return /管理员|权限|拒绝访问|access is denied|access-denied|unauthorized/i.test(evidence || '');
+}
+
+/* 选中树/根/层节点（与原版四型一致，只是不再挤占 sug 大块） */
 function selectNode(node) {
-  const tag = node.__data;
+  const tag = node && node.__data;
   if (!tag) return;
   S.lastNode = node;
   const title = $('#sel-title');
@@ -506,31 +938,22 @@ function selectNode(node) {
   const sug = $('#sug-box');
   const label = $('#detail-label');
   const copyBtn = $('#btn-copy');
+  const hint = $('#detail-hint');
+  const goto = $('#btn-goto-repair');
   S.currentSuggestion = '';
   copyBtn.disabled = true;
   copyBtn.textContent = '复制修复方法';
-  ev.textContent = '';
+  sug.classList.add('hidden');
   sug.textContent = '';
-  // v0.9.9：非叶子节点（layer/tree/root）的提示文字走 label 一行，sug 大块隐藏——不再整块 pre 只放一句括号提示
-  const isCheck = tag.type === 'check';
-  sug.classList.toggle('hidden', !isCheck);
-  // v0.9.2 折叠逻辑：check 型=原始记录收起（每次选中新节点重置）；layer/tree/root 型=说明展开直接可见
+  hint.classList.add('hidden');
+  hint.innerHTML = '';
+  goto.hidden = true;
+  $$('.pc-item').forEach((b) => b.classList.remove('active'));
+
   const fold = $('#ev-fold');
-  $('#ev-label').textContent = isCheck ? '看原始记录（这一项查了什么）' : '这一步的说明';
-  fold.open = !isCheck;
-  if (tag.type === 'check') {
-    const c = tag.data;
-    label.textContent = '怎么修';
-    title.textContent = humanCheck(c.name) + '  ' + statusWord(c.status);
-    title.style.color = c.status === 'PASS' ? 'var(--pass)' : c.status === 'FAIL' ? 'var(--fail)' : 'var(--skip)';
-    ev.textContent = c.evidence || '';
-    if (c.suggestion) {
-      sug.textContent = c.suggestion;
-      if (c.status === 'FAIL') { S.currentSuggestion = c.suggestion; copyBtn.disabled = false; }
-    } else {
-      sug.textContent = c.status === 'FAIL' ? '（这项有问题但没给修复方法——异常，请反馈）' : '（这项正常，不需要修）';
-    }
-  } else if (tag.type === 'layer') {
+  $('#ev-label').textContent = '这一步的说明';
+  fold.open = true;
+  if (tag.type === 'layer') {
     const l = tag.data;
     title.textContent = l.title;
     title.style.color = l.state === 'BREAK' ? 'var(--fail)' : (l.state || '').indexOf('SKIPPED') === 0 ? 'var(--skip)' : 'var(--pass)';
@@ -538,20 +961,40 @@ function selectNode(node) {
       : (l.state === 'PASS' || l.state === 'PASSED-EARLIER') ? '这一步全部正常'
       : (l.state || '').indexOf('SKIPPED') === 0 ? '快速模式下这一步没有查' : l.state;
     ev.textContent = stateHuman + '\r\n\r\n这一步说明：' + (l.verdict_fail || '');
-    label.textContent = '（点开这一步下面的具体项目，看修复方法）';
+    label.textContent = '说明';
   } else if (tag.type === 'tree') {
     const t = tag.data;
     title.textContent = t.report_name;
     title.style.color = t.break_layer ? 'var(--fail)' : 'var(--pass)';
     const concl = t.break_layer ? '问题出在这一步：' + tag.breakTitle : '全部正常';
     ev.textContent = concl + '\r\n\r\n这项检查正常时会看到：' + (t.verdict_all_pass || '');
-    label.textContent = '（点开左边的步骤看每项详情）';
+    label.textContent = '说明';
   } else if (tag.type === 'root') {
     title.textContent = tag.title;
     title.style.color = tag.exitCode === 0 ? 'var(--pass)' : 'var(--fail)';
-    ev.textContent = '总结论：' + exitHuman(tag.exitCode) + '\r\n报告时间：' + tag.time + '\r\n\r\n想看带样式的完整报告：点上方「浏览器看完整报告」';
-    label.textContent = '（点开左边的树和步骤，查看每项详情）';
+    ev.textContent = '总结论：' + exitHuman(tag.exitCode) + '\r\n报告时间：' + tag.time + '\r\n\r\n想看带样式的完整报告：点上方「完整报告」';
+    label.textContent = '说明';
   }
+}
+
+/* 锚到修复中心：优先匹配动作卡，其次「要自己动手的」项 */
+function focusRepair(checks) {
+  const names = (checks || []).filter(Boolean);
+  if (!names.length) { switchView('repair'); return; }
+  switchView('repair');
+  requestAnimationFrame(() => {
+    const cards = $$('#repair-list .action-card');
+    let target = cards.find((c) => (c.dataset.checks || '').split(/\s+/).some((n) => names.indexOf(n) >= 0));
+    if (!target) target = $$('#repair-list .repair-item').find((c) => names.indexOf(c.dataset.check) >= 0);
+    if (!target) {
+      const box = $('#repair-list');
+      if (box) box.scrollIntoView({ block: 'start' });
+      return;
+    }
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('flash');
+    setTimeout(() => target.classList.remove('flash'), 2100);
+  });
 }
 
 /* ---------- 结果中心按钮 ---------- */
@@ -562,6 +1005,7 @@ $('#btn-folder').addEventListener('click', async () => {
   try { await fetch('/api/open-reports', { method: 'POST', cache: 'no-store' }); } catch (e) {}
 });
 $('#btn-again').addEventListener('click', () => { resetToIdle(); switchView('wizard'); });
+$('#btn-empty-run').addEventListener('click', () => { resetToIdle(); switchView('wizard'); });
 
 function resetToIdle() {
   S.appState = 'idle';
@@ -571,17 +1015,19 @@ function resetToIdle() {
   $('#pct-label').textContent = '0 / 0 项';
   $('#run-card').classList.add('hidden');
   $('#select-card').classList.remove('disabled');
-  document.querySelectorAll('#select-card input').forEach((i) => (i.disabled = false));
+  $$('#select-card input').forEach((i) => { i.disabled = false; });
+  const all = $('#chk-all');
+  if (all.checked) $$('.tree-item').forEach((it) => { it.querySelector('input').disabled = true; it.classList.add('disabled'); });
   const btn = $('#btn-run');
   btn.textContent = '开始体检';
   btn.classList.remove('running');
-  setCurrent('选好后点下面的「开始体检」');
+  setCurrent('正在准备…');
   setStatus('就绪', '');
   updateSelUi();
+  updateResultsShell();
 }
 
-/* ---------- 复制（localhost=安全上下文，clipboard API 可用；execCommand 兜底；
-   都失败=极端环境（页面失焦/无手势），弹选中文本层让用户 Ctrl+C，永不留死路） ---------- */
+/* ---------- 复制 ---------- */
 async function copyText(t) {
   try { window.focus(); await navigator.clipboard.writeText(t); return true; } catch (e) {
     try {
@@ -618,7 +1064,7 @@ $('#btn-copy').addEventListener('click', () => {
   doCopy(S.currentSuggestion, $('#btn-copy'), '复制修复方法');
 });
 
-/* ---------- 修复中心（v0.8.1：按报告 FAIL 项匹配动作；绿=可代跑，黄=确认弹层，红=指南页） ---------- */
+/* ---------- 修复中心 ---------- */
 const LV_META = {
   green: { word: '绿色 · 安全可自动修', cls: 'green' },
   yellow: { word: '黄色 · 你确认后才动', cls: 'yellow' },
@@ -643,69 +1089,70 @@ const CMD_MAP = {
   'powercfg.exe -restoredefaultschemes': 'powercfg -restoredefaultschemes',
 };
 function stepCmdText(st) {
+  if (st.display) return st.display;
   const raw = st.exe + ' ' + (st.args || []).join(' ');
   return CMD_MAP[raw] || raw;
 }
 
-/* v0.9.9 列表重构：按动作聚合去重（同一动作卡只渲染一次），三区小节——
-   ①能代跑的修复（绿/黄，每动作一卡+「修哪些」对应问题行）
-   ②高风险只给步骤（红，同聚合）
-   ③要自己动手的（无动作匹配的 FAIL 项：标题+复制+折叠 sug 全文）
-   v0.9.8 常用修复=第 0 区（common:true 动作，hits 空=无「修哪些」行）：
-   没跑体检也能用——无报告/零问题时也显示
-   匹配逻辑零改动：仍按 action.match_checks ∩ FAIL 项名，只是渲染聚合 */
+/* 问题修复置顶（绿/黄 → 红 → 自己动手），常用修复折叠到最后。同一动作只渲染一次。 */
 function buildRepairList() {
   const box = $('#repair-list');
   if (!box) return;
   const commons = (S.repairActions || []).filter((a) => a.common);
-  const sec = (txt) => {
-    const h = document.createElement('div');
-    h.className = 'rep-sec';
-    h.textContent = txt;
-    box.appendChild(h);
+  const appendCommonsFold = () => {
+    if (!commons.length) return;
+    const fold = document.createElement('details');
+    fold.className = 'common-fold';
+    const sum = document.createElement('summary');
+    sum.textContent = '常用修复（没跑体检也能用）';
+    fold.appendChild(sum);
+    const note = document.createElement('div');
+    note.className = 'rep-sec-note';
+    note.textContent = '这些是日常小修，不依赖体检结果；点开卡片仍会先讲清楚做什么、影响什么、怎么撤销。';
+    fold.appendChild(note);
+    commons.forEach((a) => fold.appendChild(buildActionCard(a, [])));
+    box.appendChild(fold);
   };
-  const appendCommons = () => {
-    if (!commons.length) return false;
-    sec('常用修复（没跑体检也能用的日常小修）');
-    commons.forEach((a) => box.appendChild(buildActionCard(a, [])));
-    return true;
-  };
+
+  // 没报告：只展示常用修复（折叠），不冒充「查出来的问题」
   if (!S.reportPayload) {
+    box.innerHTML = '';
     const c0 = $('#ri-count'); if (c0) c0.textContent = '';
-    if (commons.length) {
-      box.innerHTML = '';
-      const ph = document.createElement('div');
-      ph.className = 'placeholder';
-      ph.textContent = '还没跑体检——下面的常用修复不用体检也能用；跑完体检，查出的问题会列在这里。';
-      box.appendChild(ph);
-      appendCommons();
-    }
-    return; // 无报告且无常用动作=index.html 静态占位保持
+    const ph = document.createElement('div');
+    ph.className = 'placeholder';
+    ph.textContent = commons.length
+      ? '还没跑体检。跑完一轮，查出的问题会按严重度列在这里；下面的常用修复不用体检也能用。'
+      : '还没有检查结果——先去「体检向导」跑一轮。';
+    box.appendChild(ph);
+    appendCommonsFold();
+    return;
   }
-  const fails = [];
+
+  // 跨树同名 FAIL 只算一次；保留第一次出现的报告名与建议
+  const failMap = new Map();
   (S.reportPayload.report.trees || []).forEach((t) => {
     (t.layers || []).forEach((l) => {
       (l.checks || []).forEach((c) => {
-        if (c.status === 'FAIL' && c.suggestion) fails.push({ tree: t.report_name, check: c.name, sug: c.suggestion });
+        if (c.status !== 'FAIL' || !c.suggestion) return;
+        if (!failMap.has(c.name)) failMap.set(c.name, { tree: t.report_name, check: c.name, sug: c.suggestion });
       });
     });
   });
+  const fails = [...failMap.values()]
+    .sort((a, b) => SEV_RANK[checkSeverity(a.check)] - SEV_RANK[checkSeverity(b.check)]);
   box.innerHTML = '';
   const cnt = $('#ri-count');
   if (cnt) cnt.textContent = fails.length ? '共 ' + fails.length + ' 项' : '';
+
   if (fails.length === 0) {
-    box.innerHTML = '';
-    if (commons.length) {
-      const ph = document.createElement('div');
-      ph.className = 'placeholder';
-      ph.textContent = '这一轮体检没有查出问题。下面是常用修复，没跑体检也能用。';
-      box.appendChild(ph);
-      appendCommons();
-    } else {
-      box.innerHTML = '<div class="placeholder">这一轮体检没有查出问题，或问题项没有修复步骤。</div>';
-    }
+    const ph = document.createElement('div');
+    ph.className = 'placeholder';
+    ph.textContent = '这一轮体检没有查出需要动手的问题。';
+    box.appendChild(ph);
+    appendCommonsFold();
     return;
   }
+
   const acts = (S.repairActions || [])
     .map((a) => ({ a, hits: fails.filter((f) => (a.match_checks || []).indexOf(f.check) >= 0) }))
     .filter((x) => x.hits.length);
@@ -715,35 +1162,40 @@ function buildRepairList() {
   const runnable = acts.filter((x) => x.a.level !== 'red');
   const reds = acts.filter((x) => x.a.level === 'red');
 
-  const withHits = ({ a, hits }) => {
-    const card = buildActionCard(a, hits);
-    box.appendChild(card);
+  const sec = (txt) => {
+    const h = document.createElement('div');
+    h.className = 'rep-sec';
+    h.textContent = txt;
+    box.appendChild(h);
   };
 
-  appendCommons(); // 第 0 区
   if (runnable.length) {
-    sec('能代跑的修复（每张卡先讲清楚做什么、怎么撤销）');
-    runnable.forEach(withHits);
+    sec('能代跑的修复（先看「做什么 / 怎么撤销」，绿色可直接执行）');
+    runnable.forEach(({ a, hits }) => box.appendChild(buildActionCard(a, hits)));
   }
   if (reds.length) {
     sec('高风险 · 只给步骤，工具永远不代跑');
-    reds.forEach(withHits);
+    reds.forEach(({ a, hits }) => box.appendChild(buildActionCard(a, hits)));
   }
   if (rest.length) {
     sec('要自己动手的（点开看步骤，或整段复制）');
     rest.forEach((f) => {
       const item = document.createElement('div');
-      item.className = 'repair-item';
+      item.className = 'repair-item sev-' + SEV_META[checkSeverity(f.check)].cls;
+      item.dataset.check = f.check;
       const head = document.createElement('div');
       head.className = 'ri-head';
       const ti = document.createElement('div');
       ti.className = 'ri-title';
       ti.textContent = '【' + f.tree + '】' + humanCheck(f.check);
+      const sevb = document.createElement('span');
+      sevb.className = 'sev-badge ' + SEV_META[checkSeverity(f.check)].cls;
+      sevb.textContent = SEV_META[checkSeverity(f.check)].word;
       const cp = document.createElement('button');
       cp.className = 'btn';
       cp.textContent = '复制修复方法';
       cp.addEventListener('click', () => { doCopy(f.sug, cp, '复制修复方法'); });
-      head.appendChild(ti); head.appendChild(cp);
+      head.appendChild(ti); head.appendChild(sevb); head.appendChild(cp);
       item.appendChild(head);
       const fold = document.createElement('details');
       fold.className = 'steps-fold';
@@ -757,18 +1209,26 @@ function buildRepairList() {
       box.appendChild(item);
     });
   }
+  appendCommonsFold();
 }
 
 function buildActionCard(a, hits) {
   const card = document.createElement('div');
   card.className = 'action-card lv-' + (LV_META[a.level] ? a.level : 'green');
+  if (hits && hits.length) card.dataset.checks = hits.map((f) => f.check).join(' ');
   const badge = document.createElement('div');
   badge.className = 'ac-badge';
   const bm = LV_META[a.level] || LV_META.green;
   badge.innerHTML = '<b>' + esc(a.name) + '</b><span class="lv-tag ' + bm.cls + '">' + bm.word + '</span>';
   card.appendChild(badge);
 
-  // v0.9.9 聚合卡：这张卡对应哪些问题项（人话名，重复项已按动作去重）
+  if (a.caveat) {
+    const cv = document.createElement('div');
+    cv.className = 'ac-caveat';
+    cv.textContent = '这项不解决：' + a.caveat;
+    card.appendChild(cv);
+  }
+
   if (hits && hits.length) {
     const seen = new Set();
     const names = hits.map((f) => humanCheck(f.check)).filter((n) => (seen.has(n) ? false : (seen.add(n), true)));
@@ -794,7 +1254,6 @@ function buildActionCard(a, hits) {
     card.appendChild(row);
   });
 
-  // v0.9.2：卡片内命令行折叠收起；黄级确认弹层/红级指南里的步骤不折叠（安全知情全量）
   const fold = document.createElement('details');
   fold.className = 'steps-fold';
   const foldSum = document.createElement('summary');
@@ -843,13 +1302,11 @@ function onGreenRun(a, btn, card) {
     setStatus(S.appState === 'running' ? '正在体检中，请等这轮结束再修复' : '正在修复中，请等它结束', 'err');
     return;
   }
-  if (a.requires_admin) {
-    showGreenConfirmModal(a, () => startRepairRun(a, btn, card));
-  } else {
-    startRepairRun(a, btn, card);
-  }
+  if (a.requires_admin) showGreenConfirmModal(a, () => startRepairRun(a, btn, card));
+  else startRepairRun(a, btn, card);
 }
 function showGreenConfirmModal(a, onGo) {
+  document.getElementById('rm-title').textContent = a.name || '修复动作';
   const sub = document.getElementById('rm-sub');
   sub.textContent = '这个动作要用 Windows 管理员权限——点「执行」后 Windows 会弹一个确认框（蓝色的），点「是」才会真正跑；点「否」就什么都不动。';
   fillModalRows(a);
@@ -860,8 +1317,7 @@ function showGreenConfirmModal(a, onGo) {
   document.getElementById('rm-cancel').onclick = hideRepairModal;
   document.getElementById('repair-modal').classList.remove('hidden');
 }
-/* 黄级逐项确认（v0.9 真流程替换预告弹层）：三行（将做什么/影响什么/怎么撤销）逐项打勾才点亮
-   「确认执行」；可选系统还原点勾选（默认勾，建不出来执行器自动中止）；回滚包先行由执行器保证 */
+/* 黄级逐项确认：三行都打勾才点亮「确认执行」；可选系统还原点（建不出来自动中止） */
 function showYellowConfirm(a, btn, card) {
   document.getElementById('rm-title').textContent = a.name || '修复动作';
   const sub = document.getElementById('rm-sub');
@@ -903,10 +1359,6 @@ function showYellowConfirm(a, btn, card) {
     lab.appendChild(rp); lab.appendChild(sp);
     rows.appendChild(lab);
   }
-  const note = document.createElement('div');
-  note.className = 'rm-note';
-  note.textContent = '执行期间先别上网操作，等它跑完；一次只做一个修复，不做并发。';
-  rows.appendChild(note);
   const go = document.getElementById('rm-go');
   go.textContent = '确认执行';
   go.disabled = true;
@@ -920,7 +1372,6 @@ function showYellowConfirm(a, btn, card) {
   function updGo() { go.disabled = !checks.every((c) => c.checked); }
 }
 function fillModalRows(a) {
-  document.getElementById('rm-title').textContent = a.name || '修复动作';
   const rows = document.getElementById('rm-rows');
   rows.innerHTML = '';
   [['做什么', a.desc], ['影响什么', a.affect], ['怎么撤销', a.undo || a.rollback_note]].forEach(([k, v]) => {
@@ -955,8 +1406,28 @@ function onRedArm(e, a) {
   btn.textContent = '有风险——再点一次查看';
   setTimeout(() => { if (btn.dataset.armed === '1') { btn.dataset.armed = ''; btn.textContent = old; } }, 4000);
 }
+let guideText = '';
+function guideTextFor(a) {
+  const lines = [];
+  lines.push(a.name || '高风险操作');
+  lines.push('红色 · 只给步骤，工具不会代跑');
+  lines.push('');
+  if (a.desc) lines.push('做什么：' + a.desc);
+  if (a.affect) lines.push('影响什么：' + a.affect);
+  const undo = a.undo || a.rollback_note;
+  if (undo) lines.push('怎么撤销：' + undo);
+  lines.push('');
+  lines.push('步骤：');
+  (a.steps || []).forEach((st, i) => lines.push((i + 1) + '. ' + (st.desc || '') + '（' + stepCmdText(st) + '）'));
+  lines.push('');
+  lines.push('每一步都看清再做；做之前先确认「怎么撤销」。');
+  return lines.join('\n');
+}
 function showRedGuide(a) {
   a = a || {};
+  guideText = guideTextFor(a);
+  const gdTitle = document.getElementById('gd-title');
+  if (gdTitle) gdTitle.textContent = '⚠ ' + (a.name || '高风险操作') + ' · 只给步骤，工具不会代跑';
   document.getElementById('gd-sub').textContent = (a.desc || '') + ' 这类操作弄错可能开不了机或丢数据——工具永远不会代跑。下面每一步都请看清楚再做，做之前先看「怎么撤销」。';
   const rows = document.getElementById('gd-rows');
   rows.innerHTML = '';
@@ -979,6 +1450,10 @@ function showRedGuide(a) {
 }
 document.getElementById('gd-ok').addEventListener('click', () => {
   document.getElementById('guide-overlay').classList.add('hidden');
+});
+document.getElementById('gd-copy').addEventListener('click', () => {
+  const btn = document.getElementById('gd-copy');
+  doCopy(guideText || '（没有可复制的步骤）', btn, '复制全部步骤');
 });
 
 async function startRepairRun(a, btn, card, opts) {
@@ -1015,11 +1490,10 @@ async function startRepairRun(a, btn, card, opts) {
 }
 function setRepairBusy(busy, btn) {
   S.repairBusy = busy;
-  if (busy) { document.querySelectorAll('.act-run').forEach((b) => { b.dataset.origLabel = b.textContent; b.disabled = true; }); if (btn) btn.textContent = '修复中…'; }
-  else { document.querySelectorAll('.act-run').forEach((b) => { b.disabled = false; if (b.dataset.origLabel) b.textContent = b.dataset.origLabel; }); }
+  if (busy) { $$('.act-run').forEach((b) => { b.dataset.origLabel = b.textContent; b.disabled = true; }); if (btn) btn.textContent = '修复中…'; }
+  else { $$('.act-run').forEach((b) => { b.disabled = false; if (b.dataset.origLabel) b.textContent = b.dataset.origLabel; }); }
 }
-/* v0.9.9 结果呈现重构：大结论一行（修好了/没修好）+复查提炼+下一步动作按钮；
-   五段过程明细折叠（失败时默认展开）——用户要的是「修没修好、接下来干嘛」，过程是备查 */
+/* 修复结果：大结论 + 复查提炼 + 下一步；五段明细折叠，失败默认展开 */
 function renderRepairResult(slot, res) {
   slot.innerHTML = '';
   if (!res || !res.stages) {
@@ -1130,7 +1604,7 @@ function renderRepairResult(slot, res) {
     body.appendChild(l);
   }
   fold.appendChild(body);
-  fold.open = !ok; // 失败时明细默认展开（要看哪步没跑成）；成功默认收起
+  fold.open = !ok;
   slot.appendChild(fold);
 }
 function rrBig(cls, text) {
@@ -1140,7 +1614,7 @@ function rrBig(cls, text) {
   return l;
 }
 
-/* ---------- 关闭确认（网页内弹层；跑批中才拦） ---------- */
+/* ---------- 关闭确认 ---------- */
 $('#btn-close').addEventListener('click', () => {
   if (S.appState === 'running') { $('#overlay').classList.remove('hidden'); return; }
   doShutdown();
@@ -1162,46 +1636,105 @@ $('#copy-ok').addEventListener('click', () => $('#copy-overlay').classList.add('
 window.addEventListener('beforeunload', (e) => {
   if (S.appState === 'running') { e.preventDefault(); e.returnValue = ''; }
 });
-// 关窗/关标签时必达的告别信标（pagehide 兜底必发；后台节流不影响 sendBeacon）
 window.addEventListener('pagehide', () => {
   try { navigator.sendBeacon('/api/bye'); } catch (e) {}
 });
 
-/* ---------- 主题（CSS 变量；localStorage 记住） ---------- */
+/* ---------- 外观：明暗 + 强调色 + 背景原画（合并为一个菜单） ---------- */
 const ACCENTS = { blue: '#4cc2ff', cyan: '#2dd4bf', green: '#3fd68f', violet: '#a78bfa', orange: '#ffb35c', pink: '#ff7b9c' };
+const ACCENT_NAMES = { blue: '蓝色', cyan: '青色', green: '绿色', violet: '紫色', orange: '橙色', pink: '粉色' };
 function applyTheme(theme, accent) {
   const h = document.documentElement;
   h.dataset.theme = theme;
   h.dataset.accent = accent;
   try { localStorage.setItem('diag-theme', JSON.stringify({ t: theme, a: accent })); } catch (e) {}
-  document.querySelectorAll('[data-theme-opt]').forEach((b) => b.classList.toggle('active', b.dataset.themeOpt === theme));
-  document.querySelectorAll('.swatch').forEach((s) => s.classList.toggle('active', s.dataset.accentKey === accent));
+  $$('[data-theme-opt]').forEach((b) => {
+    const on = b.dataset.themeOpt === theme;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+  $$('.swatch').forEach((s) => {
+    const on = s.dataset.accentKey === accent;
+    s.classList.toggle('active', on);
+    s.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
 }
 function initTheme() {
   let cfg = { t: 'dark', a: 'blue' };
   try { const raw = localStorage.getItem('diag-theme'); if (raw) cfg = JSON.parse(raw); } catch (e) {}
   if (!ACCENTS[cfg.a]) cfg.a = 'blue';
+  if (cfg.t !== 'light') cfg.t = 'dark';
   const row = $('#accent-row');
   Object.keys(ACCENTS).forEach((k) => {
     const s = document.createElement('button');
     s.className = 'swatch';
     s.dataset.accentKey = k;
-    s.title = k;
+    s.title = ACCENT_NAMES[k];
+    s.setAttribute('aria-label', '强调色：' + ACCENT_NAMES[k]);
+    s.setAttribute('aria-checked', 'false');
     s.style.background = ACCENTS[k];
     s.addEventListener('click', () => applyTheme(document.documentElement.dataset.theme || 'dark', k));
     row.appendChild(s);
   });
-  document.querySelectorAll('[data-theme-opt]').forEach((b) => {
+  $$('[data-theme-opt]').forEach((b) => {
     b.addEventListener('click', () => applyTheme(b.dataset.themeOpt, document.documentElement.dataset.accent || 'blue'));
   });
   applyTheme(cfg.t, cfg.a);
-  $('#btn-theme').addEventListener('click', () => $('#theme-overlay').classList.remove('hidden'));
-  $('#theme-done').addEventListener('click', () => $('#theme-overlay').classList.add('hidden'));
+
+  const menu = $('#appearance-menu');
+  const aBtn = $('#btn-appearance');
+  const setMenu = (open) => {
+    menu.classList.toggle('hidden', !open);
+    aBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) { const cur = menu.querySelector('.seg-btn.active'); if (cur) cur.focus(); }
+  };
+  aBtn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(menu.classList.contains('hidden')); });
+  document.addEventListener('click', (e) => {
+    if (menu.classList.contains('hidden')) return;
+    if (menu.contains(e.target) || aBtn.contains(e.target)) return;
+    setMenu(false);
+  });
+  $('#appearance-reset').addEventListener('click', () => { applyTheme('dark', 'blue'); setMenu(false); });
 }
 
-/* ---------- 背景图原画弹层（点任意处关闭；图缺失时 server 404=img 不渲染，层仍可开不致命） ---------- */
-$('#btn-bg').addEventListener('click', () => $('#bg-overlay').classList.remove('hidden'));
+/* ---------- 背景图原画弹层（点任意处关闭；图缺失时 img 不渲染，层仍可开不致命） ---------- */
+$('#btn-bg').addEventListener('click', () => {
+  $('#appearance-menu').classList.add('hidden');
+  $('#btn-appearance').setAttribute('aria-expanded', 'false');
+  $('#bg-overlay').classList.remove('hidden');
+});
 $('#bg-overlay').addEventListener('click', () => $('#bg-overlay').classList.add('hidden'));
+
+/* Esc：先关菜单，再关最上层弹层 */
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const menu = $('#appearance-menu');
+  if (menu && !menu.classList.contains('hidden')) {
+    menu.classList.add('hidden');
+    $('#btn-appearance').setAttribute('aria-expanded', 'false');
+    $('#btn-appearance').focus();
+    return;
+  }
+  const layers = ['guide-overlay', 'repair-modal', 'copy-overlay', 'bg-overlay', 'overlay', 'bye-overlay'];
+  for (const id of layers) {
+    const el = document.getElementById(id);
+    if (el && !el.classList.contains('hidden')) { el.classList.add('hidden'); return; }
+  }
+});
+
+/* ---------- 术语小抄 ---------- */
+function buildGlossary() {
+  const list = $('#glossary-list');
+  if (!list) return;
+  Object.keys(GLOSSARY).forEach((k) => {
+    const dt = document.createElement('dt');
+    dt.textContent = k;
+    const dd = document.createElement('dd');
+    dd.textContent = GLOSSARY[k];
+    list.appendChild(dt);
+    list.appendChild(dd);
+  });
+}
 
 /* ---------- 工具 ---------- */
 function esc(s) {
@@ -1209,7 +1742,7 @@ function esc(s) {
 }
 
 /* ---------- 启动 ---------- */
-// 探针（仅 ?probe 出现时激活）：视口实测写进窗口标题，UIA/Get-Process 可读（自动化诊断用，产品态零影响）
+// 探针（仅 ?probe 出现时激活）：视口实测写进窗口标题，UIA/Get-Process 可读（自动化诊断用）
 if (/[?&]probe/.test(location.search)) {
   const updProbe = () => {
     document.title = 'PROBE iw=' + window.innerWidth + ' sw=' + document.documentElement.scrollWidth + ' dpr=' + window.devicePixelRatio;
@@ -1219,6 +1752,7 @@ if (/[?&]probe/.test(location.search)) {
 }
 (async function init() {
   initTheme();
+  buildGlossary();
   try {
     const r = await fetch('/api/meta', { cache: 'no-store' });
     S.meta = await r.json();
@@ -1228,18 +1762,17 @@ if (/[?&]probe/.test(location.search)) {
   }
   buildChecks();
   updateSelUi();
-  // v0.8.1 修复动作清单（失败不致命：修复中心只是少了代跑卡片）
   try {
     const rr = await fetch('/api/repair/list', { cache: 'no-store' });
     const rj = await rr.json();
     if (rj.ok) S.repairActions = rj.actions || [];
   } catch (e) {}
+
   // 页面刷新恢复：server 侧若正在跑，重放事件接着显示
   try {
     const r = await fetch('/api/events?since=0', { cache: 'no-store' });
     const p = await r.json();
     if (p.state === 'running') {
-      // 重建 expectSeq
       const treeArg = p.runTree || 'all';
       S.fast = p.runFull === false;
       S.expectSeq = [];
@@ -1249,7 +1782,7 @@ if (/[?&]probe/.test(location.search)) {
       });
       S.appState = 'running';
       $('#select-card').classList.add('disabled');
-      document.querySelectorAll('#select-card input').forEach((i) => (i.disabled = true));
+      $$('#select-card input').forEach((i) => (i.disabled = true));
       $('#run-card').classList.remove('hidden');
       S.runStartAt = Date.now() - (p.elapsedSec || 0) * 1000;
       (p.events || []).forEach((ev) => handleEvent(ev));
@@ -1260,6 +1793,7 @@ if (/[?&]probe/.test(location.search)) {
       setStatus('正在体检…（页面刷新过，接着显示）', '');
     }
   } catch (e) {}
+
   // server 侧已跑完（页面刷新过）：静默拉报告，结果中心/修复中心保持有数据
   try {
     const r0 = await fetch('/api/events?since=0', { cache: 'no-store' });
@@ -1269,6 +1803,8 @@ if (/[?&]probe/.test(location.search)) {
       S.htmlUrl = p0.htmlUrl || '';
       await loadReport();
       $('#btn-run').textContent = '再跑一次';
+      updateSelUi();
     }
   } catch (e) {}
+  updateResultsShell();
 })();

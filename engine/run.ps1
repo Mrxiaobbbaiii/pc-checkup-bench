@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag engine v1.0.1 —— 推进器（PowerShell 5.1+ / 7 双兼容，群友普及版；用户可见自称=「电脑体检台」，版本走 $engVersion 常量）
+diag engine v1.1.0 —— 推进器（PowerShell 5.1+ / 7 双兼容，群友普及版；用户可见自称=「电脑体检台」，版本走 $engVersion 常量）
 用法：powershell -NoProfile -ExecutionPolicy Bypass -File engine\run.ps1 [-TreeName <树名|all>] [-Full] [-MockDir <dir>] [-OpenReport] [-NoMenu] [-ProgressFile <file>] [-JsonReport]
 树可选字段：verdict_title=报告结论标题（缺省"断点结论"）；report_name=报告大标题树名（缺省保持网络树文案，非网络树证据链副标转聚合取证）
   -Full      断点后继续跑完剩余层取证（默认断点即停，后续层 SKIP）
@@ -14,6 +14,7 @@ diag engine v1.0.1 —— 推进器（PowerShell 5.1+ / 7 双兼容，群友普�
 v0.5：-TreeName all=多树模式（依次跑 network/bluescreen/hardware/performance/drivers 五树出合并报告；
       菜单条件=all 且 MockDir 空且未带 -NoMenu，回车=连跑五树、1-5=单跑该树）；reports/ 保留最新 50 份自动裁剪。
 v0.6：新增 -ProgressFile/-JsonReport 两默认关参数（图形界面片；判定/推进/既有输出逐字不动，GUI 壳消费）。
+v1.1.0：ext 扩展口子——ext	rees\*.yaml（单树补缺）与 ext\checks\*.ps1（检查补缺）自动加载；内置优先，同名冲突忽略+stderr 告警；all 模式仍=内置五树，扩展树在菜单/网页版单独选跑。
 铁律：探测只读（检查项全部只读命令）；证据必附（报告含原始输出摘录）；修复只给命令文本+回滚。
 退出码：0=全通；2=有断点（all 模式=任一树有 FAIL）；3=引擎自身错误。
 #>
@@ -27,7 +28,7 @@ param(
     [string]$ProgressFile = '',
     [switch]$JsonReport
 )
-$engVersion = '1.0.1'
+$engVersion = '1.1.0'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -91,6 +92,7 @@ function Write-ProgressEvent {
 function Invoke-Check {
     param([string]$CheckName, [int]$TimeoutSec = 60, [string]$MockFile = '')
     $script = Join-Path $root "checks/$CheckName.ps1"
+    if (-not (Test-Path $script)) { $script = Join-Path $root "ext/checks/$CheckName.ps1" }   # v1.1.0 ext 口子：内置优先，ext 只补缺，永不覆盖内置
     if (-not (Test-Path $script)) {
         return [PSCustomObject]@{ name = $CheckName; status = 'SKIP'; evidence = "check script missing: $script"; suggestion = ''; detail = @{ reason = 'missing-script' } }
     }
@@ -549,9 +551,17 @@ if ($TreeName -eq 'all') {
     exit $exitAll
 }
 
-# ---------- 单树模式（v0.1 起主路径，v0.5 函数化重构输出逐字一致） ----------
+# ---------- 单树模式（v0.1 起主路径，v0.5 函数化重构输出逐字一致；v1.1.0 ext 口子：内置优先，ext 树只补缺，同名冲突忽略+stderr 告警） ----------
 $treeFile = Join-Path $root "trees/$TreeName.yaml"
-if (-not (Test-Path $treeFile)) { Write-Error "tree not found: $treeFile"; exit 3 }
+$extTreeFile = Join-Path $root "ext/trees/$TreeName.yaml"
+if (Test-Path $treeFile) {
+    if (Test-Path $extTreeFile) { [Console]::Error.WriteLine("[ext] tree '$TreeName' conflicts with built-in; ext copy ignored") }
+} elseif (Test-Path $extTreeFile) {
+    $treeFile = $extTreeFile
+    [Console]::Error.WriteLine("[ext] tree '$TreeName' loaded from ext/trees")
+} else {
+    Write-Error "tree not found: $treeFile"; exit 3
+}
 $tree = Get-Content $treeFile -Raw -Encoding UTF8 | ConvertFrom-Json
 
 $meta = Get-TreeMeta $tree

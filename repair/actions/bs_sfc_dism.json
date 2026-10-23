@@ -15,6 +15,7 @@
   "rollback": [],
   "rollback_note": "不用回滚：不会改坏东西；万一异常用「系统还原」退回修之前的状态",
   "timeout_sec": 120,
-  "match_checks": ["bs_event_history", "bs_minidump_inventory", "bs_code_frequency", "bs_powerloss_distinction", "bs_whea_hardware", "bs_suspect_drivers"],
+  "caveat": "硬件报错（WHEA）、断电重启和嫌疑驱动都不是系统文件损坏，SFC/DISM 修不了它们；这几项要按各自的步骤处理。",
+  "match_checks": ["bs_event_history", "bs_minidump_inventory", "bs_code_frequency"],
   "verify_checks": []
 }
