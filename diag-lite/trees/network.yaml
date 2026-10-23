@@ -3,7 +3,7 @@
   "tree": "network",
   "version": "0.3",
   "report_name": "网络体检报告",
-  "verdict_title": "断点结论",
+  "verdict_title": "上网问题结论",
   "evidence_note": "（按层，从物理到应用）",
   "probe_domain": "www.qq.com",
   "layers": [

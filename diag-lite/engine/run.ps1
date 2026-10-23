@@ -46,7 +46,7 @@ if ($TreeName -eq 'all' -and $MockDir -eq '' -and -not $NoMenu) {
     for ($i = 1; $i -le 3; $i++) {
         Write-Host ''
         Write-Host "================== 电脑体检台 全面体检 v$engVersion =================="
-        Write-Host '  回车 = 连跑五树，出一份合并体检报告（推荐，约几分钟）'
+        Write-Host '  回车 = 五类全查，出一份合并体检报告（推荐，约几分钟）'
         Write-Host '    1 = 网络体检（上不了网 / 网页打不开）'
         Write-Host '    2 = 蓝屏体检（蓝屏过 / 莫名重启）'
         Write-Host '    3 = 硬件体检（磁盘 / 电池 / 温度年检）'
@@ -58,12 +58,12 @@ if ($TreeName -eq 'all' -and $MockDir -eq '' -and -not $NoMenu) {
         if ($menuMap.ContainsKey($k)) { $picked = $menuMap[$k]; break }
         Write-Host "没认出「$k」——请输入 1-5，或直接回车。"
     }
-    if ($picked -eq '') { $picked = 'all'; Write-Host '（连续 3 次未识别，按默认跑全部五树）' }
+    if ($picked -eq '') { $picked = 'all'; Write-Host '（连续 3 次未识别，按默认五类全查）' }
     if ($picked -ne 'all') {
         $TreeName = $picked
-        Write-Host "→ 本轮单跑：$($menuNames[$picked])（出单树报告）"
+        Write-Host "→ 本轮单跑：$($menuNames[$picked])（出这一类的报告）"
     } else {
-        Write-Host '→ 本轮连跑五树（合并报告）'
+        Write-Host '→ 本轮五类全查（合并报告）'
     }
 }
 
