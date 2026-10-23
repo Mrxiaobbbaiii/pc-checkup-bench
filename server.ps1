@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag web server v1.1.0 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用；
+diag web server v1.2.0 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用；
       v1.1.0 起加载 ext	rees 与 extepairctions：只新增不覆盖，同名冲突忽略+crash log 告警）
 用法（bat 启动器代跑）：powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File server.ps1
       开发/测试附加参数：-MockDir <dir>（透传 engine 模拟模式，自动化测试专用，默认关=真跑）
