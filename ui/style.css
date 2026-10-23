@@ -1,20 +1,20 @@
-/* 电脑体检台 UI · v1.1.0 A 段（2026-10-22 美化 + 可用性；版本串本段不动，仍 v1.0.1）
-   设计语言：Fluent 2 暗色面板 + 卡片式信息架构；系统字体，零 CDN、零构建、断网可用。
-   字号阶梯（本片拍板，只有四档）：--fs-1 15.5 辅助 / --fs-2 17 正文控件 / --fs-3 20 小标题 / --fs-4 32 展示
-   红线（逐字保留）：pre.ev / pre.sug / .log 行高 26px，定高 338 / 260 / 208px。
-   主题：CSS 变量 + <html data-theme data-accent>；深色铺背景图 + 渐变纱，浅色白卡实心。 */
+/* 电脑体检台 UI · v1.2.0 片3 主题重排（2026-10-23 用户拍板 T2「霓虹深空」：深空底+霓虹青+发光边框；版本串片5 收口）
+   设计语言：深空霓虹面板 + 背景图在场（纱值随主题重拍：深 0.68/0.46/0.20/0.34，浅 0.60）；系统字体，零 CDN、零构建、断网可用。
+   字号阶梯（只有四档）：--fs-1 15.5 辅助 / --fs-2 17 正文控件 / --fs-3 20 小标题 / --fs-4 32 展示
+   红线（逐字保留）：pre.ev / pre.sug / .log 行高 26px，定高 338 / 260 / 208px；动字号必复测整除。
+   主题：CSS 变量 + <html data-theme data-accent>（默认 accent=青色 cyan）；深色铺背景图 + 渐变纱，浅色白卡实心。 */
 
 :root, html[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0a101d;
-  --bg-glow: #12233f;
-  --panel: #101a2c;
-  --panel-2: #14203a;
-  --panel-hi: #1a2a4a;
-  --line: #1e2c4a;
-  --line-hi: #2c4269;
-  --text: #e8eef7;
-  --dim: #9db0c8;
+  --bg: #060c18;
+  --bg-glow: #0e1c34;
+  --panel: #0a1426;
+  --panel-2: #0e1a30;
+  --panel-hi: #16264a;
+  --line: #1b3054;
+  --line-hi: #2d4e86;
+  --text: #e6f2ff;
+  --dim: #a3bad8;
   --faint: #66788f;
   --pass: #3fd68f;
   --fail: #ff6b6b;
@@ -23,13 +23,13 @@
   --accent: #4cc2ff;
   --accent-soft: rgba(76, 194, 255, .14);
   --accent-ink: #04121f;
-  --shadow: 0 10px 30px rgba(2, 8, 20, .5);
+  --shadow: 0 14px 40px rgba(0, 4, 14, .62);
   --shadow-sm: 0 2px 10px rgba(2, 8, 20, .35);
   --overlay-bg: rgba(4, 9, 18, .72);
-  --radius: 14px;
-  --radius-sm: 10px;
+  --radius: 12px;
+  --radius-sm: 8px;
   /* 背景图层（仅深色）：顶部渐变纱护字、下部透图；bg.jpg 缺失=层不绘制，渐变兜底 */
-  --bg-photo: linear-gradient(180deg, rgba(7,12,22,.82) 0%, rgba(7,12,22,.58) 30%, rgba(7,12,22,.28) 62%, rgba(7,12,22,.40) 100%), url("bg.jpg") center 24% / cover no-repeat;
+  --bg-photo: linear-gradient(180deg, rgba(4,8,16,.68) 0%, rgba(4,8,16,.46) 28%, rgba(4,8,16,.20) 64%, rgba(4,8,16,.34) 100%), url("bg.jpg") center 24% / cover no-repeat;
 }
 
 html[data-theme="light"] {
@@ -53,8 +53,8 @@ html[data-theme="light"] {
   --shadow: 0 10px 26px rgba(30, 50, 90, .12);
   --shadow-sm: 0 2px 8px rgba(30, 50, 90, .10);
   --overlay-bg: rgba(220, 228, 240, .78);
-  /* 浅色专用亮色图 + 轻纱（1021 拍板；缺文件=层不绘制回退纯色） */
-  --bg-photo: linear-gradient(rgba(238, 242, 248, .74), rgba(238, 242, 248, .74)), url("bg-light.jpg") center 30% / cover no-repeat;
+  /* 浅色专用亮色图 + 轻纱（v1.2.0 片3 随主题重拍 0.74→0.60；缺文件=层不绘制回退纯色） */
+  --bg-photo: linear-gradient(rgba(236, 242, 248, .60), rgba(236, 242, 248, .60)), url("bg-light.jpg") center 30% / cover no-repeat;
 }
 
 html[data-accent="cyan"]   { --accent: #2dd4bf; --accent-soft: rgba(45, 212, 191, .14); --accent-ink: #03211c; }
@@ -62,7 +62,7 @@ html[data-accent="green"]  { --accent: #3fd68f; --accent-soft: rgba(63, 214, 143
 html[data-accent="violet"] { --accent: #a78bfa; --accent-soft: rgba(167, 139, 250, .16); --accent-ink: #170a2e; }
 html[data-accent="orange"] { --accent: #ffb35c; --accent-soft: rgba(255, 179, 92, .16); --accent-ink: #241202; }
 html[data-accent="pink"]   { --accent: #ff7b9c; --accent-soft: rgba(255, 123, 156, .16); --accent-ink: #26060f; }
-html[data-theme="light"][data-accent="cyan"]   { --accent-ink: #ffffff; }
+html[data-theme="light"][data-accent="cyan"]   { --accent: #0e9488; --accent-soft: rgba(14, 148, 136, .13); --accent-ink: #ffffff; }
 html[data-theme="light"][data-accent="green"]  { --accent-ink: #ffffff; }
 html[data-theme="light"][data-accent="violet"] { --accent-ink: #ffffff; }
 html[data-theme="light"][data-accent="orange"] { --accent-ink: #2a1604; }
@@ -120,7 +120,7 @@ body {
   position: relative;
   display: flex; align-items: center; gap: 16px;
   padding: 9px 18px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
   background: linear-gradient(180deg,
     color-mix(in srgb, var(--panel) 74%, transparent),
     color-mix(in srgb, var(--panel) 42%, transparent));
@@ -225,9 +225,10 @@ main::before {
   margin: 0 0 5px; font-size: clamp(26px, 2.5vw, var(--fs-4)); font-weight: 700;
   letter-spacing: .5px; line-height: 1.25;
 }
+html[data-theme="dark"] .hero h1 { text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 42%, transparent); }
 .hero h1::after {
   content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 10px; border-radius: 50%;
-  background: var(--accent); box-shadow: 0 0 10px var(--accent); vertical-align: 22%;
+  background: var(--accent); box-shadow: 0 0 16px var(--accent), 0 0 5px var(--accent); vertical-align: 22%;
 }
 .hero p { margin: 0; color: var(--dim); font-size: var(--fs-2); line-height: 1.55; }
 .hero.small h1 { font-size: var(--fs-3); }
@@ -240,15 +241,16 @@ main::before {
 }
 .steps-strip li {
   display: flex; align-items: flex-start; gap: 10px;
-  background: color-mix(in srgb, var(--panel) 72%, transparent);
-  border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 12px;
-  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--panel) 58%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line)); border-radius: var(--radius-sm); padding: 8px 12px;
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
 }
 .steps-strip b {
-  flex: none; width: 24px; height: 24px; border-radius: 50%;
+  flex: none; width: 24px; height: 24px; border-radius: 6px;
   display: grid; place-items: center; font-size: var(--fs-1);
-  background: var(--accent-soft); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+  background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent);
 }
+html[data-theme="dark"] .steps-strip b { box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent); }
 .steps-strip span { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-2); font-weight: 600; line-height: 1.35; }
 .steps-strip small { font-size: var(--fs-1); font-weight: 400; color: var(--dim); }
 
@@ -262,9 +264,10 @@ main::before {
   box-shadow: var(--shadow);
 }
 html[data-theme="dark"] .card {
-  background: color-mix(in srgb, var(--panel) 70%, transparent);
-  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
-  border-color: color-mix(in srgb, var(--line-hi) 70%, transparent);
+  background: color-mix(in srgb, var(--panel) 58%, transparent);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line-hi));
+  box-shadow: var(--shadow), 0 0 22px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 .card-title { font-size: var(--fs-3); font-weight: 700; color: var(--text); margin-bottom: 10px; letter-spacing: .4px; }
 
@@ -273,7 +276,7 @@ html[data-theme="dark"] .card {
   display: flex; align-items: flex-start; gap: 10px;
   padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm);
   cursor: pointer; transition: border-color .12s, background .12s; position: relative;
-  background: color-mix(in srgb, var(--panel-2) 55%, transparent);
+  background: color-mix(in srgb, var(--panel-2) 48%, transparent);
 }
 .check-item:hover { border-color: var(--line-hi); background: var(--panel-2); }
 .check-item:has(input:checked) { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
@@ -316,7 +319,7 @@ html[data-theme="dark"] .card {
 .btn-primary {
   color: var(--accent-ink); background: var(--accent); border: 1px solid transparent; font-weight: 700;
   font-size: var(--fs-3); min-width: 160px; padding: 11px 30px;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--accent) 34%, transparent), 0 0 26px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
 .btn-primary:disabled { background: var(--panel-hi); color: var(--faint); box-shadow: none; cursor: default; }
@@ -334,7 +337,8 @@ html[data-theme="dark"] .card {
 .progress { height: 12px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
 .progress-fill {
   height: 100%; width: 0%; border-radius: 7px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 65%, #135e8f), var(--accent));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 55%, #0a4a5e), var(--accent) 70%, color-mix(in srgb, var(--accent) 72%, #ffffff));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent);
   transition: width .3s ease;
 }
 .running .progress-fill {
@@ -368,7 +372,12 @@ html[data-theme="dark"] .card {
   border-radius: var(--radius); padding: 16px 22px; margin-bottom: 14px;
   box-shadow: var(--shadow);
 }
-html[data-theme="dark"] .verdict-banner { background: color-mix(in srgb, var(--panel) 74%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+html[data-theme="dark"] .verdict-banner {
+  background: color-mix(in srgb, var(--panel) 62%, transparent);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line-hi));
+  box-shadow: var(--shadow), 0 0 22px color-mix(in srgb, var(--accent) 10%, transparent);
+}
 .verdict-banner.bad { border-left-color: var(--fail); }
 .verdict-banner.ok { border-left-color: var(--pass); }
 .vb-big { font-size: var(--fs-4); font-weight: 700; line-height: 1.2; letter-spacing: .5px; }
@@ -401,10 +410,10 @@ html[data-theme="dark"] .verdict-banner { background: color-mix(in srgb, var(--p
 .tree-card::-webkit-scrollbar-thumb { background: var(--line-hi); border-radius: 6px; }
 .detail {
   padding: 14px 16px;
-  background: color-mix(in srgb, var(--panel) 88%, transparent);
-  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 58%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line));
   border-radius: var(--radius-sm);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
 }
 
 /* 结果页贴一屏：页眉/工具条固定，左清单与右详情各自滚动，不被状态栏盖住 */
@@ -491,10 +500,11 @@ html[data-theme="dark"] .verdict-banner { background: color-mix(in srgb, var(--p
 .empty-state h3 { margin: 0 0 8px; font-size: var(--fs-3); }
 .empty-state p { margin: 0 auto 18px; max-width: 560px; color: var(--dim); font-size: var(--fs-2); line-height: 1.6; }
 .empty-glyph {
-  width: 54px; height: 54px; margin: 0 auto 14px; border-radius: 50%;
+  width: 54px; height: 54px; margin: 0 auto 14px; border-radius: 12px;
   display: grid; place-items: center; font-size: 24px; color: var(--accent);
   background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
 }
+html[data-theme="dark"] .empty-glyph { box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 30%, transparent); }
 
 /* ---------- 详情面板 ---------- */
 .detail-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
@@ -567,7 +577,8 @@ pre.ev::-webkit-scrollbar-thumb, pre.sug::-webkit-scrollbar-thumb { background: 
 .repair-item.sev-medium { border-left-color: var(--yellow); }
 .repair-item.sev-low { border-left-color: var(--skip); }
 html[data-theme="dark"] .repair-item, html[data-theme="dark"] .action-card {
-  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  box-shadow: 0 6px 22px rgba(0, 4, 14, .45), 0 0 16px color-mix(in srgb, var(--accent) 8%, transparent);
 }
 .repair-item .ri-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
 .repair-item .ri-title { font-size: var(--fs-2); font-weight: 600; font-family: var(--mono); }
@@ -724,7 +735,7 @@ html[data-theme="dark"] .repair-item, html[data-theme="dark"] .action-card {
 }
 .modal {
   width: min(440px, calc(100vw - 48px));
-  background: var(--panel); border: 1px solid var(--line-hi); border-radius: var(--radius);
+  background: var(--panel); border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line-hi)); border-radius: var(--radius);
   box-shadow: var(--shadow); padding: 22px 24px;
 }
 .modal-title { font-size: var(--fs-3); font-weight: 700; margin-bottom: 8px; }

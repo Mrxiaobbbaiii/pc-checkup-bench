@@ -1647,7 +1647,7 @@ function applyTheme(theme, accent) {
   const h = document.documentElement;
   h.dataset.theme = theme;
   h.dataset.accent = accent;
-  try { localStorage.setItem('diag-theme', JSON.stringify({ t: theme, a: accent })); } catch (e) {}
+  try { localStorage.setItem('diag-theme2', JSON.stringify({ t: theme, a: accent })); } catch (e) {}
   $$('[data-theme-opt]').forEach((b) => {
     const on = b.dataset.themeOpt === theme;
     b.classList.toggle('active', on);
@@ -1660,9 +1660,9 @@ function applyTheme(theme, accent) {
   });
 }
 function initTheme() {
-  let cfg = { t: 'dark', a: 'blue' };
-  try { const raw = localStorage.getItem('diag-theme'); if (raw) cfg = JSON.parse(raw); } catch (e) {}
-  if (!ACCENTS[cfg.a]) cfg.a = 'blue';
+  let cfg = { t: 'dark', a: 'cyan' };
+  try { const raw = localStorage.getItem('diag-theme2'); if (raw) cfg = JSON.parse(raw); } catch (e) {}
+  if (!ACCENTS[cfg.a]) cfg.a = 'cyan';
   if (cfg.t !== 'light') cfg.t = 'dark';
   const row = $('#accent-row');
   Object.keys(ACCENTS).forEach((k) => {
@@ -1677,7 +1677,7 @@ function initTheme() {
     row.appendChild(s);
   });
   $$('[data-theme-opt]').forEach((b) => {
-    b.addEventListener('click', () => applyTheme(b.dataset.themeOpt, document.documentElement.dataset.accent || 'blue'));
+    b.addEventListener('click', () => applyTheme(b.dataset.themeOpt, document.documentElement.dataset.accent || 'cyan'));
   });
   applyTheme(cfg.t, cfg.a);
 
@@ -1694,7 +1694,7 @@ function initTheme() {
     if (menu.contains(e.target) || aBtn.contains(e.target)) return;
     setMenu(false);
   });
-  $('#appearance-reset').addEventListener('click', () => { applyTheme('dark', 'blue'); setMenu(false); });
+  $('#appearance-reset').addEventListener('click', () => { applyTheme('dark', 'cyan'); setMenu(false); });
 }
 
 /* ---------- 背景图原画弹层（点任意处关闭；图缺失时 img 不渲染，层仍可开不致命） ---------- */
