@@ -1,4 +1,4 @@
-/* 电脑体检台 UI · v1.2.0 片3 主题重排（2026-10-23 用户拍板 T2「霓虹深空」：深空底+霓虹青+发光边框；版本串片5 收口）
+/* 电脑体检台 UI · v1.2.0 · T2「霓虹深空」主题（深空底+霓虹青+发光边框）
    设计语言：深空霓虹面板 + 背景图在场（纱值随主题重拍：深 0.68/0.46/0.20/0.34，浅 0.60）；系统字体，零 CDN、零构建、断网可用。
    字号阶梯（只有四档）：--fs-1 15.5 辅助 / --fs-2 17 正文控件 / --fs-3 20 小标题 / --fs-4 32 展示
    红线（逐字保留）：pre.ev / pre.sug / .log 行高 26px，定高 338 / 260 / 208px；动字号必复测整除。
@@ -214,7 +214,8 @@ main::before {
   background: linear-gradient(to bottom, var(--bg) 0%, color-mix(in srgb, var(--bg) 72%, transparent) 52%, transparent 100%);
 }
 .view { position: absolute; inset: 0; overflow: auto; padding: 16px 28px 30px; display: none; }
-.view.active { display: block; }
+.view.active { display: block; animation: viewIn 220ms ease-out; }
+@keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .view > * { max-width: var(--content-max); margin-left: auto; margin-right: auto; }
 #view-wizard > * { max-width: 940px; }
 .view::-webkit-scrollbar { width: 10px; }

@@ -1,5 +1,12 @@
 ﻿# diag CHANGELOG
 
+## 2026-10-23 v1.2.0 片5 收尾汇总片·⏳终验挂起（第三十切片；全量回归+版本串收口+tag 落；guicheck 终验待用户空闲跑）
+
+**全量回归（发版闸①）**：tests **203/203 × PowerShell 5.1 + pwsh7 双版本全绿**（版本串改动后复跑两轮确认）；真机全量真跑（all 五树 -Full）报告 json 完整性程序级核验=整体 json.load 成功/0 空证据/0 非法状态（24 PASS/5 SKIP/15 FAIL，与片4 基线同分布，15 FAIL 对 coverage.json 闭环率 100%）；lite 同步=91 文件逐字节同+版本串 4 文件双写后断言同（唯一差异 reports/repair-log.json=运行时日志非同步口径）。
+**版本串收口（片1 挂账④兑现）**：v1.1.0→v1.2.0 四处用户可见真源=engine/run.ps1 `$engVersion`、server.ps1 `$webVersion`、ui/app.js `APP_VERSION`、ui/index.html 静态 ver-chip，lite 镜像双写+SHA256 断言；tests/cases_b.ps1:49 `b_json_single_break` 场景的 engine banner 断言随版本同步（先红后绿：改串后该用例 FAIL→断言更新→203 全绿）；commit 45a433c + **git tag v1.2.0**；setup.exe 已带 v1.2.0 重出（build/电脑体检台-setup-v1.2.0.exe 4.89MB，包不含 tests 无需因断言同步重出）。
+**口径澄清两笔**：①「六树」按实跑口径=全面体检入口（内置五树；ext 扩展口子本机无第六树，ext/trees 空）；②json 报告 evidence 字段是命令输出摘录（`[netsh …]` 开头纯文本），非嵌套 JSON——上一轮核验脚本误把方括号文本当 bad-json 数出 44，修正口径后 0 bad-json 成立。
+**挂账（本片）**：guicheck-flash setup.exe 用户旅程终验（装→图标→首启 v1.2.0 徽章→全面体检→黄级演练→净退→卸载→重装留机）待用户空闲跑（23:00 窗口用户在打游戏，弹窗类活押后）；群文案已备待用户过目；积分对账待控制台实测。
+
 ## 2026-10-23 v1.2.0 片4 覆盖片·✅毕（第二十九切片；优先项①系统代理成对上新+②nnndisfilter 红卡+6 绿检查/2 黄动作/4 处置卡+coverage.json 闭环率注册表；tests 174→203 双版本全绿；既有判定语义零碰）
 
 **拍板与素材**：本片按 1023 用户优先级修订版执行（①系统代理用户痛点、②nnndisfilter 红卡、④存量取证型 FAIL 处置卡、闭环率闸=总纲第六节之外新增）。读档结论：路书 1021 挂账「修复扩库 6 候选（绿3黄3）」已在 v0.9.8（1022）消费完毕（5 真新增+1 正名兑现），本片候选改从知识来源.md §一「官方记载未覆盖域」起底——4 项兑现 2（端口级连通=net_tcp_port、TCP 连接停滞=net_tcp_stall），另 2 项（Lmhosts 慢/抓包）查无只读实证判定口径如实 SKIP；Lmhosts/抓包不硬编。
