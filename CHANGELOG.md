@@ -1,5 +1,20 @@
 ﻿# diag CHANGELOG
 
+## 2026-10-23 v1.2.0 片1 形态片·前半（第二十六切片；原生薄壳壳体+安装器脚本+build 出口；判定层零碰）
+
+**形态**（按 00-总纲 1023 拍板=方案A 原生薄壳·网页内核）：
+- **host/ 新增**：`Program.cs`（C# WinForms+WebView2 单窗薄壳，`C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe` 编译免 SDK）——单实例 Mutex 锁（二次启动把已有窗提到前台）、隐藏起 `server.ps1 -NoBrowser -PortFile <tmp>`、端口就绪后探测 127.0.0.1/localhost 前缀导航、窗口标题「电脑体检台」、关窗先 GET `/api/bye` 优雅退（2.2s 宽限）再 `taskkill /T /F` 兜底杀进程树、WebView2 缺失时引导官方下载页、UserDataFolder 定址 `%LOCALAPPDATA%\电脑体检台\webview2-data`；`third_party/` 入库 WebView2 SDK 1.0.4258.31 三个部署 dll（Core/WinForms/net462 + Loader x64，NuGet 官方直连取——TUNA nuget 镜像已 404 按 R14 回退）；`make_icon.py` 纯 Pillow 占位 ico（深蓝渐变圆角方+青十字，16/32/48/256 四尺寸，片2 换真）；`test_host_e2e.ps1`/`test_host_tree.ps1` 程序级验收脚本（ASCII 源码+中文标题码点拼接）。
+- **installer/ 新增**：`diag-setup.iss`（Inno 6，UTF-8 BOM；per-user 装 `{localappdata}\电脑体检台` 无 UAC、桌面+开始菜单快捷方式、`ArchitecturesAllowed=x64compatible`、WebView2 缺失时 `PrepareToInstall` 静默跑 bootstrapper（`dontcopy`+`ExtractTemporaryFile` 解 {tmp}）、卸载 keep 分支=usUninstall 阶段把 reports/ext/repair-log/rollback 搬 `电脑体检台-报告备份-<时间戳>`、usPostUninstall 清残壳目录）；`bootstrapper/README.txt`（官方直链与放置说明，exe 不入库）。
+- **build.ps1 新形态出口**：`-Setup` 开关=csc 编 host → staging 新鲜度守卫（5 keyfile SHA256 与 diag-lite 逐字节同）→ 组 `build/setup-staging/`（diag-lite 全量含 bg 双图+host 四件）→ ISCC 出 `build/电脑体检台-setup-v1.2.0.exe`；**不带开关跑=旧 lite zip 流程原样**（实测重打 zip 与原包 SHA256 相同=零影响）。
+- **.gitignore**：补 `build/`、`installer/bootstrapper/*.exe`。
+
+**验证读数**：程序级 E2E 6/6（隐藏起 server/PortFile 端口/`/api/meta` 200/窗口标题/单实例秒退/优雅关窗 2.5s host+server 零残留）；壳内 API 驱动蓝屏树真跑两轮落盘（194s 与 ~300s，`diag-bluescreen-*.json` 3 层结构+`bs_event_history` FAIL 带真实 minidump 证据 0x139×3+break_layer 语义正常）；guicheck-flash 裸壳视觉 4/4 PASS（原生标题栏三按钮/无地址栏无标签页/深色首页五入口渲染/任务栏窗口项带运行指示，证据=`guicheck_tmp/slice1-host-1.png`+`slice1-taskbar-hover.png`）；tests **174/174 × PowerShell 5.1 + pwsh7 双版本全绿**；lite zip 重打 hash 同。
+
+**坑（本轮烧录）**：①Git Bash 直调 csc `/参数` 被 MSYS 路径转换吃掉（`MSYS_NO_PATHCONV` 也不行），定式=整条命令经 `powershell -Command` 传；②WebView2 新 SDK 静态探测改名 `GetAvailableBrowserVersionString(string)`（旧名 `GetAvailableCoreWebView2BrowserVersionString` 已不存在）；③树真跑耗时波动大（194~300s），验收脚本限时必须 ≥420s（180/300 两次竞态失败实锤）；④Inno `.iss` 含中文必须 UTF-8 with BOM（python 补写+回读断言）；⑤测试脚本失败路径要 try/finally 清进程，否则 throw 后 host/server 残留占目录。
+
+**挂账**：安装器版本串 1.2.0 vs 引擎内部 v1.1.0（片5 版本收口统一）；任务栏按钮显示名=host.exe 而非「电脑体检台」（片2 换图标时议 exe 改名或 AppUserModelID）；Smartscreen 无签名警告+异机 WebView2 缺失引导=片5 真机样本回收。
+**阻塞（片1b 续）**：本机未装 Inno Setup → setup.exe 未出、装机全旅程未验；宝宝巴士装机单已交用户，回「装好了」即续。
+
 ## 2026-10-23 v1.1.0 美化+覆盖+封装片（第二十五切片；A 美化可用性 + B 功能覆盖 + C ext 口子/安装卸载脚本；DSH 执行 A/B，zcode 接力 C，判定层既有 33 项零改动）
 
 **A 段（DSH 10-22）**：页眉减负（副标去重、主题/背景/关闭三钮合并「外观」弹层+图标关闭、窄窗短标签）；结果页按问题归并（蓝屏/上网/硬件/驱动/应用崩溃/速度六族，跨树重复去重、0x139 三项合并，「只看问题/全部」切换、严重度三档、每项「去修复」锚点高亮）；修复中心问题修复置顶、常用修复折叠末尾标注「没跑体检也能用」；错误 match_checks 修正（bs_sfc_dism/net_flush_dns/net_hosts_clean/net_winsock_reset 四卡加「这项不解决」）；字号四档 15.5/17/20/32（小字恢复≥15.5，26px 行高红线不动）；空态/重复文案收敛；红级指南加「复制全部步骤」；权限不足 SKIP 给管理员重跑提示；术语小抄 10 条；:focus-visible/aria-label/级别文字+符号双表达。

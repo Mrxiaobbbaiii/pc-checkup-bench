@@ -6,9 +6,69 @@ diag build.ps1 v1.1.0 —— 发群一键出包（v1.1.0 封装片 2026-10-23；
 用法：powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 产物：<仓库根>\diag-lite-v1.1.0.zip（.gitignore *.zip 已挡入库）；打完自印条目清单，字节抽验由验证脚本另行执行。
 #>
+param([switch]$Setup)
+
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+if ($Setup) {
+    # ---- 新形态出口（v1.2.0 片1）：csc 编 host.exe + 组 staging + ISCC 出 setup.exe ----
+    # 不带 -Setup 跑 = 下方旧 lite zip 流程原样不动。
+    $sroot = $PSScriptRoot
+    $hostDir = Join-Path $sroot 'host'
+    $hostOut = Join-Path $sroot 'build\host-out'
+    $staging = Join-Path $sroot 'build\setup-staging'
+    $buildDir = Join-Path $sroot 'build'
+    $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+
+    # 守卫 1：ISCC 在位（本机未装 Inno Setup 时给明确指引）
+    $iscc = @((Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'), (Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe')) |
+        Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+    if (-not $iscc) { throw 'Inno Setup 6 not found. Install Inno Setup 6 (default options) first, then rerun: powershell -File build.ps1 -Setup' }
+
+    # 守卫 2：diag-lite staging 新鲜（keyfile 与源逐字节同，防把旧引擎打进安装器）
+    foreach ($rel in @('server.ps1', 'engine/run.ps1', 'ui/index.html', 'ui/app.js', 'ui/style.css')) {
+        $srcHash = (Get-FileHash -LiteralPath (Join-Path $sroot ($rel -replace '/', '\')) -Algorithm SHA256).Hash
+        $liteHash = (Get-FileHash -LiteralPath (Join-Path $sroot (('diag-lite/' + $rel) -replace '/', '\')) -Algorithm SHA256).Hash
+        if ($srcHash -ne $liteHash) { throw "diag-lite staging is stale: $rel differs from source. Sync diag-lite first, then rerun -Setup." }
+    }
+
+    # 守卫 3：WebView2 bootstrapper 在位（异机缺 runtime 引导）
+    if (-not (Test-Path -LiteralPath (Join-Path $sroot 'installer\bootstrapper\MicrosoftEdgeWebview2Setup.exe'))) {
+        throw 'WebView2 bootstrapper missing. Download https://go.microsoft.com/fwlink/p/?LinkId=2124703 into installer\bootstrapper\'
+    }
+
+    New-Item -ItemType Directory -Force -Path $hostOut, $staging, $buildDir | Out-Null
+
+    # 步骤 1：csc 编 host.exe（免 SDK，WinForms+WebView2 薄壳）
+    $cscArgs = @('/nologo', '/target:winexe', '/platform:x64', '/optimize+', '/codepage:65001',
+        ('/win32icon:"' + (Join-Path $hostDir 'app.ico') + '"'),
+        ('/out:"' + (Join-Path $hostOut 'host.exe') + '"'),
+        ('/r:"' + (Join-Path $hostDir 'third_party\Microsoft.Web.WebView2.Core.dll') + '"'),
+        ('/r:"' + (Join-Path $hostDir 'third_party\Microsoft.Web.WebView2.WinForms.dll') + '"'),
+        '/r:System.dll', '/r:System.Core.dll', '/r:System.Drawing.dll', '/r:System.Windows.Forms.dll',
+        ('"' + (Join-Path $hostDir 'Program.cs') + '"'))
+    & $csc @cscArgs
+    if ($LASTEXITCODE -ne 0) { throw "csc failed: $LASTEXITCODE" }
+    Copy-Item (Join-Path $hostOut '*') $staging -Force
+    Copy-Item (Join-Path $hostDir 'third_party\x64\WebView2Loader.dll') $staging -Force
+
+    # 步骤 2：组 staging = diag-lite 全量（bg 双图随包，1023 解除不入包拍板）+ host 四件
+    Copy-Item (Join-Path $sroot 'diag-lite\*') $staging -Recurse -Force
+    foreach ($f in @('host.exe', 'Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.WinForms.dll', 'WebView2Loader.dll')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $staging $f))) { throw "staging incomplete: $f" }
+    }
+
+    # 步骤 3：ISCC 出 setup.exe（中文文件名由 .iss 的 OutputBaseFilename 决定）
+    & $iscc (Join-Path $sroot 'installer\diag-setup.iss')
+    if ($LASTEXITCODE -ne 0) { throw "ISCC failed: $LASTEXITCODE" }
+    $setup = Get-ChildItem -LiteralPath $buildDir -Filter '*setup-v1.2.0.exe' | Select-Object -First 1
+    if (-not $setup -or $setup.Length -lt 1000000) { throw 'setup.exe missing or suspiciously small' }
+    Write-Host ("SETUP BUILD OK: {0} ({1} bytes)" -f $setup.FullName, $setup.Length)
+    return
+}
+
 
 $root = $PSScriptRoot
 $src = Join-Path $root 'diag-lite'

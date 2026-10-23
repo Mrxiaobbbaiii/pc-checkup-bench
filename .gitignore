@@ -21,3 +21,7 @@ diag-lite/ui/bg-light.jpg
 # 版权 brand.png 派生的 favicon（同 brand 不入库待遇）
 ui/favicon.png
 diag-lite/ui/favicon.png
+
+# v1.2.0 slice1: native shell build artifacts (rebuildable via build.ps1 -Setup)
+build/
+installer/bootstrapper/*.exe
