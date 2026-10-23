@@ -792,3 +792,27 @@ html[data-theme="dark"] .repair-item, html[data-theme="dark"] .action-card {
   *, *::before, *::after { animation: none !important; transition: none !important; }
   html { scroll-behavior: auto !important; }
 }
+
+/* ===== 迭代轮6 弹层与问题卡动效（业界口径：stagger 50-100ms 间隔、modal 150-250ms ease-out；上方 prefers-reduced-motion 兜底自动豁免） ===== */
+/* 弹层开合双向过渡：@starting-style + display allow-discrete（WebView2 Chromium 117+ 生效，旧内核降级瞬切=原行为） */
+.overlay { transition: opacity 160ms ease-out, display 160ms allow-discrete; }
+.overlay .modal { transition: transform 200ms ease-out, opacity 200ms ease-out, display 200ms allow-discrete; }
+.overlay.hidden { opacity: 0; }
+.overlay.hidden .modal { opacity: 0; transform: scale(.96) translateY(8px); }
+@starting-style {
+  .overlay:not(.hidden) { opacity: 0; }
+  .overlay:not(.hidden) .modal { opacity: 0; transform: scale(.96) translateY(8px); }
+}
+/* 结果页问题卡进场 stagger：挂在 .view.active 上=每次进结果视图才播；50ms 间隔封顶 8 张 */
+#view-results.active .problem-card { animation: cardIn 220ms ease-out backwards; }
+#view-results.active .problem-card:nth-child(2) { animation-delay: 50ms; }
+#view-results.active .problem-card:nth-child(3) { animation-delay: 100ms; }
+#view-results.active .problem-card:nth-child(4) { animation-delay: 150ms; }
+#view-results.active .problem-card:nth-child(5) { animation-delay: 200ms; }
+#view-results.active .problem-card:nth-child(6) { animation-delay: 250ms; }
+#view-results.active .problem-card:nth-child(7) { animation-delay: 300ms; }
+#view-results.active .problem-card:nth-child(n+8) { animation-delay: 350ms; }
+@keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+/* 修复结果大结论一次性 pop（成功/失败对称给反馈感） */
+.rr-big.ok, .rr-big.bad { animation: popIn 300ms ease-out; }
+@keyframes popIn { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
