@@ -1,6 +1,6 @@
 ﻿# diag CHANGELOG
 
-## 2026-10-23 v1.2.0 片1 形态片·前半（第二十六切片；原生薄壳壳体+安装器脚本+build 出口；判定层零碰）
+## 2026-10-23 v1.2.0 片1 形态片·✅毕（第二十六切片；原生薄壳壳体+安装器+build 出口+片1b 装机全旅程验收；判定层零碰）
 
 **形态**（按 00-总纲 1023 拍板=方案A 原生薄壳·网页内核）：
 - **host/ 新增**：`Program.cs`（C# WinForms+WebView2 单窗薄壳，`C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe` 编译免 SDK）——单实例 Mutex 锁（二次启动把已有窗提到前台）、隐藏起 `server.ps1 -NoBrowser -PortFile <tmp>`、端口就绪后探测 127.0.0.1/localhost 前缀导航、窗口标题「电脑体检台」、关窗先 GET `/api/bye` 优雅退（2.2s 宽限）再 `taskkill /T /F` 兜底杀进程树、WebView2 缺失时引导官方下载页、UserDataFolder 定址 `%LOCALAPPDATA%\电脑体检台\webview2-data`；`third_party/` 入库 WebView2 SDK 1.0.4258.31 三个部署 dll（Core/WinForms/net462 + Loader x64，NuGet 官方直连取——TUNA nuget 镜像已 404 按 R14 回退）；`make_icon.py` 纯 Pillow 占位 ico（深蓝渐变圆角方+青十字，16/32/48/256 四尺寸，片2 换真）；`test_host_e2e.ps1`/`test_host_tree.ps1` 程序级验收脚本（ASCII 源码+中文标题码点拼接）。
@@ -13,7 +13,11 @@
 **坑（本轮烧录）**：①Git Bash 直调 csc `/参数` 被 MSYS 路径转换吃掉（`MSYS_NO_PATHCONV` 也不行），定式=整条命令经 `powershell -Command` 传；②WebView2 新 SDK 静态探测改名 `GetAvailableBrowserVersionString(string)`（旧名 `GetAvailableCoreWebView2BrowserVersionString` 已不存在）；③树真跑耗时波动大（194~300s），验收脚本限时必须 ≥420s（180/300 两次竞态失败实锤）；④Inno `.iss` 含中文必须 UTF-8 with BOM（python 补写+回读断言）；⑤测试脚本失败路径要 try/finally 清进程，否则 throw 后 host/server 残留占目录。
 
 **挂账**：安装器版本串 1.2.0 vs 引擎内部 v1.1.0（片5 版本收口统一）；任务栏按钮显示名=host.exe 而非「电脑体检台」（片2 换图标时议 exe 改名或 AppUserModelID）；Smartscreen 无签名警告+异机 WebView2 缺失引导=片5 真机样本回收。
-**阻塞（片1b 续）**：本机未装 Inno Setup → setup.exe 未出、装机全旅程未验；宝宝巴士装机单已交用户，回「装好了」即续。
+**片1b 续（1023 下午，Inno Setup 7 装好后）**：守卫适配 Inno 6/7 双探测；setup.exe 出包→装机全旅程验收全过——guicheck 向导旅程（标题「Setup - 电脑体检台 1.2.0」、无 WebView2 误弹、完成页「立即运行」勾选、首启原生窗+网页版首页「给电脑做个全面体检」卡片渲染，`guicheck_tmp/slice1b3-*.png`）；程序级装后验证（host 四件+bg 双图入包、桌面/开始菜单 .lnk、卸载键 DisplayName=电脑体检台 1.2.0 共 10/10）；安装版壳内蓝屏树跑通（`%LOCALAPPDATA%\电脑体检台\reports\diag-bluescreen-20261023-125936.json` 落盘+内容断言）；关窗净退 2.3s；静默卸载留净（快捷方式/注册键/目录全清）+ **keep 分支 7/7**（3 份蓝屏报告保全进 `电脑体检台-报告备份-202610231313`，`installer/uninstall-backup.ps1` 经 [UninstallRun] 执行）。
+
+**片1b 坑（续烧录）**：⑥**Inno [Code] Pascal 字符串字面量不转义 `{{`**（该规则只在 [Setup] 段值生效）——注册表键名写成 `...\Clients\{{GUID}` 运行时真带双括号→查无此键→WebView2 误判未装→bootstrapper 空跑失败（-2147219416）中止安装；[Code] 里键名必须写单 `{`（探针 `probe.iss` 实证，用后已删）；⑦**Inno 卸载器 [Code] 上下文跑 Exec 拼 PowerShell 命令串炸 `Runtime error Type Mismatch`（卸载日志实锤）**——卸载侧逻辑禁塞 [Code]，改独立 `uninstall-backup.ps1` 打包+`[UninstallRun]` 调用+`[UninstallDelete]` 清 webview2-data；⑧Inno 卸载器自复制到 %TEMP% 再真跑（Start-Process -Wait 只等第一遍壳），验证须轮询 unins000.exe 自删；⑨guicheck 截不到被 ZCode 全屏窗盖住的桌面图标（UNCLEAR）→用 .lnk 文件存在性程序级闭环，视觉 UNCLEAR 不硬凑；⑩build.ps1 内 `Get-ChildItem|Select -First 1` 管道式稳定报参数绑定错（单独复现不报，根因未定案）→改 `@()` 数组式绕行。
+
+**片1b 定性记录**：蓝屏树真跑耗时 194→300→超 420s 逐轮变慢（测试脚本限时竞态败 3 次，功能本身两轮+安装版共 3 份报告落盘无恙）；树跑批/结果页的**视觉**验收属 ui/ 展示层（v1.1.0 已验+片1 零改动），片3 全页面 guicheck 矩阵闸全覆盖，片1b 不以 API 后门场景硬凑截图。挂账不变：版本串 1.2.0(安装器) vs v1.1.0(引擎)片5 收口；任务栏按钮显示名 host.exe 片2 议。
 
 ## 2026-10-23 v1.1.0 美化+覆盖+封装片（第二十五切片；A 美化可用性 + B 功能覆盖 + C ext 口子/安装卸载脚本；DSH 执行 A/B，zcode 接力 C，判定层既有 33 项零改动）
 

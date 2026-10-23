@@ -22,10 +22,16 @@ if ($Setup) {
     $buildDir = Join-Path $sroot 'build'
     $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 
-    # 守卫 1：ISCC 在位（本机未装 Inno Setup 时给明确指引）
-    $iscc = @((Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'), (Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe')) |
-        Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
-    if (-not $iscc) { throw 'Inno Setup 6 not found. Install Inno Setup 6 (default options) first, then rerun: powershell -File build.ps1 -Setup' }
+    # 守卫 1：ISCC 在位（本机未装 Inno Setup 时给明确指引；6/7 皆可）
+    $iscc = @(
+        (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'),
+        (Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe'),
+        (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 7\ISCC.exe'),
+        (Join-Path $env:ProgramFiles 'Inno Setup 7\ISCC.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6\ISCC.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 7\ISCC.exe')
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+    if (-not $iscc) { throw 'Inno Setup (6 or 7) not found. Install it from jrsoftware.org (default options) first, then rerun: powershell -File build.ps1 -Setup' }
 
     # 守卫 2：diag-lite staging 新鲜（keyfile 与源逐字节同，防把旧引擎打进安装器）
     foreach ($rel in @('server.ps1', 'engine/run.ps1', 'ui/index.html', 'ui/app.js', 'ui/style.css')) {
@@ -63,9 +69,11 @@ if ($Setup) {
     # 步骤 3：ISCC 出 setup.exe（中文文件名由 .iss 的 OutputBaseFilename 决定）
     & $iscc (Join-Path $sroot 'installer\diag-setup.iss')
     if ($LASTEXITCODE -ne 0) { throw "ISCC failed: $LASTEXITCODE" }
-    $setup = Get-ChildItem -LiteralPath $buildDir -Filter '*setup-v1.2.0.exe' | Select-Object -First 1
-    if (-not $setup -or $setup.Length -lt 1000000) { throw 'setup.exe missing or suspiciously small' }
-    Write-Host ("SETUP BUILD OK: {0} ({1} bytes)" -f $setup.FullName, $setup.Length)
+    # 注：本行曾用「Get-ChildItem ... | Select-Object -First 1」管道式在脚本内稳定报
+    # 「FileInfo→SwitchParameter 绑定错」（单独复现不报、BOM 正常，根因未定案）——改数组式绕行，语义不变。
+    $setupFiles = @(Get-ChildItem -Path (Join-Path $sroot 'build') -Filter '*setup-v1.2.0.exe')
+    if ($setupFiles.Count -ne 1 -or $setupFiles[0].Length -lt 1000000) { throw 'setup.exe missing or suspiciously small' }
+    Write-Host ("SETUP BUILD OK: {0} ({1} bytes)" -f $setupFiles[0].Name, $setupFiles[0].Length)
     return
 }
 
