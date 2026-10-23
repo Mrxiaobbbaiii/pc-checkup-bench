@@ -1,5 +1,13 @@
 ﻿# diag CHANGELOG
 
+## 2026-10-23 v1.2.0 片2 图标片·✅毕（第二十七切片；12 稿纯代码生成→guicheck 筛稿→用户拍板 B1 霓虹盾对勾→三处换装+setup 重出复验；判定层零碰）
+
+**生成与选稿**：`assets/icon-src/gen_icons.py` 纯 Pillow 程序生成、零外部素材（零版权），4 方向×3 稿=12 初稿（A 渐变几何徽章/B 线性极简盾形/C 暗色玻璃光效/D 电路脉搏），2048 超采样→512 主稿，每稿 512 png+ico(16/32/48/256 四层)+程序级自检（IcoFile.sizes 断言）；候选网格 `sheet_round1.png`（含 16px 最近邻放大真实像素块）派 guicheck-flash 逐稿判（16px 可辨/科技感/语义契合）→ **10 PASS/2 FAIL**（C3 雷达稿 16px 糊成暗块、D2 芯片稿引脚粘连，剔除留档）；过筛 10 稿拼 `sheet_round2.png` 呈用户，**用户拍板 B1 霓虹盾对勾**（深蓝黑底青色描边盾牌+对勾）。
+**换装三处**：`apply_B1.py`——①`host/app.ico`（csc /win32icon exe 图标；窗口图标 ExtractAssociatedIcon 跟随；Inno SetupIconFile 同文件跟随；快捷方式默认取 exe 图标）；②③`ui/brand.png`（256² +4% 内衬适配 .brand-mark 32px 圆角 cover）+`favicon.png`（32²），`diag-lite/ui/` 镜像同步（setup 包内 ui 资产来自 diag-lite，build 守卫只查 5 个 keyfile 不含 png，手工双写+逐字节断言）；写盘后回读断言（尺寸/层数/与源稿逐字节同）全过。`build.ps1 -Setup` 重出 `build/电脑体检台-setup-v1.2.0.exe`（4.88MB）。
+**验证读数**：guicheck 三处一致——窗口标题栏图标/桌面快捷方式图标/ExtractAssociatedIcon 提取与 B1_p32 逐项比对/开始菜单 .lnk 存在/窗口标题，全部 PASS（证据=guicheck_tmp/slice2-*.png）；向导图标+任务栏按钮图标=用户本人目视确认同款（图标终选权=用户）；装卸闭环——powershell 包参静默装 2s 成功（log "Installation process succeeded"）→卸载文件/桌面+开始菜单快捷方式/注册键全清→最终重装留机；tests **174/174 × PowerShell 5.1 + pwsh7 双版本全绿**；判定层零碰（本片仅动 host/app.ico+assets/icon-src 新增+ui 与 diag-lite 的 brand/favicon）。
+**坑（本轮烧录）**：⑪Pillow ICO 容器上限 256px——`sizes` 槽位必须与某张提供图尺寸完全相等，否则走 thumbnail 分支且缩图不放大，(256,256) 层静默丢失；修法=256 基图+48/32/16 逐层 append_images（片1 make_icon 恰好基图是 256 才没踩）。⑫Git Bash 直调 Inno 安装器 `/SILENT` 被 MSYS 路径转换吃掉→安装器收垃圾参数跑成全交互模式停在 Ready to Install（假象=「静默安装卡死」，实为等人点按钮）——片1 坑① csc 同族，R3① 定式再+1：**凡带 /参数 的 Windows 原生 exe 一律经 `powershell -Command` 包参调用**。⑬应用在跑时卸载→exe/dll 被锁删不掉+webview2-data 被活进程刷写重建（第二写入者 R4⑧：mtime 对齐定性）——卸载前必须净退应用；PowerShell 枚举窗口控件文本（EnumChildWindows）可程序级读出卡住对话框的按钮与文案，免截图免看图定位。⑭卸载器自复制自删耗时>90s 轮询窗口（片1b 坑⑧变体），留净判定以「文件/快捷方式/注册键清空」为准不以固定秒数为准。
+**挂账（片5 收口）**：①任务栏按钮显示名仍=host.exe（本片射程只有图标，exe 改名/AppUserModelID 未动）；②卸载后 `{app}` 留 0 字节空壳目录+`电脑体检台-报告备份-*` 空备份目录可累积（卸载语义本片零改动，片5 复核定夺是否回写 uninstall-backup.ps1 清壳）；③ui/brand.png+favicon.png 仍在 .gitignore（旧图为版权衍生的待遇）——新图已是零版权纯代码生成，片5 定夺是否解除 ignore 入库，当前以「盘上文件为准」不影响打包。
+
 ## 2026-10-23 v1.2.0 片1 形态片·✅毕（第二十六切片；原生薄壳壳体+安装器+build 出口+片1b 装机全旅程验收；判定层零碰）
 
 **形态**（按 00-总纲 1023 拍板=方案A 原生薄壳·网页内核）：
