@@ -11,31 +11,31 @@
       "name": "link",
       "title": "链路层（网卡/连线/地址）",
       "checks": ["net_adapter_list", "net_ip_dhcp", "net_wlan_signal"],
-      "verdict_fail": "断点在链路层：网卡没连上（WiFi/网线）、拿不到地址或 Wi-Fi 信号过弱。先修物理连接，别的都白搭。"
+      "verdict_fail": "问题出在链路层：网卡没连上（WiFi/网线）、拿不到地址或 Wi-Fi 信号过弱。先修物理连接，别的都白搭。"
     },
     {
       "name": "gateway",
       "title": "网关/路由层（电脑到路由器）",
       "checks": ["net_gateway_conflict", "net_gateway_ping"],
-      "verdict_fail": "断点在网关层：电脑与路由器之间不通，或路由表有冲突出口（时通时断型故障的典型元凶）。"
+      "verdict_fail": "问题出在网关层：电脑与路由器之间不通，或路由表有冲突出口（时通时断型故障的典型元凶）。"
     },
     {
       "name": "wan",
       "title": "WAN 层（路由器到公网）",
       "checks": ["net_public_ping", "net_tcp_port", "net_df_ping", "net_tcp_stall"],
-      "verdict_fail": "断点在路由器 WAN 侧：网关通但出不了公网（ping/端口/大包任一被卡）——光猫/线路/欠费/MTU，只能物理排查或报修运营商。"
+      "verdict_fail": "问题出在路由器 WAN 侧：网关通但出不了公网（ping/端口/大包任一被卡）——光猫/线路/欠费/MTU，只能物理排查或报修运营商。"
     },
     {
       "name": "dns",
       "title": "DNS 层（域名解析）",
       "checks": ["net_dns_deadaddr", "net_dns_default", "net_dns_gateway_proxy", "net_dns_public"],
-      "verdict_fail": "断点在 DNS 层：公网通了但域名解不出（死地址/劫持/DNS 服务挂）。改用可达的 DNS 通常立即可修。"
+      "verdict_fail": "问题出在 DNS 层：公网通了但域名解不出（死地址/劫持/DNS 服务挂）。改用可达的 DNS 通常立即可修。"
     },
     {
       "name": "app",
       "title": "应用层（系统代理 / hosts / VPN）",
       "checks": ["net_proxy_vpn", "net_proxy_system"],
-      "verdict_fail": "断点在应用层：网络本身是通的，是系统代理（服务级/用户级）、hosts 或 VPN 虚拟网卡在捣乱。先清代理残留、再清 hosts 可疑行。"
+      "verdict_fail": "问题出在应用层：网络本身是通的，是系统代理（服务级/用户级）、hosts 或 VPN 虚拟网卡在捣乱。先清代理残留、再清 hosts 可疑行。"
     }
   ],
   "verdict_all_pass": "网络栈全通（网卡→网关→公网→DNS→应用层五层全绿）。若浏览器仍打不开网页：关浏览器代理插件、检查系统代理【命令请自己执行】netsh winhttp show proxy、查 hosts 剔除异常行【命令请自己执行】type C:\\Windows\\System32\\drivers\\etc\\hosts"

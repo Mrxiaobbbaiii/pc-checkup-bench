@@ -211,7 +211,7 @@ function New-TextReport {
 
     if ($BreakLayer) {
         [void]$sb.AppendLine("【$VerdictTitle】")
-        [void]$sb.AppendLine("断点在：$($BreakLayer.title)")
+        [void]$sb.AppendLine("问题出在：$($BreakLayer.title)")
         $failedChecks = @($LayerResults | Where-Object { $_.name -eq $BreakLayer.name } | ForEach-Object { $_.checks } | Where-Object { $_.status -eq 'FAIL' })
         foreach ($f in $failedChecks) {
             [void]$sb.AppendLine("- $($f.name): " + (($f.evidence -split "`n" | Select-Object -First 2) -join ' | '))
@@ -224,7 +224,7 @@ function New-TextReport {
         foreach ($f in $failedChecks) { if ($f.suggestion) { [void]$sb.AppendLine("$n. [$($f.name)]"); [void]$sb.AppendLine("   " + ($f.suggestion -replace "`n", "`n   ")); [void]$sb.AppendLine(""); $n++ } }
     } else {
         [void]$sb.AppendLine("【$VerdictTitle】")
-        [void]$sb.AppendLine("${LayerCnStr}层全通，未发现断点。")
+        [void]$sb.AppendLine("${LayerCnStr}层全通，没发现问题。")
         [void]$sb.AppendLine("")
         [void]$sb.AppendLine("一句人话：$($TreeData.verdict_all_pass)")
         [void]$sb.AppendLine("")
@@ -232,7 +232,7 @@ function New-TextReport {
 
     [void]$sb.AppendLine("【证据链】$EvidenceNote")
     foreach ($l in $LayerResults) {
-        $mark = switch ($l.state) { 'BREAK' { '▶断点' } 'PASS' { '·通过' } 'SKIPPED-AFTER-BREAK' { '↷未查(前层有问题)' } 'PASSED-EARLIER' { '·通过' } default { '·' } }
+        $mark = switch ($l.state) { 'BREAK' { '▶问题' } 'PASS' { '·通过' } 'SKIPPED-AFTER-BREAK' { '↷未查(前层有问题)' } 'PASSED-EARLIER' { '·通过' } default { '·' } }
         $layerIdx = [array]::IndexOf(@($TreeData.layers | ForEach-Object { $_.name }), $l.name) + 1
         [void]$sb.AppendLine("")
         [void]$sb.AppendLine("--- $mark  第$layerIdx 层: $($l.title) ---")
@@ -315,7 +315,7 @@ function New-VerdictCardHtml {
     $h = New-Object System.Text.StringBuilder
     if ($BreakLayer) {
         [void]$h.AppendLine('<div class="card verdict verdict-fail"><h2>【' + (Escape-Html $VerdictTitle) + '】</h2>')
-        [void]$h.AppendLine('<div class="where">断点在：' + (Escape-Html $BreakLayer.title) + '</div>')
+        [void]$h.AppendLine('<div class="where">问题出在：' + (Escape-Html $BreakLayer.title) + '</div>')
         foreach ($f in $failedChecks) {
             [void]$h.AppendLine('<div class="check-head"><span class="badge b-fail">FAIL</span> ' + (Escape-Html $f.name) + '</div>')
             [void]$h.AppendLine('<pre class="ev">' + (Escape-Html (($f.evidence -split "`r?`n" | Select-Object -First 2) -join ' | ')) + '</pre>')
@@ -323,7 +323,7 @@ function New-VerdictCardHtml {
         [void]$h.AppendLine('<p class="plain">一句人话：' + (Escape-Html $BreakLayer.verdict_fail) + '</p></div>')
     } else {
         [void]$h.AppendLine('<div class="card verdict verdict-pass"><h2>【' + (Escape-Html $VerdictTitle) + '】</h2>')
-        [void]$h.AppendLine('<div class="where">' + (Escape-Html $LayerCnStr) + '层全通，未发现断点。</div>')
+        [void]$h.AppendLine('<div class="where">' + (Escape-Html $LayerCnStr) + '层全通，没发现问题。</div>')
         [void]$h.AppendLine('<p class="plain">一句人话：' + (Escape-Html $TreeData.verdict_all_pass) + '</p></div>')
     }
     return $h.ToString()
@@ -358,7 +358,7 @@ function New-EvidenceChainHtml {
         $openAttr = ''
         $mark = ''; $mcls = ''
         switch ($l.state) {
-            'BREAK' { $mark = '▶断点'; $mcls = 'm-fail'; $openAttr = ' open' }
+            'BREAK' { $mark = '▶问题'; $mcls = 'm-fail'; $openAttr = ' open' }
             'PASS' { $mark = '·通过'; $mcls = 'm-pass' }
             'PASSED-EARLIER' { $mark = '·通过'; $mcls = 'm-pass' }
             'SKIPPED-AFTER-BREAK' { $mark = '↷未查(前层有问题)'; $mcls = 'm-skip' }
@@ -514,7 +514,7 @@ if ($TreeName -eq 'all') {
         Write-Output ""
         $failCnt = @($res.Layers | ForEach-Object { $_.checks } | Where-Object { $_.status -eq 'FAIL' }).Count
         if ($failCnt -gt 0) { $anyFailAll = $true }
-        $concl = if ($res.BreakLayer) { '断点在：' + $res.BreakLayer.title } else { "$($meta.LayerCnStr)层全通" }
+        $concl = if ($res.BreakLayer) { '问题出在：' + $res.BreakLayer.title } else { "$($meta.LayerCnStr)层全通" }
         $overview += [PSCustomObject]@{ Tree = $t; ReportName = $meta.ReportName; Conclusion = $concl; FailCnt = $failCnt }
         # 每树一节：节标题+verdict 卡+修复建议+证据链（复用单树渲染件）
         $sec = New-Object System.Text.StringBuilder

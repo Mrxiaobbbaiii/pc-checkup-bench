@@ -1413,7 +1413,8 @@ function onRedArm(e, a) {
   btn.dataset.armed = '1';
   const old = btn.textContent;
   btn.textContent = '有风险——再点一次查看';
-  setTimeout(() => { if (btn.dataset.armed === '1') { btn.dataset.armed = ''; btn.textContent = old; } }, 4000);
+  btn.setAttribute('aria-label', '有风险——再点一次查看');
+  setTimeout(() => { if (btn.dataset.armed === '1') { btn.dataset.armed = ''; btn.textContent = old; btn.setAttribute('aria-label', old); } }, 4000);
 }
 let guideText = '';
 function guideTextFor(a) {

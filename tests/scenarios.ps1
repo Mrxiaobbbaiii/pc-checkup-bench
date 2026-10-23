@@ -124,7 +124,7 @@ $global:DiagScenarios = @(
            net_tcp_stall        = $mockTcpStallOk
        } }
     @{ name = 'dns_deadaddr_breakpoint'; expectExit = 2
-       keywords = @('断点在：DNS 层', '死地址嫌疑', 'netsh interface ip set dns', '【回滚】')
+       keywords = @('问题出在：DNS 层', '死地址嫌疑', 'netsh interface ip set dns', '【回滚】')
        mocks    = @{
            net_adapter_list     = $mockAdapterPass
            net_ip_dhcp          = $mockIpPass
@@ -137,7 +137,7 @@ $global:DiagScenarios = @(
            net_dns_public       = $mockNsOkPublic
        } }
     @{ name = 'gateway_dead_breakpoint'; expectExit = 2
-       keywords = @('断点在：网关', '未查(前层有问题)', 'DNS 层')
+       keywords = @('问题出在：网关', '未查(前层有问题)', 'DNS 层')
        mocks    = @{
            net_adapter_list     = $mockAdapterPass
            net_ip_dhcp          = $mockIpPass
@@ -149,7 +149,7 @@ $global:DiagScenarios = @(
 # ---------- v1.2.0 片4 应用层代理断点场景（优先项①：系统代理残留，前四层全通） ----------
 $global:DiagScenarios += @(
     @{ name = 'proxy_app_breakpoint'; tree = 'network'; expectExit = 2
-       keywords = @('断点在：应用层', '代理')
+       keywords = @('问题出在：应用层', '代理')
        mocks    = @{
            net_adapter_list      = $mockAdapterPass
            net_ip_dhcp           = $mockIpPass
