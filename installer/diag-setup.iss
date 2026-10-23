@@ -45,9 +45,17 @@ Filename: "{app}\{#MyAppExeName}"; Description: "立即运行{#MyAppName}"; Flag
 [UninstallRun]
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\uninstall-backup.ps1"" -AppDir ""{app}"""; RunOnceId: "BackupUserData"; Flags: runhidden
 
-; 运行时生成的 WebView2 缓存等残壳，{app} 目录本体删空后 Inno 自动收走
+; 运行时生成的 WebView2 缓存等残壳 + keep 分支搬走数据后留下的目录壳（终验实锤 checks/repair 空壳残留），
+; keep 用户数据在 [UninstallRun] 已先搬走，此处只清 Inno 自装文件与空目录
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\webview2-data"
+Type: filesandordirs; Name: "{app}\checks"
+Type: filesandordirs; Name: "{app}\repair"
+Type: filesandordirs; Name: "{app}\trees"
+Type: filesandordirs; Name: "{app}\ui"
+Type: filesandordirs; Name: "{app}\engine"
+Type: filesandordirs; Name: "{app}\ext"
+Type: dirifempty; Name: "{app}"
 
 [Code]
 // 多键兜底：Inno 7 的注册表视图行为与 EdgeUpdate 键实际落位组合不可靠

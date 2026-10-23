@@ -413,7 +413,7 @@ async function pollEvents() {
 function etaText() {
   if (S.seqPos < 5 || !S.expectSeq.length || S.seqPos >= S.expectSeq.length) return '';
   const remainMs = ((Date.now() - S.runStartAt) / S.seqPos) * (S.expectSeq.length - S.seqPos);
-  if (remainMs < 45 * 1000) return ' · 快好了';
+  if (remainMs < 10 * 1000) return ' · 快好了'; // 剩余<10秒才退模糊文案；门槛过大会让短任务全程只见「快好了」（终验实锤）
   const min = Math.floor(remainMs / 60000), sec = Math.round((remainMs % 60000) / 1000);
   return ' · 还要约 ' + (min ? min + ' 分 ' + sec + ' 秒' : sec + ' 秒');
 }
