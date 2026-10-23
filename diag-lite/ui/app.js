@@ -409,6 +409,15 @@ async function pollEvents() {
   }
 }
 
+/* 预计剩余：前 5 项方差大不估；按已完成项平均耗时外推，纯展示层 */
+function etaText() {
+  if (S.seqPos < 5 || !S.expectSeq.length || S.seqPos >= S.expectSeq.length) return '';
+  const remainMs = ((Date.now() - S.runStartAt) / S.seqPos) * (S.expectSeq.length - S.seqPos);
+  if (remainMs < 45 * 1000) return ' · 快好了';
+  const min = Math.floor(remainMs / 60000), sec = Math.round((remainMs % 60000) / 1000);
+  return ' · 还要约 ' + (min ? min + ' 分 ' + sec + ' 秒' : sec + ' 秒');
+}
+
 function handleEvent(ev) {
   if (ev.event === 'check') {
     const sec = ev.ms ? (ev.ms / 1000).toFixed(1) + ' 秒' : '';
@@ -416,7 +425,7 @@ function handleEvent(ev) {
     S.seqPos++;
     const pct = S.expectSeq.length ? Math.round((S.seqPos / S.expectSeq.length) * 100) : 0;
     $('#progress-fill').style.width = pct + '%';
-    $('#pct-label').textContent = S.seqPos + ' / ' + S.expectSeq.length + ' 项';
+    $('#pct-label').textContent = S.seqPos + ' / ' + S.expectSeq.length + ' 项' + etaText();
     setNextCurrent(S.seqPos);
   } else if (ev.event === 'break') {
     addLog('✗ 问题出在这一步：' + ev.layerTitle, 'st-fail');
@@ -430,7 +439,7 @@ function handleEvent(ev) {
       }
       const pct = S.expectSeq.length ? Math.round((S.seqPos / S.expectSeq.length) * 100) : 0;
       $('#progress-fill').style.width = pct + '%';
-      $('#pct-label').textContent = S.seqPos + ' / ' + S.expectSeq.length + ' 项';
+      $('#pct-label').textContent = S.seqPos + ' / ' + S.expectSeq.length + ' 项' + etaText();
     }
   } else if (ev.event === 'tree_done') {
     const t = S.meta.trees.find((x) => x.id === ev.tree);

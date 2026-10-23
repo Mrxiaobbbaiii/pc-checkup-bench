@@ -5,7 +5,8 @@
 **全量回归（发版闸①）**：tests **203/203 × PowerShell 5.1 + pwsh7 双版本全绿**（版本串改动后复跑两轮确认）；真机全量真跑（all 五树 -Full）报告 json 完整性程序级核验=整体 json.load 成功/0 空证据/0 非法状态（24 PASS/5 SKIP/15 FAIL，与片4 基线同分布，15 FAIL 对 coverage.json 闭环率 100%）；lite 同步=91 文件逐字节同+版本串 4 文件双写后断言同（唯一差异 reports/repair-log.json=运行时日志非同步口径）。
 **版本串收口（片1 挂账④兑现）**：v1.1.0→v1.2.0 四处用户可见真源=engine/run.ps1 `$engVersion`、server.ps1 `$webVersion`、ui/app.js `APP_VERSION`、ui/index.html 静态 ver-chip，lite 镜像双写+SHA256 断言；tests/cases_b.ps1:49 `b_json_single_break` 场景的 engine banner 断言随版本同步（先红后绿：改串后该用例 FAIL→断言更新→203 全绿）；commit 45a433c + **git tag v1.2.0**；setup.exe 已带 v1.2.0 重出（build/电脑体检台-setup-v1.2.0.exe 4.89MB，包不含 tests 无需因断言同步重出）。
 **口径澄清两笔**：①「六树」按实跑口径=全面体检入口（内置五树；ext 扩展口子本机无第六树，ext/trees 空）；②json 报告 evidence 字段是命令输出摘录（`[netsh …]` 开头纯文本），非嵌套 JSON——上一轮核验脚本误把方括号文本当 bad-json 数出 44，修正口径后 0 bad-json 成立。
-**挂账（本片）**：guicheck-flash setup.exe 用户旅程终验（装→图标→首启 v1.2.0 徽章→全面体检→黄级演练→净退→卸载→重装留机）待用户空闲跑（23:00 窗口用户在打游戏，弹窗类活押后）；群文案已备待用户过目；积分对账待控制台实测。
+**挂账（本片）**：guicheck-flash setup.exe 用户旅程终验（装→图标→首启 v1.2.0 徽章→全面体检→黄级演练→净退→卸载→重装留机）待用户空闲跑（23:00 窗口用户在打游戏，弹窗类活押后）；群文案已备（`群发文案-v1.2.0.md`）待用户过目；积分对账待控制台实测。
+**迭代轮（23:00 start plan token 窗口，用户令=自主迭代到用完；commit 792fea8）**：轮1 文案净化——修复卡 net_wininet_proxy_off desc 清除「（1023 用户痛点拍板项）」内部黑话、style.css 头注释中性化（用户可见源码面），lite 双写+SHA256 断言；轮2 交互动画——对照业界惯例（Justinmind/Smashing 进度指示惯例：真实步骤标签已有、按钮按压反馈已有、缺视图过渡）补 `.view.active` 进场动画 220ms ease-out fade-up（CSS-only 零 JS 改动，`prefers-reduced-motion` 既有全局兜底自动豁免，26px 行高红线不碰）；轮3 去本机案例化扫描结论=修复卡/使用说明均已是「通用步骤+举例」式（带「换成报告点名的驱动名」引导）判合格零改动，判定层文件（checks/bs_suspects.json）铁律不碰。每轮 tests 203/203 双版本全绿；setup.exe 重出（4888382B）。坑：被取消的 guicheck 派工残留两个安装器进程锁住 build 目标（ISCC Error 32），杀自产 PID 后重出即解。
 
 ## 2026-10-23 v1.2.0 片4 覆盖片·✅毕（第二十九切片；优先项①系统代理成对上新+②nnndisfilter 红卡+6 绿检查/2 黄动作/4 处置卡+coverage.json 闭环率注册表；tests 174→203 双版本全绿；既有判定语义零碰）
 
