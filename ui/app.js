@@ -65,6 +65,8 @@ const CHECK_HUMAN = {
   pf_boot_duration: '开机用时', pf_boot_degradation_events: '开机变慢事件', pf_startup_items: '开机自启项',
   pf_service_timeouts: '服务超时', pf_disk_space: '磁盘剩余空间', pf_memory_pressure: '内存压力',
   pf_disk_saturation: '磁盘繁忙度', pf_app_crashes: '应用崩溃 / 卡死',
+  net_proxy_system: '系统级代理设置', net_tcp_port: '加密端口连通（443）', net_df_ping: '大包传输探测（MTU）',
+  net_wlan_signal: 'Wi-Fi 信号强度', net_tcp_stall: '连接卡死统计', pf_uptime: '连续开机时长',
 };
 function humanCheck(n) { return CHECK_HUMAN[n] || n; }
 
@@ -106,6 +108,12 @@ const CHECK_INFO = {
   pf_memory_pressure: '内存够不够用，有没有频繁换页。',
   pf_disk_saturation: '磁盘是不是长期 100% 忙。',
   pf_app_crashes: '最近 30 天有哪些应用反复崩溃或卡死。',
+  net_proxy_system: '系统底层（服务级 / 用户级）有没有被设置代理服务器。',
+  net_tcp_port: '能不能跟外网建立加密连接（443 端口，浏览器上网都靠它）。',
+  net_df_ping: '大个数据包能不能顺利过线路（有些网络会卡大包，表现为网页只开一半）。',
+  net_wlan_signal: 'Wi-Fi 信号够不够强，太弱会网速慢、时断时续。',
+  net_tcp_stall: '有没有一堆网络连接卡在「正在连接」不动（线路拥塞或软件占线的迹象）。',
+  pf_uptime: '电脑连续开了多久，太久不停机会累积小毛病。',
 };
 
 /* 严重度三档（纯显示层，不参与判定）：高=要尽快处理，中=建议处理，低=知道就行 */
@@ -123,6 +131,8 @@ const CHECK_SEVERITY = {
   pf_service_timeouts: 'medium', pf_boot_degradation_events: 'medium', pf_boot_duration: 'low',
   pf_startup_items: 'low', pf_app_crashes: 'medium',
   hw_disk_errors: 'high', net_proxy_vpn: 'medium',
+  net_proxy_system: 'medium', net_tcp_port: 'medium', net_df_ping: 'medium',
+  net_wlan_signal: 'medium', net_tcp_stall: 'medium', pf_uptime: 'low',
 };
 const SEV_META = {
   high: { word: '高', desc: '要尽快处理', cls: 'high' },
