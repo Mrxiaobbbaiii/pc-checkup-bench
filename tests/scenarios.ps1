@@ -77,6 +77,32 @@ $mockDiskErrorHit = @'
 153 | C: | 2026-10-21 11:00
 '@
 
+# ---------- v1.2.0 片4 网络树新检查 mock（net_proxy_system/net_tcp_port/net_df_ping/net_wlan_signal/net_tcp_stall） ----------
+$mockProxySysClean = @'
+WINHTTP | DIRECT
+WININET | 0 | |
+'@
+$mockProxySysHit = @'
+WINHTTP | DIRECT
+WININET | 1 | 127.0.0.1:7890 |
+'@
+$mockTcpPortOk = @'
+RESOLVED | 113.108.81.189
+TCP | 443 | True
+'@
+$mockDfPingOk = @'
+PING | REPLY | TTL=50
+'@
+$mockWlanOk = @'
+STATE | connected
+SIGNAL | 70
+'@
+$mockTcpStallOk = @'
+SAMPLE | SYN_SENT | 0 | SYN_RCVD | 0
+===SAMPLE===
+SAMPLE | SYN_SENT | 1 | SYN_RCVD | 0
+'@
+
 $global:DiagScenarios = @(
     @{ name = 'full_pass_all_green'; expectExit = 0
        keywords = @('五层全通', '网络栈全通', '应用层')
@@ -91,6 +117,11 @@ $global:DiagScenarios = @(
            net_dns_gateway_proxy = $routeSingle + "`n===PART===`n" + "###GW 192.168.1.1`n" + $mockNsOk
            net_dns_public       = $mockNsOkPublic
            net_proxy_vpn        = $mockProxyClean
+           net_proxy_system     = $mockProxySysClean
+           net_tcp_port         = $mockTcpPortOk
+           net_df_ping          = $mockDfPingOk
+           net_wlan_signal      = $mockWlanOk
+           net_tcp_stall        = $mockTcpStallOk
        } }
     @{ name = 'dns_deadaddr_breakpoint'; expectExit = 2
        keywords = @('断点在：DNS 层', '死地址嫌疑', 'netsh interface ip set dns', '【回滚】')
@@ -112,6 +143,29 @@ $global:DiagScenarios = @(
            net_ip_dhcp          = $mockIpPass
            net_gateway_conflict = $routeSingle
            net_gateway_ping     = $routeSingle + "`n===PART===`n" + $mockGwPingDead
+       } }
+)
+
+# ---------- v1.2.0 片4 应用层代理断点场景（优先项①：系统代理残留，前四层全通） ----------
+$global:DiagScenarios += @(
+    @{ name = 'proxy_app_breakpoint'; tree = 'network'; expectExit = 2
+       keywords = @('断点在：应用层', '代理')
+       mocks    = @{
+           net_adapter_list      = $mockAdapterPass
+           net_ip_dhcp           = $mockIpPass
+           net_gateway_conflict  = $routeSingle
+           net_gateway_ping      = $routeSingle + "`n===PART===`n" + $mockGwPingOk
+           net_public_ping       = $routeSingle + "`n===PART===`n" + $mockPublicOk
+           net_tcp_port          = $mockTcpPortOk
+           net_df_ping           = $mockDfPingOk
+           net_tcp_stall         = $mockTcpStallOk
+           net_wlan_signal       = $mockWlanOk
+           net_dns_deadaddr      = $mockDnsInSubnet
+           net_dns_default       = $mockNsOk
+           net_dns_gateway_proxy = $routeSingle + "`n===PART===`n" + "###GW 192.168.1.1`n" + $mockNsOk
+           net_dns_public        = $mockNsOkPublic
+           net_proxy_vpn         = $mockProxyClean
+           net_proxy_system      = $mockProxySysHit
        } }
 )
 

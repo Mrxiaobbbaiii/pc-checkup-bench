@@ -1,0 +1,19 @@
+{
+  "id": "net_winhttp_reset",
+  "name": "重置 WinHTTP 系统代理",
+  "level": "green",
+  "desc": "把 Windows 服务级别的系统代理（WinHTTP）恢复成直连。适合：代理/加速软件退出后，网页和系统更新仍然连不上——它们的代理设置经常残留在系统服务层，浏览器里的代理关了它也照样生效，本动作一键清掉。",
+  "affect": "只清系统服务层的代理设置（WinHTTP），浏览器代理、用户级代理（WinINET）和你的文件一律不碰。系统更新、商店等后台服务的联网立即恢复直连，不用重启。",
+  "undo": "体检报告的证据里能看到重置前的原代理地址；想设回去，管理员命令行执行 netsh winhttp set proxy 代理地址 即可。",
+  "requires_admin": true,
+  "common": false,
+  "prechecks": [],
+  "steps": [
+    { "exe": "netsh.exe", "args": ["winhttp", "reset", "proxy"], "desc": "重置 WinHTTP 系统代理为直连（立即生效，不用重启）" }
+  ],
+  "rollback": [],
+  "rollback_note": "撤销=管理员命令行执行 netsh winhttp set proxy <原代理地址>（原值见体检报告证据）",
+  "timeout_sec": 30,
+  "match_checks": ["net_proxy_system"],
+  "verify_checks": ["net_proxy_system"]
+}

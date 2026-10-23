@@ -1,7 +1,7 @@
 {
   "_comment": "diag 网络排查树 v0.2。JSON 语法=合法 YAML 1.2 子集：本机未装 powershell-yaml 模块，diag 必须断网可用（零依赖），故用内置 ConvertFrom-Json 解析；未来装了 powershell-yaml 可平滑迁到自由 YAML 缩进写法。",
   "tree": "network",
-  "version": "0.2",
+  "version": "0.3",
   "report_name": "网络体检报告",
   "verdict_title": "断点结论",
   "evidence_note": "（按层，从物理到应用）",
@@ -10,8 +10,8 @@
     {
       "name": "link",
       "title": "链路层（网卡/连线/地址）",
-      "checks": ["net_adapter_list", "net_ip_dhcp"],
-      "verdict_fail": "断点在链路层：网卡没连上（WiFi/网线）或拿不到地址。先修物理连接，别的都白搭。"
+      "checks": ["net_adapter_list", "net_ip_dhcp", "net_wlan_signal"],
+      "verdict_fail": "断点在链路层：网卡没连上（WiFi/网线）、拿不到地址或 Wi-Fi 信号过弱。先修物理连接，别的都白搭。"
     },
     {
       "name": "gateway",
@@ -22,8 +22,8 @@
     {
       "name": "wan",
       "title": "WAN 层（路由器到公网）",
-      "checks": ["net_public_ping"],
-      "verdict_fail": "断点在路由器 WAN 侧：网关通但出不了公网——光猫/线路/欠费，只能物理排查或报修运营商。"
+      "checks": ["net_public_ping", "net_tcp_port", "net_df_ping", "net_tcp_stall"],
+      "verdict_fail": "断点在路由器 WAN 侧：网关通但出不了公网（ping/端口/大包任一被卡）——光猫/线路/欠费/MTU，只能物理排查或报修运营商。"
     },
     {
       "name": "dns",
@@ -34,8 +34,8 @@
     {
       "name": "app",
       "title": "应用层（系统代理 / hosts / VPN）",
-      "checks": ["net_proxy_vpn"],
-      "verdict_fail": "断点在应用层：网络本身是通的，是系统代理、hosts 或 VPN 虚拟网卡在捣乱。先关代理、再清 hosts 可疑行。"
+      "checks": ["net_proxy_vpn", "net_proxy_system"],
+      "verdict_fail": "断点在应用层：网络本身是通的，是系统代理（服务级/用户级）、hosts 或 VPN 虚拟网卡在捣乱。先清代理残留、再清 hosts 可疑行。"
     }
   ],
   "verdict_all_pass": "网络栈全通（网卡→网关→公网→DNS→应用层五层全绿）。若浏览器仍打不开网页：关浏览器代理插件、检查系统代理【命令请自己执行】netsh winhttp show proxy、查 hosts 剔除异常行【命令请自己执行】type C:\\Windows\\System32\\drivers\\etc\\hosts"

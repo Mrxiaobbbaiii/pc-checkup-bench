@@ -1,0 +1,23 @@
+{
+  "id": "dv_filter_handling",
+  "name": "嫌疑驱动/网络过滤层处置（卸载指引）",
+  "level": "red",
+  "desc": "内核网络过滤驱动是蓝屏和断网的双料高发源（常见如给梨加速器捆绑的 nnndisfilter 这类 NDIS 过滤驱动）。本卡给完整卸载步骤：确认在跑→卸载软件本体→验证卸净→残留清理→复查，每步带做什么/风险/怎么验/怎么反悔。本卡只给步骤永不代跑——动内核驱动必须你自己逐项确认。",
+  "affect": "卸载过滤驱动会重置网络绑定，期间网络闪断几秒属正常；加速器/防火墙类功能随卸载失效。只卸报告点名的嫌疑驱动对应的软件，其他软件不动。",
+  "undo": "重装对应软件即可恢复（过滤驱动随主程序回来）；万一残留清理删错了驱动，用「系统还原」退回操作前的状态即可。",
+  "requires_admin": true,
+  "prechecks": [],
+  "steps": [
+    { "exe": "cmd.exe", "args": ["/c", "driverquery /v | findstr /i nnndisfilter"], "desc": "第 1 步（确认在跑）：右键「开始」→「终端(管理员)」，粘贴回车。有输出=驱动还在；显示「信息: 没有运行的任务匹配」=已经干净，直接跳到第 5 步复查。查别的嫌疑驱动，把 nnndisfilter 换成报告点名的驱动名再跑。" },
+    { "exe": "cmd.exe", "args": ["/c", "start ms-settings:appsfeatures"], "desc": "第 2 步（卸载本体）：回车打开「设置→应用→安装的应用」，搜报告点名的软件（如给梨加速器）→点卸载。风险：卸载瞬间重置网络绑定，网络闪断几秒属正常；捆绑的过滤驱动随主程序一起卸载。" },
+    { "exe": "cmd.exe", "args": ["/c", "driverquery /v | findstr /i nnndisfilter"], "desc": "第 3 步（验证卸净）：再做一次第 1 步的命令。输出为空或「没有运行的任务匹配」=卸干净了，跳到第 5 步；还显示 Running=先重启电脑，再验一次，仍在才做第 4 步。" },
+    { "exe": "cmd.exe", "args": ["/c", "pnputil /enum-drivers"], "desc": "第 4 步（残留清理，仅重启后驱动还在才做）：回车列出全部第三方驱动包，找「原始名称」含嫌疑字样（如 nnndisfilter）的行，记下它的「发布名称」（形如 oem12.inf），再在管理员终端执行 pnputil /delete-driver oem12.inf /uninstall。风险：删错 inf 会废掉别的设备驱动——只删驱动名和厂商都对得上的那一行，删完重启电脑。官方命令说明见 learn.microsoft.com 的 windows-commands 分册（driverquery / pnputil 两篇）。" },
+    { "exe": "cmd.exe", "args": ["/c", "driverquery /v | findstr /i nnndisfilter"], "desc": "第 5 步（复查收口）：重启后最后验一次（同第 1 步命令），然后重跑一遍体检，看「嫌疑驱动」和「网络过滤层」两项转绿。" }
+  ],
+  "rollback": [],
+  "rollback_note": "撤销=重装对应软件（过滤驱动随主程序恢复）；误删驱动用「系统还原」回退",
+  "timeout_sec": 30,
+  "caveat": "NDIS 过滤驱动在装则必现于网卡绑定链——蓝屏树的「嫌疑驱动」与驱动树的「网络过滤层」两处点名互相印证时，优先按本卡处理。观察期内不要卸载名单里的驱动做试验（观察期纪律）：只有报告点名且你确认不再使用该软件时才动手。",
+  "match_checks": ["bs_suspect_drivers", "dv_network_filters"],
+  "verify_checks": []
+}

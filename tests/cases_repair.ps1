@@ -276,8 +276,8 @@ $global:DiagRepairCases = @(
             $jsons = @(Get-ChildItem -LiteralPath $actionsDir -File -Filter '*.json')
             if ($jsons.Count -lt 13) { $bad += "actions count $($jsons.Count) < 13 (green 5 + yellow 6 + red 2 ruled)" }
             $seenIds = @{}
-            $exeAllow = @('ipconfig.exe', 'arp.exe', 'nbtstat.exe', 'netsh.exe', 'reg.exe', 'w32tm.exe', 'ie4uinit.exe', 'net.exe', 'powercfg.exe', 'cmd.exe')
-            $exeAllowRed = @('sfc.exe', 'dism.exe', 'notepad.exe', 'ipconfig.exe')
+            $exeAllow = @('ipconfig.exe', 'arp.exe', 'nbtstat.exe', 'netsh.exe', 'reg.exe', 'w32tm.exe', 'ie4uinit.exe', 'net.exe', 'powercfg.exe', 'cmd.exe', 'driverquery.exe', 'pnputil.exe')
+            $exeAllowRed = @('sfc.exe', 'dism.exe', 'notepad.exe', 'ipconfig.exe', 'pnputil.exe', 'cmd.exe', 'driverquery.exe', 'powercfg.exe')
             foreach ($jf in $jsons) {
                 $a = $null
                 try { $a = Get-Content -LiteralPath $jf.FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $bad += "unparsable: $($jf.Name)"; continue }
@@ -802,6 +802,99 @@ $global:DiagRepairCases += @{
         if ($steps.Count -ne 1 -or [int]$steps[0].exit -ne 0) { $bad += 'icon refresh step not clean' }
         $log = Get-LastRepairLog $ctx.TmpRoot
         if (-not $log -or $log.ok -ne $true) { $bad += 'repair-log line missing/wrong' }
+        return $bad
+    }
+}
+
+# ---- v1.2.0 片4 扩容 3 动作（1023 拍板优先级修订版）----
+#      net_winhttp_reset（绿，改系统级 WinHTTP 代理=真跑会动本机代理状态）→ forceNever 挡下
+foreach ($s4Act in @(@('rep_g_winhttp_reset', 'net_winhttp_reset', @()),
+                     @('rep_y_rescan', 'dv_device_rescan', @('-AllowYellow')))) {
+    $global:DiagRepairCases += @{
+        name = $s4Act[0]
+        kind = 'real'
+        actionId = $s4Act[1]
+        forceNever = $true
+        extraArgs = $s4Act[2]
+        assert = {
+            param($res, $ctx)
+            $bad = @()
+            if ($res.ok -ne $false) { $bad += "expect ok=false (never really run in tests) got $($res.ok)"; return $bad }
+            if ([string]$res.fail_stage -ne 'precheck') { $bad += "expect fail_stage=precheck got $($res.fail_stage)" }
+            $notes = (@($res.stages.precheck.notes) -join '；')
+            if ($notes -notmatch '管理员') { $bad += "precheck note should mention admin: $notes" }
+            if (@($res.stages.exec.steps).Count -ne 0) { $bad += 'steps ran despite NeverElevate' }
+            $log = Get-LastRepairLog $ctx.TmpRoot
+            if (-not $log -or $log.ok -ne $false) { $bad += 'repair-log should record blocked run' }
+            return $bad
+        }
+    }
+}
+
+# ---- net_wininet_proxy_off 黄级闸门：不带 -AllowYellow 必须在加载段拒掉（零副作用级验证，不碰本机 HKCU 代理） ----
+$global:DiagRepairCases += @{
+    name = 'rep_y_wininet_gate'
+    kind = 'real'
+    actionId = 'net_wininet_proxy_off'
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        if ($res.ok -ne $false) { $bad += "expect ok=false got $($res.ok)"; return $bad }
+        if ([string]$res.fail_stage -ne 'load') { $bad += "expect fail_stage=load got $($res.fail_stage)" }
+        if ($res.error -notmatch 'AllowYellow') { $bad += "load error should mention AllowYellow: $($res.error)" }
+        return $bad
+    }
+}
+
+# ---- v1.2.0 片4 修复中心闭环率断言（1023 拍板：每个可 FAIL 的检查项必须有下文，禁静默断链） ----
+#      三种合法下文：action=绿/黄动作匹配 / card=红级处置卡匹配 / advice=显式「建议即处置」声明（reason 必填）
+$global:DiagRepairCases += @{
+    name = 'rep_closure'
+    kind = 'schema'
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        $root = $ctx.Root
+        $covFile = Join-Path $root 'repair\coverage.json'
+        if (-not (Test-Path -LiteralPath $covFile)) { return @('coverage.json missing') }
+        $cov = $null
+        try { $cov = Get-Content -LiteralPath $covFile -Raw -Encoding UTF8 | ConvertFrom-Json } catch { return @('coverage.json unparsable') }
+        $checkNames = @(Get-ChildItem -LiteralPath (Join-Path $root 'checks') -File -Filter '*.ps1' | ForEach-Object { $_.BaseName } | Where-Object { $_ -ne '_lib' })
+        $lvlByCheck = @{}
+        $actionsDir = Join-Path $root 'repair\actions'
+        foreach ($jf in (Get-ChildItem -LiteralPath $actionsDir -File -Filter '*.json')) {
+            $a = $null
+            try { $a = Get-Content -LiteralPath $jf.FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch { continue }
+            foreach ($mc in @($a.match_checks)) {
+                if (-not $lvlByCheck[[string]$mc]) { $lvlByCheck[[string]$mc] = @() }
+                $lvlByCheck[[string]$mc] += [string]$a.level
+            }
+        }
+        $covRows = @()
+        if ($cov.PSObject.Properties['checks']) { $covRows = @($cov.checks.PSObject.Properties) }
+        if ($covRows.Count -eq 0) { $bad += 'coverage.checks empty' }
+        $seen = @{}
+        foreach ($p in $covRows) {
+            $cn = [string]$p.Name
+            $seen[$cn] = $true
+            if ($checkNames -notcontains $cn) { $bad += "coverage row not a real check: $cn"; continue }
+            $how = ''
+            if ($p.Value.PSObject.Properties['how']) { $how = [string]$p.Value.how }
+            if (@('action', 'card', 'advice') -notcontains $how) { $bad += "bad how '$how': $cn"; continue }
+            $matched = @()
+            if ($lvlByCheck.ContainsKey($cn)) { $matched = @($lvlByCheck[$cn]) }
+            if ($how -eq 'action') {
+                if (-not ($matched | Where-Object { $_ -in @('green', 'yellow') })) { $bad += "declared action but no green/yellow matches: $cn" }
+            } elseif ($how -eq 'card') {
+                if (-not ($matched | Where-Object { $_ -eq 'red' })) { $bad += "declared card but no red matches: $cn" }
+            } else {
+                $reason = ''
+                if ($p.Value.PSObject.Properties['reason']) { $reason = [string]$p.Value.reason }
+                if (-not $reason) { $bad += "advice row needs reason: $cn" }
+                if ($matched) { $bad += "declared advice but actions match it ($($matched -join '/')): $cn" }
+            }
+        }
+        foreach ($cn in $checkNames) { if (-not $seen[$cn]) { $bad += "check has no closure coverage (silent dead-end): $cn" } }
         return $bad
     }
 }

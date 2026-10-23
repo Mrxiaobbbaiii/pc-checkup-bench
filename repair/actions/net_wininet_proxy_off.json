@@ -1,0 +1,26 @@
+{
+  "id": "net_wininet_proxy_off",
+  "name": "关闭用户级系统代理",
+  "level": "yellow",
+  "desc": "把 Windows「设置→网络和 Internet→代理」里的用户级代理开关关掉。适合：网页打不开或时好时坏，报告说用户级代理开着——常见于代理/加速软件退出后没把开关还原（1023 用户痛点拍板项）。",
+  "affect": "只把代理开关置为关，不动浏览器、不删文件。装了代理软件的话，它下次开启时会自己把开关再打开（那是它的正常行为）。若报告显示的是「PAC 自动配置脚本」，本动作不碰它——去设置的「使用设置脚本」手动关。",
+  "undo": "执行前工具自动把整个代理设置导出成恢复包，并生成一键撤销脚本（undo-*.bat）——以管理员方式运行它即可恢复原样。",
+  "requires_admin": false,
+  "restore_point": false,
+  "common": true,
+  "prechecks": [],
+  "backup_steps": [
+    { "exe": "reg.exe", "args": ["export", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings", "{BK}\\wininet-proxy.reg", "/y"], "desc": "备份当前代理设置（含开关与地址）" }
+  ],
+  "undo_script": [
+    "reg import \"{BK}\\wininet-proxy.reg\""
+  ],
+  "steps": [
+    { "exe": "reg.exe", "args": ["add", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings", "/v", "ProxyEnable", "/t", "REG_DWORD", "/d", "0", "/f"], "desc": "把用户级代理开关置为关" }
+  ],
+  "rollback": [],
+  "rollback_note": "撤销=以管理员运行回滚包里的 undo-net_wininet_proxy_off.bat（把备份的代理设置原样导回）",
+  "timeout_sec": 30,
+  "match_checks": ["net_proxy_system", "net_proxy_vpn"],
+  "verify_checks": ["net_proxy_system"]
+}

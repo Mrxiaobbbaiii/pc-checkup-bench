@@ -1024,5 +1024,150 @@ ADAPTER | OpenVPN TAP | TAP-Windows Adapter V9 | Up | True
        expectStatus = 'SKIP'; expectEvidenceKeyword = '查不到'
        mock = @'
 QUERY-ERROR
+'@ },
+
+    # ---------- 37. net_proxy_system（v1.2.0 片4 优先项①：系统级代理 WinHTTP+WinINET 双通道） ----------
+    @{ check = 'net_proxy_system'; note = 'WinHTTP 直连+WinINET 关(干净)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '直接访问'
+       mock = @'
+WINHTTP | DIRECT
+WININET | 0 | |
+'@ },
+    @{ check = 'net_proxy_system'; note = 'WinHTTP 被设代理(服务级残留，软件退了还在)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = 'WinHTTP'; expectSuggestionKeyword = 'winhttp reset proxy'
+       mock = @'
+WINHTTP | PROXY | 127.0.0.1:7890
+WININET | 0 | |
+'@ },
+    @{ check = 'net_proxy_system'; note = 'WinINET 用户代理开启(带 PAC 脚本)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = 'PAC'; expectSuggestionKeyword = '代理'
+       mock = @'
+WINHTTP | DIRECT
+WININET | 1 | 127.0.0.1:7890 | http://pac.example.com/pac
+'@ },
+    @{ check = 'net_proxy_system'; note = '读取失败(SKIP)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = '查不到'
+       mock = @'
+QUERY-ERROR
+'@ },
+
+    # ---------- 38. net_tcp_port（v1.2.0 片4：端口级连通，ICMP 不通时的权威替代） ----------
+    @{ check = 'net_tcp_port'; note = '443 端口通(TCP 级连通)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '113.108.81.189'
+       mock = @'
+RESOLVED | 113.108.81.189
+TCP | 443 | True
+'@ },
+    @{ check = 'net_tcp_port'; note = '解析成功但 443 连不上(端口级实锤)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '443'; expectSuggestionKeyword = '端口'
+       mock = @'
+RESOLVED | 113.108.81.189
+TCP | 443 | False
+'@ },
+    @{ check = 'net_tcp_port'; note = '域名解不出(断点更可能在 DNS 层→不冤枉 WAN)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = 'DNS'
+       mock = @'
+RESOLVED | NONE
+TCP | 443 | False
+'@ },
+    @{ check = 'net_tcp_port'; note = '查询失败(SKIP)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = '查不到'
+       mock = @'
+QUERY-ERROR
+'@ },
+
+    # ---------- 39. net_df_ping（v1.2.0 片4：DF 大包探测，PMTUD 黑洞） ----------
+    @{ check = 'net_df_ping'; note = '1472 大包通(路径 MTU>=1500)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = 'TTL=50'
+       mock = @'
+PING | REPLY | TTL=50
+'@ },
+    @{ check = 'net_df_ping'; note = '中途回需要分片(MTU 不匹配实锤)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = 'MTU'; expectSuggestionKeyword = '1492'
+       mock = @'
+PING | NEED-FRAG
+'@ },
+    @{ check = 'net_df_ping'; note = '大包超时(PMTUD 黑洞嫌疑)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '黑洞'; expectSuggestionKeyword = 'MTU'
+       mock = @'
+PING | TIMEOUT
+'@ },
+    @{ check = 'net_df_ping'; note = '无数据(SKIP)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = '查不到'
+       mock = @'
+'@ },
+
+    # ---------- 40. net_wlan_signal（v1.2.0 片4：Wi-Fi 信号质量） ----------
+    @{ check = 'net_wlan_signal'; note = '信号 75%(良好)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '75'
+       mock = @'
+STATE | connected
+SIGNAL | 75
+'@ },
+    @{ check = 'net_wlan_signal'; note = '信号 45%(偏弱 PASS 附注)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '偏弱'
+       mock = @'
+STATE | connected
+SIGNAL | 45
+'@ },
+    @{ check = 'net_wlan_signal'; note = '信号 25%(弱信号)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '弱信号'; expectSuggestionKeyword = '路由器'
+       mock = @'
+STATE | connected
+SIGNAL | 25
+'@ },
+    @{ check = 'net_wlan_signal'; note = '无 WLAN 网卡或未连 WiFi(SKIP)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = 'WLAN'
+       mock = @'
+STATE | none
+'@ },
+
+    # ---------- 41. net_tcp_stall（v1.2.0 片4：TCP 连接停滞，双采样防瞬时误报） ----------
+    @{ check = 'net_tcp_stall'; note = '双样本停滞 8/7(连接持续发不出去)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '停滞'; expectSuggestionKeyword = '代理'
+       mock = @'
+SAMPLE | SYN_SENT | 5 | SYN_RCVD | 3
+===SAMPLE===
+SAMPLE | SYN_SENT | 7 | SYN_RCVD | 0
+'@ },
+    @{ check = 'net_tcp_stall'; note = '单样本 7→0(瞬时高峰 PASS 附注)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '瞬时'
+       mock = @'
+SAMPLE | SYN_SENT | 7 | SYN_RCVD | 0
+===SAMPLE===
+SAMPLE | SYN_SENT | 0 | SYN_RCVD | 0
+'@ },
+    @{ check = 'net_tcp_stall'; note = '双样本全 0(无停滞)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '0'
+       mock = @'
+SAMPLE | SYN_SENT | 0 | SYN_RCVD | 0
+===SAMPLE===
+SAMPLE | SYN_SENT | 0 | SYN_RCVD | 0
+'@ },
+    @{ check = 'net_tcp_stall'; note = 'netstat 不可用(SKIP)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = '查不到'
+       mock = @'
+QUERY-ERROR
+'@ },
+
+    # ---------- 42. pf_uptime（v1.2.0 片4：连续开机时长） ----------
+    @{ check = 'pf_uptime'; note = '连续开机 45.2 天(超 30 天警戒线)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '45.2'; expectSuggestionKeyword = '重启'
+       mock = @'
+45.2
+'@ },
+    @{ check = 'pf_uptime'; note = '连续开机 12 天(正常)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '12'
+       mock = @'
+12
+'@ },
+    @{ check = 'pf_uptime'; note = '开机半天内(健康)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '0.5'
+       mock = @'
+0.5
+'@ },
+    @{ check = 'pf_uptime'; note = '查不到开机时间(SKIP)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = '查不到'
+       mock = @'
 '@ }
 )
