@@ -105,6 +105,9 @@
   <!-- 视图二：结果中心（v1.1.0 A 段：问题优先——按严重度归并，全部检查项另开一页） -->
   <section class="view" id="view-results">
     <div class="verdict-banner hidden" id="verdict-banner"></div>
+    <!-- 先修这个（v1.4.0 轮1）：跨树根因关联+行动优先级——同一元凶的多项 FAIL 合并成一个行动项，
+         按收益÷风险×把握排序；每项一键跳修复中心对应卡或该项说明。纯前端规则表，判定层零碰 -->
+    <div class="card first-fix hidden" id="first-fix"></div>
     <!-- 和上次比：本次 vs 上一份报告的一行摘要（无历史报告时不显示） -->
     <div class="card delta-bar hidden" id="delta-bar"></div>
 

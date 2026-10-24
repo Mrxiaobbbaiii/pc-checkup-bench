@@ -201,6 +201,16 @@ def main():
         # 自主迭代轮A：结果页「和上次比」摘要行（本次 vs 预塞 new 份 → 新增项文案）
         check('C6 和上次比摘要行', (lambda t: '和上次体检' in t and ('新冒出来' in t or '修好了' in t or '没有变化' in t))
               (str(cdp.eval("document.querySelector('#delta-bar')?.innerText || ''"))))
+        # v1.4.0 轮1「先修这个」：根因关联行动区（本场景 DNS 三项 FAIL → dns_side 规则命中 → 合并行动项）
+        ff_txt = str(cdp.eval("document.querySelector('#first-fix')?.innerText || ''"))
+        check('C7 先修这个行动区渲染', '先修这个' in ff_txt and 'DNS' in ff_txt, ff_txt[:160])
+        check('C8 根因合并项出现', '一个方向' in ff_txt and '去处理' in ff_txt, ff_txt[:200])
+        # 点「去处理」→ 跳修复中心「改为公共 DNS」卡（target.action=net_dns_public_set）
+        cdp.eval("Array.from(document.querySelectorAll('#first-fix button')).find(b => b.textContent === '去处理')?.click()")
+        time.sleep(1.2)
+        rep_on = cdp.eval("document.querySelector('#view-repair')?.classList.contains('active')") is True
+        card_on = cdp.eval("!!document.querySelector('.action-card[data-action-id=net_dns_public_set]')")
+        check('C9 行动项跳转修复卡', rep_on and card_on)
 
         # ---- D 修复中心联动 ----
         cdp.eval("document.querySelectorAll('.tab')[2].click()")

@@ -219,6 +219,162 @@ function groupFor(name) {
   return g || { id: 'other', title: '其他', note: '' };
 }
 
+/* ---------- 先修这个（v1.4.0 轮1）：根因关联规则表 ----------
+   跨树交叉定位——同一元凶的多项 FAIL 合并成一个行动项（如嫌疑驱动+网络过滤层+蓝屏码频次
+   → 一个根因：过滤驱动）。命中门槛=规则 checks 里 ≥minHits 项 FAIL（单项不硬凑根因，归普通行动项）。
+   排序分 score = 收益 gain × 把握 conf ÷ 风险 risk（手工标定，宁稳勿激进），而非纯严重度。
+   纯前端展示层，判定逻辑零碰。target.action=跳修复中心对应动作卡；target.check=跳该项说明。 */
+const CORR_RULES = [
+  { id: 'disk_dying', title: '最要紧的一件事：硬盘在变坏，先备份数据', minHits: 2,
+    checks: ['hw_disk_health', 'hw_smart_predict', 'hw_disk_errors'],
+    why: '磁盘健康和文件系统错误同时报警，硬盘多半在变坏。第一步永远是先把重要数据备份出来，再谈修。',
+    gain: 5, risk: 1, conf: 0.9, target: { check: 'hw_disk_health' } },
+  { id: 'filter_driver', title: '一个根因：网络过滤驱动在捣乱', minHits: 2,
+    checks: ['bs_suspect_drivers', 'dv_network_filters', 'bs_code_frequency'],
+    why: '蓝屏嫌疑驱动和网络过滤层同时点名，多半是同一个加速器/安全软件捆绑的过滤驱动——按一张卡处理，蓝屏和断网一起收。',
+    gain: 5, risk: 3, conf: 0.8, target: { action: 'dv_filter_handling' } },
+  { id: 'dns_side', title: '一个方向：DNS 配置坏了', minHits: 2,
+    checks: ['net_dns_deadaddr', 'net_dns_default', 'net_dns_public'],
+    why: 'DNS 相关多项同时出问题，指向 DNS 地址配置本身。改成公共 DNS（阿里/腾讯）一招可解，能自动改、可撤销。',
+    gain: 4, risk: 1.5, conf: 0.85, target: { action: 'net_dns_public_set' } },
+  { id: 'driver_residue', title: '一个方向：设备驱动有残留或没装好', minHits: 2,
+    checks: ['dv_driver_load_failures', 'dv_device_errors'],
+    why: '驱动加载失败和设备报错同时出现，常见于换过硬件/重装系统后驱动没清干净。先重扫设备，再按显卡残留卡清理。',
+    gain: 4, risk: 3, conf: 0.7, target: { action: 'dv_device_rescan' } },
+  { id: 'mem_hw', title: '一个方向：内存或供电不稳', minHits: 2,
+    checks: ['bs_whea_hardware', 'hw_memdiag_history', 'pf_app_crashes'],
+    why: '硬件报错记录和多应用崩溃同时出现，优先怀疑内存（跑一次内存诊断），笔记本再查电池供电。',
+    gain: 4, risk: 4, conf: 0.7, target: { action: 'bs_attribution_card' } },
+  { id: 'proxy_mess', title: '一个方向：代理在背后改网络', minHits: 2,
+    checks: ['net_proxy_vpn', 'net_proxy_system', 'net_tcp_stall'],
+    why: '系统级和应用层同时查到代理配置，多半是装软件/加速器时留下的。先一键重置系统代理，再人工清应用层。',
+    gain: 3, risk: 1.5, conf: 0.75, target: { action: 'net_winhttp_reset' } },
+  { id: 'boot_burden', title: '一个方向：开机负担太重', minHits: 2,
+    checks: ['pf_boot_duration', 'pf_boot_degradation_events', 'pf_startup_items'],
+    why: '开机慢+自启项多+系统点名拖慢启动的软件，三件事往往是同一批软件造成的。清一清自启就见效。',
+    gain: 3, risk: 1, conf: 0.8, target: { check: 'pf_startup_items' } },
+];
+function corrScore(r) { return (r.gain * r.conf) / r.risk; }
+
+/* 先修这个：渲染行动区。两层结构——①根因合并项（规则命中，按 score 排序在前）
+   ②单项行动项（未被规则覆盖的 FAIL 项，按严重度排）。每项带一键跳转：
+   有匹配动作的跳修复中心对应卡，没有的跳该项说明（详情面板）。全部 FAIL 必有着落，禁静默断链。 */
+function renderFirstFix() {
+  const box = $('#first-fix');
+  if (!box) return;
+  const entries = S.entries || [];
+  const fails = entries.filter((e) => e.status === 'FAIL');
+  if (!S.reportPayload || !fails.length) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+
+  const byName = new Map(fails.map((e) => [e.name, e]));
+  const ruleItems = [];
+  const covered = new Set();
+  CORR_RULES.forEach((r) => {
+    const hits = r.checks.filter((n) => byName.has(n));
+    if (hits.length < r.minHits) return;
+    hits.forEach((n) => covered.add(n));
+    ruleItems.push({ rule: r, hits });
+  });
+  ruleItems.sort((a, b) => corrScore(b.rule) - corrScore(a.rule));
+
+  box.innerHTML = '';
+  const title = document.createElement('div');
+  title.className = 'card-title';
+  title.textContent = '先修这个';
+  box.appendChild(title);
+  const intro = document.createElement('div');
+  intro.className = 'ff-intro';
+  intro.textContent = '按「值得先修的程度」排序（修好能解决多少问题 ÷ 风险 × 把握），不是按严重度吓人。每条都能一键跳到处理办法。';
+  box.appendChild(intro);
+
+  ruleItems.forEach(({ rule, hits }) => {
+    const item = document.createElement('div');
+    item.className = 'ff-item';
+    item.dataset.rule = rule.id;
+    const head = document.createElement('div');
+    head.className = 'ff-head';
+    const tag = document.createElement('span');
+    tag.className = 'ff-tag';
+    tag.textContent = '合并看';
+    const t = document.createElement('b');
+    t.textContent = rule.title;
+    head.appendChild(tag); head.appendChild(t);
+    item.appendChild(head);
+    const why = document.createElement('div');
+    why.className = 'ff-why';
+    why.textContent = rule.why;
+    item.appendChild(why);
+    const chips = document.createElement('div');
+    chips.className = 'ff-chips';
+    hits.forEach((n) => {
+      const chip = document.createElement('button');
+      chip.className = 'ff-chip';
+      chip.textContent = humanCheck(n);
+      chip.addEventListener('click', () => { switchView('results'); renderCheckDetail(byName.get(n)); });
+      chips.appendChild(chip);
+    });
+    item.appendChild(chips);
+    const btnRow = document.createElement('div');
+    btnRow.className = 'ff-btns';
+    const go = document.createElement('button');
+    go.className = 'btn-primary';
+    go.textContent = '去处理';
+    go.addEventListener('click', () => {
+      if (rule.target.action) focusActionCard(rule.target.action);
+      else if (rule.target.check && byName.has(rule.target.check)) { switchView('results'); renderCheckDetail(byName.get(rule.target.check)); }
+      else focusRepair(hits);
+    });
+    btnRow.appendChild(go);
+    item.appendChild(btnRow);
+    box.appendChild(item);
+  });
+
+  const singles = fails.filter((e) => !covered.has(e.name))
+    .sort((a, b) => (SEV_RANK[checkSeverity(a.name)] - SEV_RANK[checkSeverity(b.name)]) || a.name.localeCompare(b.name));
+  singles.forEach((e) => {
+    const item = document.createElement('div');
+    item.className = 'ff-item single';
+    item.dataset.check = e.name;
+    const head = document.createElement('div');
+    head.className = 'ff-head';
+    const tag = document.createElement('span');
+    tag.className = 'ff-tag sev';
+    tag.textContent = SEV_META[checkSeverity(e.name)].word;
+    const t = document.createElement('b');
+    t.textContent = humanCheck(e.name);
+    head.appendChild(tag); head.appendChild(t);
+    item.appendChild(head);
+    const act = (S.repairActions || []).find((a) => (a.match_checks || []).indexOf(e.name) >= 0);
+    const why = document.createElement('div');
+    why.className = 'ff-why';
+    why.textContent = act ? '修复中心有对应办法：' + act.name + (act.level === 'green' ? '（能自动修）' : act.level === 'yellow' ? '（确认后自动修）' : '（按步骤来）') : '点开看这项的处理建议。';
+    item.appendChild(why);
+    const btnRow = document.createElement('div');
+    btnRow.className = 'ff-btns';
+    const go = document.createElement('button');
+    go.className = 'btn';
+    go.textContent = '去处理';
+    go.addEventListener('click', () => { if (act) focusActionCard(act.id); else { switchView('results'); renderCheckDetail(e); } });
+    btnRow.appendChild(go);
+    item.appendChild(btnRow);
+    box.appendChild(item);
+  });
+
+  box.classList.remove('hidden');
+}
+
+/* 锚到修复中心某张动作卡（按动作 id；先修这个的行动项跳转用） */
+function focusActionCard(actionId) {
+  switchView('repair');
+  requestAnimationFrame(() => {
+    const target = $$('#repair-list .action-card').find((c) => c.dataset.actionId === actionId);
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('flash');
+    setTimeout(() => target.classList.remove('flash'), 2100);
+  });
+}
+
 /* 术语小抄：第一次用的人不读说明也能对上号 */
 const GLOSSARY = {
   'SKIP（没查成）': '这次没查成，既不是正常，也不是发现问题。常见原因：要管理员权限、机器没这个硬件、系统没留记录。按提示处理后可重跑。',
@@ -615,6 +771,8 @@ function updateResultsShell() {
   $('#results-body').classList.toggle('hidden', !has);
   if (!has) {
     $('#verdict-banner').classList.add('hidden');
+    $('#first-fix').classList.add('hidden');
+    $('#first-fix').innerHTML = '';
     $('#problem-list').innerHTML = '';
     $('#result-tree').innerHTML = '';
     return;
@@ -739,6 +897,7 @@ function buildResultTree() {
   S.entries = collectChecks();
   selectNode(root);
   renderVerdictBanner(false);
+  renderFirstFix();
   const first = buildProblemList() || S.entries.find((e) => e.status === 'SKIP');
   if (first) renderCheckDetail(first);
   setResultFilter(S.resultFilter);
@@ -1338,6 +1497,7 @@ function buildRepairList() {
 function buildActionCard(a, hits) {
   const card = document.createElement('div');
   card.className = 'action-card lv-' + (LV_META[a.level] ? a.level : 'green');
+  card.dataset.actionId = a.id;
   if (hits && hits.length) card.dataset.checks = hits.map((f) => f.check).join(' ');
   const badge = document.createElement('div');
   badge.className = 'ac-badge';

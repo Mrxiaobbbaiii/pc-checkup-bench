@@ -400,6 +400,34 @@ html[data-theme="dark"] .verdict-banner {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
   padding: 10px 16px; border-left: 4px solid var(--accent);
 }
+
+/* 先修这个（v1.4.0 轮1）：根因关联行动区——合并项+单项行动，按收益÷风险×把握排序 */
+.first-fix { border-left: 4px solid var(--accent); }
+.ff-intro { font-size: var(--fs-2); color: var(--dim); line-height: 1.5; margin: 2px 0 10px; }
+.ff-item {
+  padding: 10px 14px; margin-bottom: 8px; border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  background: color-mix(in srgb, var(--panel-2) 46%, transparent);
+}
+.ff-item.single { border-color: var(--line); background: color-mix(in srgb, var(--panel-2) 30%, transparent); }
+.ff-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ff-head b { font-size: var(--fs-3); }
+.ff-tag {
+  font-size: var(--fs-1); font-weight: 600; border-radius: 999px; padding: 2px 10px;
+  color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--accent-soft); white-space: nowrap;
+}
+.ff-tag.sev { color: var(--dim); border-color: var(--line); background: var(--panel-2); }
+.ff-why { font-size: var(--fs-2); color: var(--dim); line-height: 1.5; margin: 6px 0; }
+.ff-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 6px; }
+.ff-chip {
+  font-size: var(--fs-1); padding: 2px 10px; border-radius: 999px; cursor: pointer;
+  color: var(--dim); background: var(--panel-2); border: 1px solid var(--line);
+}
+.ff-chip:hover { color: var(--text); border-color: var(--line-hi); }
+.ff-btns { display: flex; gap: 8px; }
+.ff-btns .btn, .ff-btns .btn-primary { padding: 6px 16px; }
+
 .delta-txt { font-size: var(--fs-2); font-weight: 600; }
 .verdict-banner.ok { border-left-color: var(--pass); }
 .vb-big { font-size: var(--fs-4); font-weight: 700; line-height: 1.2; letter-spacing: .5px; }
