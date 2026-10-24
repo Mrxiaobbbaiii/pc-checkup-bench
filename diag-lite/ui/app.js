@@ -69,6 +69,8 @@ const CHECK_HUMAN = {
   net_wlan_signal: 'Wi-Fi 信号强度', net_tcp_stall: '连接卡死统计', pf_uptime: '连续开机时长',
 };
 function humanCheck(n) { return CHECK_HUMAN[n] || n; }
+/* 标签页标题进度：跑批中显示「N% · 电脑体检台」，完成短暂提示后恢复（host 原生壳窗口标题不跟随——单实例 FindWindow 精确匹配约束） */
+function setTitleProgress(pct) { document.title = (pct == null ? '' : pct + '% · ') + '电脑体检台'; }
 
 /* 一句话人话解释：每条检查在详情里先讲「这是什么」 */
 const CHECK_INFO = {
@@ -331,7 +333,7 @@ async function startRun() {
     });
   });
   S.seqPos = 0; S.lastSeq = 0; S.beatFail = 0;
-  S.appState = 'running';
+  S.appState = 'running'; setTitleProgress(0);
   S.reportPayload = null; S.entries = null; S.htmlUrl = '';
   try {
     const r = await fetch('/api/start', {
@@ -437,6 +439,7 @@ function handleEvent(ev) {
     const pct = S.expectSeq.length ? Math.round((S.seqPos / S.expectSeq.length) * 100) : 0;
     $('#progress-fill').style.width = pct + '%';
     $('#pct-label').textContent = S.seqPos + ' / ' + S.expectSeq.length + ' 项' + etaText();
+    setTitleProgress(pct);
     setNextCurrent(S.seqPos);
   } else if (ev.event === 'break') {
     addLog('✗ 问题出在这一步：' + ev.layerTitle, 'st-fail');
@@ -451,6 +454,7 @@ function handleEvent(ev) {
       const pct = S.expectSeq.length ? Math.round((S.seqPos / S.expectSeq.length) * 100) : 0;
       $('#progress-fill').style.width = pct + '%';
       $('#pct-label').textContent = S.seqPos + ' / ' + S.expectSeq.length + ' 项' + etaText();
+      setTitleProgress(pct);
     }
   } else if (ev.event === 'tree_done') {
     const t = S.meta.trees.find((x) => x.id === ev.tree);
@@ -461,7 +465,7 @@ function handleEvent(ev) {
 function stClass(st) { return st === 'PASS' ? 'st-pass' : st === 'FAIL' ? 'st-fail' : 'st-skip'; }
 
 function recoverRunning(payload) {
-  S.appState = 'running';
+  S.appState = 'running'; setTitleProgress(0);
   S.lastSeq = 0;
   $('#log-box').innerHTML = '';
   addLog('—— 页面刷新过，接着显示进度 ——', 'st-dim');
@@ -480,6 +484,8 @@ function recoverRunning(payload) {
 }
 
 function finalize(payload) {
+  document.title = '✓ 体检完成 · 电脑体检台';
+  setTimeout(() => { if (S.appState !== 'running') setTitleProgress(null); }, 2500);
   stopPolling(); stopElapsed();
   S.appState = payload.state;
   const secHuman = Math.max(1, Math.round((Date.now() - S.runStartAt) / 1000)) || (payload.elapsedSec || 0);
@@ -1801,7 +1807,7 @@ if (/[?&]probe/.test(location.search)) {
         if (treeArg !== 'all' && t.id !== treeArg) return;
         t.layers.forEach((l) => l.checks.forEach((c) => S.expectSeq.push({ tree: t.id, layer: l.name, layerTitle: l.title, check: c })));
       });
-      S.appState = 'running';
+      S.appState = 'running'; setTitleProgress(0);
       $('#select-card').classList.add('disabled');
       $$('#select-card input').forEach((i) => (i.disabled = true));
       $('#run-card').classList.remove('hidden');

@@ -263,37 +263,39 @@ function Escape-Html {
 }
 
 $css = @'
-body { font-family: system-ui, "Microsoft YaHei", sans-serif; background: #f0f4f8; color: #1f2937; margin: 0; padding: 16px; }
+body { font-family: "Segoe UI", system-ui, "Microsoft YaHei", sans-serif; background: #eef2f7; color: #1f2937; margin: 0; padding: 16px; }
 .wrap { max-width: 920px; margin: 0 auto; }
-.banner { background: #0f3d66; color: #fff; border-radius: 10px; padding: 18px 22px; }
+.banner { background: linear-gradient(135deg, #0a1426 0%, #0d2140 100%); color: #fff; border-radius: 12px; padding: 18px 22px; border-bottom: 3px solid #0e9488; }
 .banner h1 { margin: 0 0 6px 0; font-size: 21px; }
 .banner .meta { font-size: 12.5px; opacity: .88; margin-top: 3px; }
-.card { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(15, 61, 102, .12); padding: 16px 20px; margin-top: 14px; }
+.card { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(13, 33, 64, .08); padding: 16px 20px; margin-top: 14px; }
 .verdict-fail { border-left: 5px solid #d92b2b; }
 .verdict-pass { border-left: 5px solid #188a42; }
 .verdict h2 { margin: 0 0 8px 0; font-size: 17px; }
 .verdict .where { font-size: 15px; font-weight: 600; }
-.verdict .plain { font-size: 14px; margin: 10px 0 0 0; background: #f8fafc; border-radius: 6px; padding: 8px 12px; }
+.verdict .plain { font-size: 14px; margin: 10px 0 0 0; background: #f6f9fc; border-radius: 8px; padding: 8px 12px; }
 h2.sec { font-size: 16px; margin: 0 0 10px 0; }
-.fix-card { border: 1px solid #f0d4d4; border-left: 4px solid #d92b2b; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; }
+.fix-card { border: 1px solid #f3dcdc; border-left: 4px solid #d92b2b; border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; background: #fffafa; }
 .fix-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
 pre.fix-body { white-space: pre-wrap; word-break: break-all; }
-details.layer { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(15, 61, 102, .12); margin-top: 10px; }
-details.layer summary { cursor: pointer; padding: 12px 18px; font-size: 15px; font-weight: 600; list-style-position: inside; }
+details.layer { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(13, 33, 64, .08); margin-top: 10px; }
+details.layer summary { cursor: pointer; padding: 12px 18px; font-size: 15px; font-weight: 600; list-style-position: inside; border-radius: 12px; }
+details.layer summary:hover { background: #f2f6fa; }
 details.layer .body { padding: 2px 18px 14px 18px; }
 .check { margin-bottom: 12px; }
 .check-head { font-size: 14px; font-family: Consolas, monospace; margin-bottom: 4px; }
-pre.ev { background: #f8fafc; border: 1px solid #e5eaf0; border-radius: 6px; padding: 8px 12px; font-size: 12.5px; white-space: pre-wrap; word-break: break-all; margin: 0; }
-.badge { display: inline-block; border-radius: 4px; padding: 1px 7px; font-size: 12px; font-weight: 600; vertical-align: 1px; }
-.b-pass { background: #eefaf2; color: #188a42; }
-.b-fail { background: #fdf0ef; color: #d92b2b; }
-.b-skip { background: #eef0f4; color: #667085; }
+pre.ev { background: #f6f9fc; border: 1px solid #e3eaf2; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; white-space: pre-wrap; word-break: break-all; margin: 0; }
+.badge { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 12px; font-weight: 600; vertical-align: 1px; }
+.b-pass { background: #e6f7ee; color: #14804a; }
+.b-fail { background: #fdeeed; color: #c62828; }
+.b-skip { background: #edf0f5; color: #667085; }
 .m-fail { color: #d92b2b; }
 .m-pass { color: #188a42; }
 .m-skip { color: #667085; }
 .cnt { font-weight: 400; font-size: 12.5px; color: #667085; margin-left: 6px; }
 .empty-note { font-size: 13px; color: #667085; }
-footer { text-align: center; font-size: 12px; color: #667085; margin: 18px 0 8px 0; }
+footer { text-align: center; font-size: 12px; color: #8a94a6; margin: 18px 0 8px 0; }
+@media print { body { background: #fff; padding: 0; } .card, details.layer { box-shadow: none; } details.layer .body { display: block !important; } }
 '@
 
 # 合并报告专用样式（只挂在 all 页面，单树页面 CSS 逐字节不动）
