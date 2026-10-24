@@ -55,7 +55,7 @@ $suggestion = if ($status -eq 'FAIL') {
     "【修复命令，请自己执行】ipconfig /release 然后执行 ipconfig /renew`n" +
     "【回滚】无需回滚（release/renew 只重新要地址，不改配置）；若之前是手动 IP，用原参数 netsh interface ip set address 加回"
 } elseif ($bad.Count -gt 0) {
-    "有正常网卡可用=不是当前断点；异常网卡的记录在证据里备用，现在不用动。"
+    "有正常网卡可用=问题不在这；异常网卡的记录在证据里备用，现在不用动。"
 } else { '' }
 
 [PSCustomObject]@{

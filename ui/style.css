@@ -816,3 +816,6 @@ html[data-theme="dark"] .repair-item, html[data-theme="dark"] .action-card {
 /* 修复结果大结论一次性 pop（成功/失败对称给反馈感） */
 .rr-big.ok, .rr-big.bad { animation: popIn 300ms ease-out; }
 @keyframes popIn { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+
+/* 上次体检时间戳（向导 hero，localStorage 本机记忆） */
+.last-run { font-size: var(--fs-1); color: var(--dim); margin-top: 6px; }

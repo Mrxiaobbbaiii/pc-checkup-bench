@@ -1064,7 +1064,7 @@ TCP | 443 | True
 RESOLVED | 113.108.81.189
 TCP | 443 | False
 '@ },
-    @{ check = 'net_tcp_port'; note = '域名解不出(断点更可能在 DNS 层→不冤枉 WAN)'
+    @{ check = 'net_tcp_port'; note = '域名解不出(问题更可能在 DNS 层→不冤枉 WAN)'
        expectStatus = 'SKIP'; expectEvidenceKeyword = 'DNS'
        mock = @'
 RESOLVED | NONE

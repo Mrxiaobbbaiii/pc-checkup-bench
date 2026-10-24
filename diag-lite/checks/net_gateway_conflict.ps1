@@ -79,7 +79,7 @@ $suggestion = switch ($why) {
         "【修复命令，请自己执行】netsh interface ipv4 set interface `"<该网卡名>`" metric=100`n" +
         "【回滚】netsh interface ipv4 set interface `"<该网卡名>`" metric=35（改回原值）") -f $tied.Count, (($tied.gateway) -join ' / '))
     }
-    default { if ($routes.Count -gt 1) { "多条默认路由但跃点不同，低跃点({0})优先，暂不构成断点。" -f $minMetric } else { '' } }
+    default { if ($routes.Count -gt 1) { "多条默认路由但跃点不同，低跃点({0})优先，暂不构成问题。" -f $minMetric } else { '' } }
 }
 
 [PSCustomObject]@{

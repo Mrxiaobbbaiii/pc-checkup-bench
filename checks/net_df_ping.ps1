@@ -58,7 +58,7 @@ if ($MockRaw -ne '' -or $MockFile -ne '') {
 
 $cmdTag = "[DF 大包探测 × $probeIp（1472 字节不分片）]"
 if ($queryError -or $result -eq '' -or $result -eq 'UNREACH') {
-    $why = if ($queryError) { $errText } elseif ($result -eq 'UNREACH') { '目标不可达（WAN 本身断，断点归前层项管）' } else { '探测数据查不到（无可用样本）' }
+    $why = if ($queryError) { $errText } elseif ($result -eq 'UNREACH') { '目标不可达（WAN 本身断，问题归前几项管）' } else { '探测数据查不到（无可用样本）' }
     [PSCustomObject]@{
         name = 'net_df_ping'; status = 'SKIP'
         evidence = "$cmdTag`n$why——本项跳过"

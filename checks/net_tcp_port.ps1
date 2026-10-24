@@ -70,7 +70,7 @@ if ($queryError) {
 if ($resolved -eq '') {
     [PSCustomObject]@{
         name = 'net_tcp_port'; status = 'SKIP'
-        evidence = "$cmdTag`n域名解不出（$probeHost 解析失败）——断点更可能在 DNS 层，本项不冤枉 WAN"
+        evidence = "$cmdTag`n域名解不出（$probeHost 解析失败）——问题更可能在 DNS 层，本项不冤枉 WAN"
         suggestion = ''; detail = [PSCustomObject]@{ reason = 'dns-unresolved' }
     } | ConvertTo-Json -Depth 5
     return

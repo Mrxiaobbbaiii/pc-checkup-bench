@@ -70,6 +70,24 @@ const CHECK_HUMAN = {
 };
 function humanCheck(n) { return CHECK_HUMAN[n] || n; }
 /* 标签页标题进度：跑批中显示「N% · 电脑体检台」，完成短暂提示后恢复（host 原生壳窗口标题不跟随——单实例 FindWindow 精确匹配约束） */
+/* 上次体检时间戳：本机 localStorage 记忆，向导页显示一行（30 天内有效） */
+function saveLastRun(sec) {
+  try {
+    const es = S.entries || [];
+    localStorage.setItem('diag-last-run', JSON.stringify({ at: Date.now(), total: es.length, fails: es.filter((e) => e.status === 'FAIL').length, sec: sec }));
+  } catch (e) {}
+  renderLastRun();
+}
+function renderLastRun() {
+  const el = $('#last-run'); if (!el) return;
+  let v = null;
+  try { v = JSON.parse(localStorage.getItem('diag-last-run') || 'null'); } catch (e) {}
+  if (!v || !v.at || Date.now() - v.at > 30 * 24 * 3600 * 1000) { el.classList.add('hidden'); return; }
+  const d = new Date(v.at), pad = (n) => String(n).padStart(2, '0');
+  el.textContent = '上次体检：' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) +
+    ' · 查了 ' + (v.total || 0) + ' 项' + (v.fails ? '，发现 ' + v.fails + ' 个问题' : '，全部正常');
+  el.classList.remove('hidden');
+}
 function setTitleProgress(pct) { document.title = (pct == null ? '' : pct + '% · ') + '电脑体检台'; }
 
 /* 一句话人话解释：每条检查在详情里先讲「这是什么」 */
@@ -500,6 +518,7 @@ function finalize(payload) {
     loadReport().then(() => {
       switchView('results');
       updateSelUi();
+      saveLastRun(secHuman);
     });
   } else if (payload.state === 'cancelled') {
     addLog('—— 已取消，本次没有报告 ——', 'st-skip');
@@ -1834,4 +1853,5 @@ if (/[?&]probe/.test(location.search)) {
     }
   } catch (e) {}
   updateResultsShell();
+  renderLastRun();
 })();
