@@ -1582,6 +1582,7 @@ document.getElementById('gd-copy').addEventListener('click', () => {
 
 async function startRepairRun(a, btn, card, opts) {
   opts = opts || {};
+  S.lastRepairCtx = { a, btn, card };  // 还原点中止等场景「跳过还原点直接修」重试要用
   setRepairBusy(true, btn);
   setStatus('正在修复：' + a.name + (a.level === 'yellow' ? '（先生成回滚包，再执行）…' : '…'), '');
   let slot = card.querySelector('.ac-result');
@@ -1592,7 +1593,7 @@ async function startRepairRun(a, btn, card, opts) {
     const r = await fetch('/api/repair/run', {
       method: 'POST', cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: a.id, restore_point: !!opts.restorePoint }),
+      body: JSON.stringify({ id: a.id, restore_point: !!opts.restorePoint, skip_restore_point: !!opts.skipRp }),
     });
     const j = await r.json();
     if (!j.ok) { renderRepairResult(slot, { ok: false, human: j.error || '启动失败' }); return; }
@@ -1632,7 +1633,10 @@ async function loadRepairHistory(force) {
   if (!REPH.rows.length) { wrap.classList.add('hidden'); return; }
   box.innerHTML = REPH.rows.map((h) => {
     const lv = LV_META[h.level] ? LV_META[h.level].word.split(' ')[0] : '';
-    const res = h.ok ? '<span class="rh-ok">修好了</span>' : ('<span class="rh-bad">没修好' + (h.fail_stage ? '（' + esc(h.fail_stage) + '）' : '') + '</span>');
+    let res;
+    if (h.ok) res = '<span class="rh-ok">修好了</span>';
+    else if (h.rp === 'failed') res = '<span class="rh-bad">没执行（还原点没建成，安全中止）</span>';
+    else res = '<span class="rh-bad">没修好' + (h.fail_stage ? '（' + esc(h.fail_stage) + '）' : '') + '</span>';
     return '<div class="rh-row"><span class="rh-time">' + esc(h.time) + '</span><span class="rh-name">' + esc(h.name) + '</span>' +
       (lv ? '<span class="rh-lv lv-' + esc(h.level) + '">' + lv + '</span>' : '') + res + '</div>';
   }).join('');
@@ -1670,11 +1674,33 @@ function renderRepairResult(slot, res) {
     next.appendChild(sp); next.appendChild(btn);
   } else {
     const sp = document.createElement('span');
+    // 还原点没建成的安全中止：给两条出路而不是一句「重试」（1024 用户实锤：看不懂原因也不知道下一步）
+    const rpAborted = res.fail_stage === 'rollback_pkg' && res.stages.pkg && res.stages.pkg.restore_point &&
+      res.stages.pkg.restore_point.requested && !res.stages.pkg.restore_point.ok;
+    if (rpAborted) {
+      sp.textContent = '系统还原功能被关着（很多优化软件会关掉它）：①开启后再修——Win 搜索「创建还原点」→ 选 C 盘 → 配置 → 启用；②跳过还原点直接修——撤销脚本已备好，出问题双击它就能还原。';
+      const skip = document.createElement('button');
+      skip.className = 'btn';
+      skip.textContent = '跳过还原点，直接修';
+      skip.addEventListener('click', () => {
+        const c = S.lastRepairCtx;
+        if (c && c.a) startRepairRun(c.a, c.btn, c.card, { skipRp: true });
+      });
+      next.appendChild(sp); next.appendChild(skip);
+      slot.appendChild(next);
+      appendRepairDetailFold(slot, res);
+      return;
+    }
     sp.textContent = '可以再点一次「执行」重试，或点开下面的明细看哪一步没跑成。';
     next.appendChild(sp);
   }
   slot.appendChild(next);
 
+  appendRepairDetailFold(slot, res);
+}
+/* 修复五段明细折叠（预检/回滚包/执行/复查/台账）——成功默认收起、失败自动展开 */
+function appendRepairDetailFold(slot, res) {
+  const ok = !!res.ok;
   const fold = document.createElement('details');
   fold.className = 'steps-fold';
   const foldSum = document.createElement('summary');
@@ -1725,6 +1751,7 @@ function renderRepairResult(slot, res) {
       body.appendChild(l);
     }
   }
+  const vf = st.verify;
   if (vf) {
     if ((vf.checks || []).length) {
       (vf.checks || []).forEach((c) => {
@@ -2030,7 +2057,7 @@ async function loadHistory(force) {
       const rr = await fetch('/reports/' + encodeURIComponent(it.file), { cache: 'no-store' });
       const rep = await rr.json();
       const map = histCheckMap(rep);
-      items.push({ file: it.file, mtime: it.mtime, trees: (rep.trees || []).map((t) => t.tree).join('+'), map, fails: histFailCount(map) });
+      items.push({ file: it.file, mtime: it.mtime, trees: (rep.trees || []).map((t) => t.report_name || t.tree).join('+'), map, fails: histFailCount(map) });
     } catch (e) { /* 单份坏档跳过，不拖垮整页 */ }
   }
   HIST.reports = items;

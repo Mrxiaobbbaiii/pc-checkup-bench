@@ -506,7 +506,9 @@ function Invoke-Route($ctx) {
                     if (-not $ln.Trim()) { continue }
                     try {
                         $h = $ln | ConvertFrom-Json
-                        $hist += [ordered]@{ time = [string]$h.time; id = [string]$h.id; name = [string]$h.name; level = [string]$h.level; ok = ($h.ok -eq $true); fail_stage = [string]$h.fail_stage }
+                        $rpState = ''
+                        if ($h.PSObject.Properties['pkg'] -and $h.pkg -and $h.pkg.PSObject.Properties['restore_point']) { $rpState = $(if ($h.pkg.restore_point.ok) { 'ok' } elseif ($h.pkg.restore_point.requested) { 'failed' } else { '' }) }
+                        $hist += [ordered]@{ time = [string]$h.time; id = [string]$h.id; name = [string]$h.name; level = [string]$h.level; ok = ($h.ok -eq $true); fail_stage = [string]$h.fail_stage; rp = $rpState }
                     } catch { }
                 }
             }
@@ -519,6 +521,7 @@ function Invoke-Route($ctx) {
             try { $j = $body | ConvertFrom-Json } catch { }
             $rid = [string]$j.id
             $wantRp = ($j.restore_point -eq $true)
+            $skipRp = ($j.skip_restore_point -eq $true)
             $def = @($repairDefs | Where-Object { [string]$_.id -eq $rid })[0]
             if (-not $def) { Send-Json $res @{ ok = $false; error = '没认出这个修复动作' } 400; return }
             if ([string]$def.level -eq 'red') {
@@ -539,6 +542,7 @@ function Invoke-Route($ctx) {
                 # 黄级：ui 逐项确认已在前置把关，这里显式放行 + 可选系统还原点
                 $argList += '-AllowYellow'
                 if ($wantRp) { $argList += '-WithRestorePoint' }
+                if ($skipRp) { $argList += '-SkipRestorePoint' }  # 1024 修复体验轮：用户知情跳过（撤销脚本仍生成）
             }
             $quoted = @($argList | ForEach-Object { if ($_ -match '\s') { '"' + ($_ -replace '"', '') + '"' } else { $_ } })
             $psi = New-Object System.Diagnostics.ProcessStartInfo

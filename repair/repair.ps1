@@ -28,7 +28,9 @@ param(
     [string]$OutFile = '',
     [switch]$NeverElevate,
     [switch]$AllowYellow,
-    [switch]$WithRestorePoint
+    [switch]$WithRestorePoint,
+    # 1024 修复体验轮：用户知情跳过系统还原点（还原点服务被关的机器；撤销脚本+备份仍生成=第二道保险兜底）
+    [switch]$SkipRestorePoint
 )
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
@@ -156,9 +158,9 @@ function New-ElevatedInner {
         [void]$sb.AppendLine('            $all2 = @(Get-CimInstance -Namespace "root\default" -ClassName "SystemRestore" -ErrorAction Stop)')
         [void]$sb.AppendLine('            foreach ($s in $all2) { try { $t = [System.Management.ManagementDateTimeConverter]::ToDateTime([string]$s.CreationTime); if ($t -ge $dayStart) { $rpOk = $true; $rpNote = "today-already"; break } } catch { } }')
         [void]$sb.AppendLine('        } catch { }')
-        [void]$sb.AppendLine('        if (-not $rpOk) { $rpNote = "no restore point created (system protection may be off)" }')
+        [void]$sb.AppendLine('        if (-not $rpOk) { $rpNote = "系统还原点没建成（system protection 可能没开）" }')
         [void]$sb.AppendLine('    }')
-        [void]$sb.AppendLine('} catch { $rpOk = $false; $rpNote = "restore point failed: " + $_.Exception.Message }')
+        [void]$sb.AppendLine('} catch { $rpOk = $false; $rpNote = "系统还原点没建成: " + $_.Exception.Message }')
         [void]$sb.AppendLine('if (-not $rpOk) { $aborted = "restore_point" }')
     }
     $phaseDefs = @()
@@ -238,6 +240,14 @@ function New-ElevatedInner {
     $innerPath = Join-Path $workDir 'elev-inner.ps1'
     [System.IO.File]::WriteAllText($innerPath, $sb.ToString(), (New-Object System.Text.UTF8Encoding($true)))
     return $innerPath
+}
+
+# 1024 修复体验轮：还原点中止的人话解释（用户实锤「restore point failed: <系统原文>」看不懂、不知道下一步）
+function Get-RpAbortHuman([string]$Note) {
+    $why = if ($Note -match '禁用了该服务|disabled|没有启用') { '这台电脑的系统还原功能被关着——常见原因：优化软件为省空间把它关掉了。' }
+    elseif ($Note -match 'frequency|24') { 'Windows 对手动建还原点有每天次数限制，今天的次数用完了。' }
+    else { $Note }
+    return '系统还原点没建成，安全起见什么都没改。' + $why + '想继续有两条路：开启系统还原后再修（Win 搜索「创建还原点」→ 选 C 盘 → 配置 → 启用），或跳过还原点直接修（撤销脚本已备好，出问题双击它就能还原）。'
 }
 
 # 提权执行全部步骤（RunAs 一次）；UAC 被点否=优雅失败；总时限=各步超时和+120 秒确认宽限（+90 秒还原点宽限）
@@ -460,7 +470,7 @@ $rpOk = $true
 $rpNote = ''
 $isYellow = ($actLevel -eq 'yellow')
 if ($isYellow) {
-    $rpRequested = [bool]$WithRestorePoint
+    $rpRequested = [bool]$WithRestorePoint -and -not $SkipRestorePoint
     if (-not $preOk) {
         $pkgNote = '预检没过，未生成回滚包'
     } else {
@@ -512,7 +522,7 @@ if ($preOk) {
         $r = Invoke-StepsElevated -MainSteps @($action.steps) -BackupSteps $bkSteps -RollbackSteps @($action.rollback) -PerStepTimeoutMs $timeoutMs -WantRestorePoint $rpRequested -ElevActionId $ActionId
         if ($r.rp_failed) {
             $rpOk = $false; $rpNote = [string]$r.rp.note
-            $execNote = $rpNote
+            $execNote = Get-RpAbortHuman $rpNote
             $failStage = 'rollback_pkg'
         } elseif (-not $r.ok) {
             $execNote = [string]$r.note
@@ -556,7 +566,7 @@ if ($preOk) {
             }
         }
         if ($rpRequested -and -not $rpOk) {
-            $execNote = $rpNote
+            $execNote = Get-RpAbortHuman $rpNote
             $failStage = 'rollback_pkg'
         } else {
             $bkFailed = $false
@@ -615,7 +625,8 @@ if ($preOk) {
 $verifyChecks = @()
 $verifyNote = ''
 if (-not $preOk) { $verifyNote = '预检未通过，跳过验证' }
-elseif (-not $execOk) { $verifyNote = '执行未成功，跳过验证' }
+elseif ($failStage -eq 'rollback_pkg') { $verifyNote = '没有执行任何修改（安全中止），无需验证' }
+elseif (-not $execOk) { $verifyNote = '执行没成功，跳过验证' }
 elseif (-not @($action.verify_checks).Count) { $verifyNote = '该动作没有配验证检查项' }
 else {
     foreach ($vc in @($action.verify_checks)) {
