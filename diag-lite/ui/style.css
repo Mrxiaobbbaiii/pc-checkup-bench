@@ -398,6 +398,19 @@ html[data-theme="dark"] .verdict-banner {
 }
 .verdict-banner.bad { border-left-color: var(--fail); }
 
+/* 修复小史（自主迭代轮C）：折叠卡，一行一次修复 */
+.rep-hist summary { cursor: pointer; font-weight: 700; font-size: var(--fs-2); }
+.rh-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); font-size: var(--fs-1); }
+.rh-row:last-child { border-bottom: none; }
+.rh-time { color: var(--dim); font-variant-numeric: tabular-nums; }
+.rh-name { font-weight: 600; }
+.rh-lv { font-size: var(--fs-1); }
+.rh-lv.lv-green { color: var(--pass); }
+.rh-lv.lv-yellow { color: #d9a410; }
+.rh-lv.lv-red { color: var(--fail); }
+.rh-ok { color: var(--pass); font-weight: 600; }
+.rh-bad { color: var(--fail); font-weight: 600; }
+
 /* 和上次比摘要行（自主迭代轮A）：横幅下一行，轻量不抢戏 */
 .delta-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;

@@ -253,6 +253,11 @@ def main():
                 fs_txt = str(cdp.eval("document.querySelector('#fix-sense-card').innerText"))
                 check('F3 感知对比渲染', '问题数' in fs_txt and '改善' in fs_txt, fs_txt[:250])
                 check('F4 再感知按钮在', '再感知一次' in fs_txt)
+            # 自主迭代轮C：修复小史——修完切回修复中心，历史区在场且含本次动作
+            cdp.eval("document.querySelector('[data-view=\"repair\"]').click()")
+            time.sleep(1.2)
+            rh_txt = str(cdp.eval("document.querySelector('#repair-hist')?.textContent || ''"))
+            check('F5 修复小史含本次动作', '刷新 DNS 缓存' in rh_txt and '修好了' in rh_txt, rh_txt[:160])
 
         passing = sum(1 for _, ok in RESULTS if ok)
         print('\n================ UI-TESTS: %d/%d PASS ================' % (passing, len(RESULTS)))

@@ -246,7 +246,7 @@ function switchView(name) {
     t.classList.toggle('active', on);
     t.setAttribute('aria-selected', on ? 'true' : 'false');
   });
-  if (name === 'repair') buildRepairList();
+  if (name === 'repair') { buildRepairList(); loadRepairHistory(); }
   if (name === 'results') updateResultsShell();
   if (name === 'history') loadHistory();
 }
@@ -1584,7 +1584,28 @@ async function startRepairRun(a, btn, card, opts) {
 function setRepairBusy(busy, btn) {
   S.repairBusy = busy;
   if (busy) { $$('.act-run').forEach((b) => { b.dataset.origLabel = b.textContent; b.disabled = true; }); if (btn) btn.textContent = '修复中…'; }
-  else { $$('.act-run').forEach((b) => { b.disabled = false; if (b.dataset.origLabel) b.textContent = b.dataset.origLabel; }); }
+  else { $$('.act-run').forEach((b) => { b.disabled = false; if (b.dataset.origLabel) b.textContent = b.dataset.origLabel; }); REPH.stale = true; }
+}
+/* ---------- 修复小史（1024 自主迭代轮C）：最近修过什么、成没成（数据根 repair-log.json 经 server 精简投影） ---------- */
+const REPH = { loaded: false, stale: true, rows: [] };
+async function loadRepairHistory(force) {
+  const box = $('#rep-hist-body'), wrap = $('#repair-hist');
+  if (!box || !wrap) return;
+  if (REPH.loaded && !REPH.stale && !force) { wrap.classList.toggle('hidden', !REPH.rows.length); return; }
+  try {
+    const r = await fetch('/api/repair/history', { cache: 'no-store' });
+    const j = await r.json();
+    REPH.rows = j.history || [];
+  } catch (e) { REPH.rows = []; }
+  REPH.loaded = true; REPH.stale = false;
+  if (!REPH.rows.length) { wrap.classList.add('hidden'); return; }
+  box.innerHTML = REPH.rows.map((h) => {
+    const lv = LV_META[h.level] ? LV_META[h.level].word.split(' ')[0] : '';
+    const res = h.ok ? '<span class="rh-ok">修好了</span>' : ('<span class="rh-bad">没修好' + (h.fail_stage ? '（' + esc(h.fail_stage) + '）' : '') + '</span>');
+    return '<div class="rh-row"><span class="rh-time">' + esc(h.time) + '</span><span class="rh-name">' + esc(h.name) + '</span>' +
+      (lv ? '<span class="rh-lv lv-' + esc(h.level) + '">' + lv + '</span>' : '') + res + '</div>';
+  }).join('');
+  wrap.classList.remove('hidden');
 }
 /* 修复结果：大结论 + 复查提炼 + 下一步；五段明细折叠，失败默认展开 */
 function renderRepairResult(slot, res) {

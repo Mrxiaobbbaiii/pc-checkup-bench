@@ -169,6 +169,11 @@
       <div class="card-title repair-count-title">这轮查出来的问题<span class="ri-count" id="ri-count"></span></div>
       <div id="repair-list"><div class="placeholder">还没有检查结果——先去「体检向导」跑一轮；下面的常用修复不用体检也能用。</div></div>
     </div>
+    <!-- 修复小史（自主迭代轮C）：最近修过什么、成没成；没修过就不显示 -->
+    <details class="card rep-hist hidden" id="repair-hist">
+      <summary>修复小史（最近 20 次）</summary>
+      <div id="rep-hist-body"></div>
+    </details>
   </section>
 
   <!-- 视图四：历史对比（1024 轮4/5：报告列表+两次对比+问题数趋势；只读展示层） -->

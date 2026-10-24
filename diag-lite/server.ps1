@@ -478,6 +478,22 @@ function Invoke-Route($ctx) {
             Send-Json $res ([ordered]@{ ok = $true; actions = $repairDefs })
             return
         }
+        if ($path -eq '/api/repair/history') {
+            # 修复小史（1024 自主迭代轮C）：数据根 repair-log.json 尾 20 条精简投影（时间/动作/等级/结果；host 与步骤明细不下发）
+            $hist = @()
+            $logPath = Join-Path $reportsDir 'repair-log.json'
+            if (Test-Path -LiteralPath $logPath) {
+                foreach ($ln in @(Get-Content -LiteralPath $logPath -Tail 20 -Encoding UTF8)) {
+                    if (-not $ln.Trim()) { continue }
+                    try {
+                        $h = $ln | ConvertFrom-Json
+                        $hist += [ordered]@{ time = [string]$h.time; id = [string]$h.id; name = [string]$h.name; level = [string]$h.level; ok = ($h.ok -eq $true); fail_stage = [string]$h.fail_stage }
+                    } catch { }
+                }
+            }
+            Send-Json $res ([ordered]@{ ok = $true; history = $hist })
+            return
+        }
         if ($path -eq '/api/repair/run') {
             $body = Read-Body $req
             $j = @{}
