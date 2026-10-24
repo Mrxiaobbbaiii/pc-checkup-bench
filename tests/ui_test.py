@@ -90,10 +90,14 @@ def main():
         open(os.path.join(tmp, 'mocks', k + '.txt'), 'w', encoding='utf-8').write(v)
     portfile = os.path.join(tmp, 'port.tmp')
 
-    # 1) server with mocks
+    # 1) server with mocks; DIAG_DATA_ROOT redirects all report writes into the test sandbox
+    # (round-1 mechanism; keeps the real reports/ dir clean)
+    env = dict(os.environ)
+    env['DIAG_DATA_ROOT'] = os.path.join(tmp, 'dataroot')
+    os.makedirs(env['DIAG_DATA_ROOT'], exist_ok=True)
     server = subprocess.Popen(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
         os.path.join(DIAG, 'server.ps1'), '-NoBrowser', '-PortFile', portfile, '-MockDir', os.path.join(tmp, 'mocks')],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
     port = 0
     for _ in range(60):
         if os.path.exists(portfile):
@@ -107,6 +111,18 @@ def main():
         try:
             http_json('http://127.0.0.1:%d/api/meta' % port); break
         except Exception: time.sleep(0.5)
+
+    # pre-seed two synthetic reports into the test data root (E section: history+compare).
+    # older = everything PASS; newer = dns_deadaddr FAIL -> compare must show it as worsening.
+    def mk_report(name, checks):
+        return {'engine': 'test', 'trees': [{'tree': 'network', 'layers': [
+            {'name': 'dns', 'checks': [{'name': n, 'status': st, 'evidence': '', 'suggestion': ''} for n, st in checks]}]}]}
+    rep_old = mk_report('old', [('net_dns_deadaddr', 'PASS'), ('net_dns_default', 'PASS')])
+    rep_new = mk_report('new', [('net_dns_deadaddr', 'FAIL'), ('net_dns_default', 'PASS')])
+    dr_reports = os.path.join(tmp, 'dataroot', 'reports')
+    os.makedirs(dr_reports, exist_ok=True)
+    open(os.path.join(dr_reports, 'diag-network-20260101-000001.json'), 'w', encoding='utf-8').write(json.dumps(rep_old, ensure_ascii=False))
+    open(os.path.join(dr_reports, 'diag-network-20260102-000002.json'), 'w', encoding='utf-8').write(json.dumps(rep_new, ensure_ascii=False))
 
     # 2) headless Edge
     dbg = 19333
@@ -172,6 +188,22 @@ def main():
         time.sleep(0.8)
         rep_txt = str(cdp.eval("document.querySelector('#view-repair').innerText"))
         check('D1 问题清单联动', '这轮查出来的问题' in rep_txt, rep_txt[:120])
+
+        # ---- E 历史对比（预塞两份+本轮跑批一份） ----
+        cdp.eval("document.querySelector('[data-view=\"history\"]').click()")
+        time.sleep(2.5)
+        hist_txt = str(cdp.eval("document.querySelector('#view-history')?.innerText || ''"))
+        hist_items = cdp.eval("document.querySelectorAll('.hist-item').length")
+        check('E1 历史列表3份(预塞2+跑批1)', hist_items == 3, str(hist_items) + ' :: ' + hist_txt[:160])
+        check('E2 趋势区渲染', '问题数趋势' in hist_txt)
+        cmp_visible = cdp.eval("document.querySelector('#hist-compare-card')?.hidden === false")
+        check('E3 对比卡可见(>=2份)', cmp_visible)
+        if cmp_visible:
+            cdp.eval("document.querySelector('#btn-compare').click()")
+            time.sleep(1.2)
+            cmp_txt = str(cdp.eval("document.querySelector('#cmp-out')?.innerText || ''"))
+            check('E4 对比渲染问题数', '问题数' in cmp_txt and '改善' in cmp_txt, cmp_txt[:200])
+            check('E5 死地址恶化/新增行', ('恶化' in cmp_txt or '新增' in cmp_txt) and '死地址' in cmp_txt, cmp_txt[:300])
 
         passing = sum(1 for _, ok in RESULTS if ok)
         print('\n================ UI-TESTS: %d/%d PASS ================' % (passing, len(RESULTS)))

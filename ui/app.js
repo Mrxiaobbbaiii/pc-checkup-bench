@@ -236,6 +236,7 @@ function switchView(name) {
   });
   if (name === 'repair') buildRepairList();
   if (name === 'results') updateResultsShell();
+  if (name === 'history') loadHistory();
 }
 $('#tabs').addEventListener('click', (e) => {
   const t = e.target.closest('.tab');
@@ -1886,3 +1887,117 @@ if (/[?&]probe/.test(location.search)) {
   updateResultsShell();
   renderLastRun();
 })();
+
+/* ---------- 历史对比（1024 轮4/5：报告列表+两次对比+问题数趋势；纯前端展示层，判定零碰） ---------- */
+const HIST = { loaded: false, reports: [] };
+
+function histCheckMap(rep) {
+  // rep = 报告 JSON（trees[].layers[].checks[]）→ { checkName: 'PASS'|'FAIL'|'SKIP', title, tree }
+  const map = {};
+  (rep.trees || []).forEach((t) => {
+    (t.layers || []).forEach((l) => {
+      (l.checks || []).forEach((c) => {
+        map[c.name] = { status: c.status, tree: t.tree };
+      });
+    });
+  });
+  return map;
+}
+function histFailCount(map) { return Object.values(map).filter((v) => v.status === 'FAIL').length; }
+function histHuman(name) { return CHECK_HUMAN[name] || name; }
+
+async function loadHistory(force) {
+  if (HIST.loaded && !force) return;
+  let list = [];
+  try {
+    const r = await fetch('/api/reports/list', { cache: 'no-store' });
+    const j = await r.json();
+    list = j.reports || [];
+  } catch (e) {
+    $('#hist-list').innerHTML = '<div class="placeholder">历史记录暂时读不到。</div>';
+    return;
+  }
+  // 逐份拉详情（只取每份的结构化摘要：时间/树/检查状态/FAIL 数）
+  const items = [];
+  for (const it of list) {
+    try {
+      const rr = await fetch('/reports/' + encodeURIComponent(it.file), { cache: 'no-store' });
+      const rep = await rr.json();
+      const map = histCheckMap(rep);
+      items.push({ file: it.file, mtime: it.mtime, trees: (rep.trees || []).map((t) => t.tree).join('+'), map, fails: histFailCount(map) });
+    } catch (e) { /* 单份坏档跳过，不拖垮整页 */ }
+  }
+  HIST.reports = items;
+  HIST.loaded = true;
+
+  const listEl = $('#hist-list');
+  if (!items.length) {
+    listEl.innerHTML = '<div class="placeholder">还没有历史报告——跑完一轮体检，这里会记住每次的结果。</div>';
+    $('#hist-compare-card').hidden = true;
+    $('#hist-trend-card').hidden = true;
+    return;
+  }
+  listEl.innerHTML = items.map((r) =>
+    '<div class="hist-item"><span class="hist-time">' + r.mtime + '</span>' +
+    '<span class="hist-tree">' + r.trees + '</span>' +
+    '<span class="hist-fail ' + (r.fails ? 'bad' : 'ok') + '">发现问题 ' + r.fails + ' 项</span></div>'
+  ).join('');
+
+  // 趋势（时间升序：改善还是恶化一眼可看）
+  $('#hist-trend-card').hidden = false;
+  const asc = items.slice().reverse();
+  const maxF = Math.max(1, ...asc.map((r) => r.fails));
+  $('#trend-list').innerHTML = asc.map((r) =>
+    '<div class="trend-row"><span class="trend-time">' + r.mtime + '</span>' +
+    '<span class="trend-bar"><i class="' + (r.fails ? 'bad' : 'ok') + '" style="width:' + Math.round(r.fails / maxF * 100) + '%"></i></span>' +
+    '<span class="trend-val">' + r.fails + '</span></div>'
+  ).join('');
+
+  // 对比卡（≥2 份才开）
+  if (items.length >= 2) {
+    $('#hist-compare-card').hidden = false;
+    const opt = (sel, arr) => sel.innerHTML = arr.map((r) => '<option value="' + r.file + '">' + r.mtime + '（' + r.trees + '，问题 ' + r.fails + ' 项）</option>').join('');
+    opt($('#cmp-old'), items.slice(1));
+    opt($('#cmp-new'), items.slice(0, 1));
+  }
+}
+
+function renderCompare(oldRep, newRep) {
+  const out = $('#cmp-out');
+  const om = oldRep.map, nm = newRep.map;
+  const rows = [];
+  let better = 0, worse = 0;
+  // 只展示「有信息量」的行：状态变化了、或两次都是 FAIL（还没修好的老问题）
+  Object.keys(nm).forEach((name) => {
+    const n = nm[name], o = om[name];
+    if (!o) { rows.push({ name, tag: '新增', cls: 'worse', txt: '上次没查到，这次：' + n.status }); if (n.status === 'FAIL') worse++; return; }
+    if (o.status === n.status) {
+      if (n.status === 'FAIL') rows.push({ name, tag: '仍在', cls: 'still', txt: '两次都有问题，还没修好' });
+      return;
+    }
+    if (n.status === 'FAIL') { rows.push({ name, tag: '恶化', cls: 'worse', txt: o.status + ' → 有问题' }); worse++; }
+    else if (o.status === 'FAIL') { rows.push({ name, tag: '改善', cls: 'better', txt: '有问题 → ' + n.status }); better++; }
+    else { rows.push({ name, tag: '变化', cls: 'still', txt: o.status + ' → ' + n.status }); }
+  });
+  Object.keys(om).forEach((name) => {
+    if (!nm[name]) rows.push({ name, tag: '未查', cls: 'still', txt: '这次体检没查到这一项（可能前面断点截断）' });
+  });
+  const sum = '<div class="cmp-sum">问题数 <b>' + oldRep.fails + '</b> → <b>' + newRep.fails + '</b>' +
+    '　·　<span class="better">改善 ' + better + ' 项</span>　<span class="worse">恶化/新增 ' + worse + ' 项</span></div>';
+  const table = rows.length
+    ? '<div class="cmp-rows">' + rows.map((r2) =>
+        '<div class="cmp-row ' + r2.cls + '"><span class="cmp-tag">' + r2.tag + '</span><span class="cmp-name">' + histHuman(r2.name) + '</span><span class="cmp-txt">' + r2.txt + '</span></div>'
+      ).join('') + '</div>'
+    : '<div class="placeholder">两次结果一致，全部正常或没有变化。</div>';
+  out.innerHTML = sum + table;
+}
+
+$('#btn-compare').addEventListener('click', async () => {
+  const of = $('#cmp-old').value, nf = $('#cmp-new').value;
+  if (!of || !nf) return;
+  const find = (f) => HIST.reports.find((r) => r.file === f);
+  const a = find(of), b = find(nf);
+  if (!a || !b) return;
+  $('#cmp-out').innerHTML = '<div class="placeholder">正在对比…</div>';
+  renderCompare(a, b);
+});

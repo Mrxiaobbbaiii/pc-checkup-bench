@@ -398,6 +398,14 @@ function Invoke-Route($ctx) {
             Send-Json $res @{ ok = $true }
             return
         }
+        if ($path -eq '/api/reports/list') {
+            # 1024 轮4/5 历史对比：报告列表（文件名+时间，降序）；详情走既有 /reports/<file> 下发
+            $list = @(Get-ChildItem -LiteralPath $reportsDir -Filter 'diag-*.json' -File -ErrorAction SilentlyContinue |
+                Sort-Object LastWriteTime -Descending |
+                ForEach-Object { [ordered]@{ file = $_.Name; mtime = $_.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss') } })
+            Send-Json $res @{ reports = $list }
+            return
+        }
         if ($path -eq '/api/bye') {
             # 关窗 beacon（pagehide 必达；2 秒宽限内无回连=真关窗→杀引擎自杀）
             $script:byeAt = Get-Date

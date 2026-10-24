@@ -819,3 +819,40 @@ html[data-theme="dark"] .repair-item, html[data-theme="dark"] .action-card {
 
 /* 上次体检时间戳（向导 hero，localStorage 本机记忆） */
 .last-run { font-size: var(--fs-1); color: var(--dim); margin-top: 6px; }
+
+/* ---------- 历史对比视图（1024 轮4/5：列表+两次对比+趋势条；跟随深浅主题变量） ---------- */
+.hist-list { display: flex; flex-direction: column; gap: 6px; }
+.hist-item { display: flex; align-items: center; gap: 14px; padding: 9px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; font-size: var(--fs-2); }
+.hist-time { color: var(--dim); min-width: 135px; }
+.hist-tree { flex: 1; color: var(--text); }
+.hist-fail { font-weight: 600; }
+.hist-fail.bad { color: var(--bad, #ff7d7d); }
+.hist-fail.ok { color: var(--ok, #56d29c); }
+
+.cmp-pick { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 10px 0 14px; }
+.cmp-lab { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: var(--fs-1); }
+.cmp-pick select { background: var(--panel-2); color: var(--text); border: 1px solid var(--line-hi); border-radius: 8px; padding: 6px 10px; font-size: var(--fs-1); max-width: 340px; }
+.cmp-out { margin-top: 4px; }
+.cmp-sum { font-size: var(--fs-2); color: var(--text); margin-bottom: 10px; }
+.cmp-sum .better { color: var(--ok, #56d29c); font-weight: 600; }
+.cmp-sum .worse { color: var(--bad, #ff7d7d); font-weight: 600; }
+.cmp-rows { display: flex; flex-direction: column; gap: 6px; }
+.cmp-row { display: flex; align-items: baseline; gap: 10px; padding: 8px 12px; border-radius: 8px; background: var(--panel-2); border-left: 3px solid var(--line); font-size: var(--fs-2); }
+.cmp-row.better { border-left-color: var(--ok, #56d29c); }
+.cmp-row.worse { border-left-color: var(--bad, #ff7d7d); }
+.cmp-row.still { border-left-color: var(--warn, #e8b34b); }
+.cmp-tag { font-weight: 700; min-width: 40px; }
+.cmp-row.better .cmp-tag { color: var(--ok, #56d29c); }
+.cmp-row.worse .cmp-tag { color: var(--bad, #ff7d7d); }
+.cmp-row.still .cmp-tag { color: var(--warn, #e8b34b); }
+.cmp-name { font-weight: 600; }
+.cmp-txt { color: var(--dim); font-size: var(--fs-1); }
+
+.trend-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.trend-row { display: flex; align-items: center; gap: 12px; }
+.trend-time { color: var(--dim); font-size: var(--fs-1); min-width: 135px; }
+.trend-bar { flex: 1; height: 12px; background: var(--panel-2); border-radius: 6px; overflow: hidden; }
+.trend-bar i { display: block; height: 100%; border-radius: 6px; }
+.trend-bar i.bad { background: var(--bad, #ff7d7d); }
+.trend-bar i.ok { background: var(--ok, #56d29c); }
+.trend-val { min-width: 28px; text-align: right; font-weight: 600; }
