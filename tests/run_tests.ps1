@@ -16,6 +16,7 @@ $diagPs = (Get-Process -Id $PID).Path
 . (Join-Path $PSScriptRoot 'cases_b.ps1')
 . (Join-Path $PSScriptRoot 'cases_repair.ps1')
 . (Join-Path $PSScriptRoot 'cases_ext.ps1')
+. (Join-Path $PSScriptRoot 'cases_dataroot.ps1')
 
 $results = @()
 
@@ -255,6 +256,63 @@ foreach ($xc in $global:DiagExtCases) {
     foreach ($kw in $xc.expectNotOut) { if ($engineOut -match [regex]::Escape($kw)) { $bad += "stdout must NOT contain: $kw" } }
     if ($bad.Count -gt 0) { Add-Result 'ext' $xc.name '' $false ($bad -join '; ') }
     else { Add-Result 'ext' $xc.name '' $true }
+    Remove-Item $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# ---------- ⑥ 数据根用例（1024 轮1-B：MSIX 写路径外移；临时仓跑 engine，主仓 reports 零污染） ----------
+$drCleanMocks = ($global:DiagScenarios | Where-Object { $_.name -eq 'full_pass_all_green' }).mocks
+foreach ($dc in $global:DiagDataRootCases) {
+    $prevDataRoot = $env:DIAG_DATA_ROOT
+    $prevLad = $env:LOCALAPPDATA
+    $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-dataroot-" + $dc.name + "-" + $PID)
+    if (Test-Path $tmpRoot) { Remove-Item $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue }
+    # kind=windowsapps：仓造在 ...\WindowsApps\Diag.Health\ 下并临时改 LOCALAPPDATA（子进程继承），验证只读安装目录探测外移
+    $appRoot = $tmpRoot
+    if ($dc.kind -eq 'windowsapps') { $appRoot = Join-Path $tmpRoot 'WindowsApps\Diag.Health' }
+    $fakeLad = Join-Path $tmpRoot 'fake-LocalAppData'
+    $dataRoot = Join-Path $fakeLad '电脑体检台'
+    New-Item -ItemType Directory -Path (Join-Path $appRoot 'reports') -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $appRoot 'mocks') -Force | Out-Null
+    Copy-Item -Recurse -Force (Join-Path $root 'engine') (Join-Path $appRoot 'engine')
+    Copy-Item -Recurse -Force (Join-Path $root 'checks') (Join-Path $appRoot 'checks')
+    Copy-Item -Recurse -Force (Join-Path $root 'trees') (Join-Path $appRoot 'trees')
+    foreach ($kv in $drCleanMocks.GetEnumerator()) {
+        Set-Content -Path (Join-Path $appRoot ('mocks/' + $kv.Key + '.txt')) -Value $kv.Value -Encoding UTF8
+    }
+    if ($dc.kind -eq 'env') {
+        $env:DIAG_DATA_ROOT = Join-Path $tmpRoot 'fake-LocalAppData\电脑体检台'
+        Remove-Item Env:\LOCALAPPDATA -ErrorAction SilentlyContinue; $env:LOCALAPPDATA = $prevLad
+    } else {
+        Remove-Item Env:\DIAG_DATA_ROOT -ErrorAction SilentlyContinue
+        $env:LOCALAPPDATA = $fakeLad
+    }
+    $engineOut = ''
+    $exitCode = -1
+    try {
+        $engineOut = (& $diagPs -NoProfile -ExecutionPolicy Bypass -File (Join-Path $appRoot 'engine/run.ps1') -TreeName network -MockDir (Join-Path $appRoot 'mocks') -NoMenu -JsonReport 2>&1 | Out-String)
+        $exitCode = $LASTEXITCODE
+    } catch {
+        Add-Result 'dataroot' $dc.name '' $false ("engine crashed: $($_.Exception.Message)")
+        continue
+    } finally {
+        $env:DIAG_DATA_ROOT = $prevDataRoot
+        if ($null -eq $prevDataRoot) { Remove-Item Env:\DIAG_DATA_ROOT -ErrorAction SilentlyContinue }
+        $env:LOCALAPPDATA = $prevLad
+    }
+    $bad = @()
+    if ($exitCode -ne 0) { $bad += "exitcode expect 0 got $exitCode" }
+    $dataReports = @(Get-ChildItem -LiteralPath (Join-Path $dataRoot 'reports') -Filter 'diag-network-*.json' -ErrorAction SilentlyContinue)
+    if ($dataReports.Count -lt 1) { $bad += 'json report NOT in data root' }
+    $appReports = @(Get-ChildItem -LiteralPath (Join-Path $appRoot 'reports') -Filter 'diag-network-*.json' -ErrorAction SilentlyContinue)
+    if ($appReports.Count -gt 0) { $bad += 'json report leaked into app root reports' }
+    $j = $null
+    if ($dataReports.Count -ge 1) {
+        try { $j = Get-Content $dataReports[0].FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $j = $null }
+        if ($null -eq $j) { $bad += 'data-root json unparsable' }
+        elseif ($j.engine -ne '电脑体检台 v1.2.0') { $bad += 'engine field: ' + $j.engine }
+    }
+    if ($bad.Count -gt 0) { Add-Result 'dataroot' $dc.name '' $false ($bad -join '; ') }
+    else { Add-Result 'dataroot' $dc.name '' $true }
     Remove-Item $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 

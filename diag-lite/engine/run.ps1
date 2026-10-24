@@ -35,8 +35,15 @@ $root = Split-Path $PSScriptRoot -Parent
 # 子进程解释器=当前解释器自身（5.1→powershell.exe / 7→pwsh.exe，双版本通吃）
 $diagPs = (Get-Process -Id $PID).Path
 
+# 数据根（1024 轮1-B，MSIX 适配）：商店版安装目录（...\WindowsApps\...）只读，报告等写产物必须外移到
+# %LOCALAPPDATA%\电脑体检台；Inno/lite/开发仓布局不变（数据根=应用根，行为零变化）。
+# 优先级：DIAG_DATA_ROOT 环境变量（server 注入/测试覆盖）> WindowsApps 探测 > $root。判定语义零碰，仅写盘位置。
+$dataRoot = $root
+if ($env:DIAG_DATA_ROOT) { $dataRoot = $env:DIAG_DATA_ROOT }
+elseif ($root -like '*\WindowsApps\*') { $dataRoot = Join-Path $env:LOCALAPPDATA '电脑体检台' }
+$reportsDir = Join-Path $dataRoot 'reports'
 # reports 目录自愈（发行包缺目录防御，幂等；不碰判定与输出）
-if (-not (Test-Path (Join-Path $root 'reports'))) { New-Item -ItemType Directory -Path (Join-Path $root 'reports') -Force | Out-Null }
+if (-not (Test-Path -LiteralPath $reportsDir)) { New-Item -ItemType Directory -Path $reportsDir -Force | Out-Null }
 
 # ---------- 总入口中文菜单（拍板 9：-TreeName all 且 MockDir 空且未带 -NoMenu 才显示，不卡自动化） ----------
 $menuNames = @{ network = '网络体检'; bluescreen = '蓝屏体检'; hardware = '硬件体检'; performance = '性能体检'; drivers = '驱动体检' }
@@ -93,6 +100,7 @@ function Invoke-Check {
     param([string]$CheckName, [int]$TimeoutSec = 60, [string]$MockFile = '')
     $script = Join-Path $root "checks/$CheckName.ps1"
     if (-not (Test-Path $script)) { $script = Join-Path $root "ext/checks/$CheckName.ps1" }   # v1.1.0 ext 口子：内置优先，ext 只补缺，永不覆盖内置
+    if (-not (Test-Path $script)) { $script = Join-Path $dataRoot "ext/checks/$CheckName.ps1" }  # 1024 轮1-B：MSIX 用户 ext 检查脚本在数据根（与 server ext 树双目录扫描对齐；默认场景与上行同路径无害）
     if (-not (Test-Path $script)) {
         return [PSCustomObject]@{ name = $CheckName; status = 'SKIP'; evidence = "check script missing: $script"; suggestion = ''; detail = @{ reason = 'missing-script' } }
     }
@@ -471,7 +479,7 @@ function New-JsonPayload {
 
 # ---------- reports/ 保留策略（拍板 11：diag-* 的 .html/.txt/.md/.json 保留最新 50 份） ----------
 function Trim-Reports {
-    $repDir = Join-Path $root 'reports'
+    $repDir = $reportsDir
     if (-not (Test-Path $repDir)) { return }
     # 1021 修正：按文件名内嵌时间戳排序，不能按整名字典序——跨树前缀时 diag-all-*（字母 a）
     # 恒排"最旧"，目录到 50 上限时合并报告会被先裁掉（真机实锤：写完即被删→下载 404）。
@@ -536,14 +544,14 @@ if ($TreeName -eq 'all') {
     $jsonFileOut = ''
     if (-not $NoSaveReport) {
         $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-        $repFile = Join-Path $root ("reports/diag-all-$stamp.html")
+        $repFile = Join-Path $reportsDir ("diag-all-$stamp.html")
         $html = New-MergedHtmlReport -Overview $overview -SectionHtmls $sectionsHtml -HostName $hostName -TimeStamp $ts
         Set-Content -Path $repFile -Value $html -Encoding UTF8
         Write-Output "[报告已保存] $repFile"
         $htmlFile = $repFile
         if ($OpenReport) { Start-Process $repFile }
         if ($JsonReport) {
-            $jsonFile = Join-Path $root ("reports/diag-all-$stamp.json")
+            $jsonFile = Join-Path $reportsDir ("diag-all-$stamp.json")
             Set-Content -LiteralPath $jsonFile -Value (ConvertTo-Json (New-JsonPayload -TreeEntries $treeEntries -HostName $hostName -Ts $ts) -Depth 8) -Encoding UTF8
             $jsonFileOut = $jsonFile
         }
@@ -588,7 +596,7 @@ $htmlFile = ''
 $jsonFileOut = ''
 if (-not $NoSaveReport) {
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-    $repFile = Join-Path $root ("reports/diag-$TreeName-$stamp.html")
+    $repFile = Join-Path $reportsDir ("diag-$TreeName-$stamp.html")
     $html = New-HtmlReport -Results $layerResults -BreakLayer $breakLayer -TreeData $tree -ReportName $reportName -VerdictTitle $verdictTitle -EvidenceNote $evidenceNote -HostName $hostName -TimeStamp $ts -LayerCnStr $layerCnStr
     Set-Content -Path $repFile -Value $html -Encoding UTF8
     Write-Output ""
@@ -596,7 +604,7 @@ if (-not $NoSaveReport) {
     $htmlFile = $repFile
     if ($OpenReport) { Start-Process $repFile }
     if ($JsonReport) {
-        $jsonFile = Join-Path $root ("reports/diag-$TreeName-$stamp.json")
+        $jsonFile = Join-Path $reportsDir ("diag-$TreeName-$stamp.json")
         Set-Content -LiteralPath $jsonFile -Value (ConvertTo-Json (New-JsonPayload -TreeEntries @(@{ TreeData = $tree; Layers = $layerResults; BreakLayer = $breakLayer }) -HostName $hostName -Ts $ts) -Depth 8) -Encoding UTF8
         $jsonFileOut = $jsonFile
     }

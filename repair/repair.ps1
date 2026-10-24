@@ -36,7 +36,12 @@ $scriptDir = $PSScriptRoot
 if ($ActionsDir -eq '') { $ActionsDir = Join-Path $scriptDir 'actions' }
 if ($Root -eq '') { $Root = Split-Path $scriptDir -Parent }
 $checksDir = Join-Path $Root 'checks'
-$reportsDir = Join-Path $Root 'reports'
+# 数据根（1024 轮1-B，MSIX 适配）：商店版安装目录只读，台账/回滚包外移到 %LOCALAPPDATA%\电脑体检台；
+# DIAG_DATA_ROOT（server 注入/测试覆盖）优先；Inno/lite 布局不变（数据根=应用根）。判定与动作语义零碰。
+$dataRoot = $Root
+if ($env:DIAG_DATA_ROOT) { $dataRoot = $env:DIAG_DATA_ROOT }
+elseif ($Root -like '*\WindowsApps\*') { $dataRoot = Join-Path $env:LOCALAPPDATA '电脑体检台' }
+$reportsDir = Join-Path $dataRoot 'reports'
 $diagPs = (Get-Process -Id $PID).Path
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $workDir = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-repair-$PID-$stamp")

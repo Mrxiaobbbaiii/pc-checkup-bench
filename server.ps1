@@ -30,9 +30,17 @@ param(
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
+# 数据根（1024 轮1-B，MSIX 适配）：商店版安装目录（...\WindowsApps\...）只读——探测后写入环境变量
+# DIAG_DATA_ROOT，engine/repair 子进程自动继承同一路径；Inno/lite 布局不变（数据根=应用根）。
+$dataRoot = $root
+if ($env:DIAG_DATA_ROOT) { $dataRoot = $env:DIAG_DATA_ROOT }
+elseif ($root -like '*\WindowsApps\*') {
+    $dataRoot = Join-Path $env:LOCALAPPDATA '电脑体检台'
+    $env:DIAG_DATA_ROOT = $dataRoot
+}
 $engineScript = Join-Path $root 'engine\run.ps1'
 $uiDir = Join-Path $root 'ui'
-$reportsDir = Join-Path $root 'reports'
+$reportsDir = Join-Path $dataRoot 'reports'
 $webVersion = 'v1.2.0'
 $diagPs = (Get-Process -Id $PID).Path
 
@@ -85,7 +93,9 @@ foreach ($t in $menuOrder) {
 }
 
 # ---------- v1.1.0 ext 扩展树（ext\trees\*.yaml，内容格式同内置；只新增不覆盖：同名冲突忽略+crash log 告警） ----------
-$extTreesDir = Join-Path $root 'ext\trees'
+# 1024 轮1-B：先扫数据根（MSIX 用户扩展放 %LOCALAPPDATA%），再扫应用根（包内示例）；数据根先注册=同名时用户版赢
+$extTreesDirs = @((Join-Path $dataRoot 'ext\trees'), (Join-Path $root 'ext\trees')) | Select-Object -Unique
+foreach ($extTreesDir in $extTreesDirs) {
 if (Test-Path -LiteralPath $extTreesDir) {
     foreach ($ef in (Get-ChildItem -LiteralPath $extTreesDir -File -Filter '*.yaml' | Sort-Object Name)) {
         $extId = [System.IO.Path]::GetFileNameWithoutExtension($ef.Name)
@@ -109,6 +119,7 @@ if (Test-Path -LiteralPath $extTreesDir) {
         } catch { Write-CrashLog ('ext tree json bad: ' + $ef.Name + ' : ' + $_.Exception.Message) }
     }
 }
+}
 
 # ---------- 修复动作知识（启动时只读 repair/actions/*.json；绿+黄级可代跑，红级留向导位） ----------
 $repairDefs = @()
@@ -125,7 +136,9 @@ if (Test-Path -LiteralPath $repairActionsDir) {
 }
 
 # ---------- v1.1.0 ext 扩展修复动作（ext\repair\actions\*.json；只新增不覆盖：id 与内置冲突忽略+crash log 告警；红级照样零执行） ----------
-$extActionsDir = Join-Path $root 'ext\repair\actions'
+# 1024 轮1-B：同 ext 树——数据根先扫（用户扩展），应用根后扫（包内示例）
+$extActionsDirs = @((Join-Path $dataRoot 'ext\repair\actions'), (Join-Path $root 'ext\repair\actions')) | Select-Object -Unique
+foreach ($extActionsDir in $extActionsDirs) {
 if (Test-Path -LiteralPath $extActionsDir) {
     foreach ($af in (Get-ChildItem -LiteralPath $extActionsDir -File -Filter '*.json' | Sort-Object Name)) {
         try {
@@ -135,6 +148,7 @@ if (Test-Path -LiteralPath $extActionsDir) {
             $repairDefs += $a
         } catch { Write-CrashLog ('ext repair action json bad: ' + $af.Name + ' : ' + $_.Exception.Message) }
     }
+}
 }
 
 # ---------- 端口：loopback 随机（TcpListener 探空端口→释放→HttpListener 绑） ----------
