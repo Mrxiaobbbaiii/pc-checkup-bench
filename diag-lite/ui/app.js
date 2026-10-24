@@ -572,6 +572,7 @@ async function loadReport() {
     buildResultTree();
     buildRepairList();
     updateResultsShell();
+    renderDeltaBar();
     if (S.pendingSense && S.appState === 'done') { S.pendingSense = false; renderFixSense(); }
     return true;
   } catch (e) { updateResultsShell(); return false; }
@@ -1918,6 +1919,34 @@ function histCheckMap(rep) {
     });
   });
   return map;
+}
+/* 和上次比（1024 自主迭代轮A）：结果页顶部一行摘要——本次 vs 上一份历史报告；
+   纯前端复用对比口径（改善=上次 FAIL 这次不 FAIL；新增=上次不 FAIL 这次 FAIL），明细去历史对比页看 */
+async function renderDeltaBar() {
+  const el = $('#delta-bar'); if (!el) return;
+  try {
+    const r = await fetch('/api/reports/list', { cache: 'no-store' });
+    const list = ((await r.json()).reports) || [];
+    if (list.length < 2 || !S.reportPayload) { el.classList.add('hidden'); return; }
+    const rr = await fetch('/reports/' + encodeURIComponent(list[1].file), { cache: 'no-store' });
+    const pm = histCheckMap(await rr.json());
+    const nm = histCheckMap(S.reportPayload.report);
+    let better = 0, worse = 0;
+    Object.keys(nm).forEach((k) => {
+      const was = pm[k] ? pm[k].status : null, now = nm[k].status;
+      if (was === 'FAIL' && now !== 'FAIL') better++;
+      if (was !== 'FAIL' && now === 'FAIL') worse++;
+    });
+    const when = list[1].mtime.slice(5, 16);
+    let txt;
+    if (better && worse) txt = '和上次体检（' + when + '）比：修好了 ' + better + ' 项，又新冒出来 ' + worse + ' 项';
+    else if (better) txt = '和上次体检（' + when + '）比：修好了 ' + better + ' 项，没有新问题';
+    else if (worse) txt = '和上次体检（' + when + '）比：上次的问题都还在，又新冒出来 ' + worse + ' 项';
+    else txt = '和上次体检（' + when + '）比：没有变化';
+    el.innerHTML = '<div class="delta-txt">' + esc(txt) + '</div><button class="btn" id="delta-go">去历史对比看明细</button>';
+    el.classList.remove('hidden');
+    $('#delta-go').addEventListener('click', () => switchView('history'));
+  } catch (e) { el.classList.add('hidden'); }
 }
 function histFailCount(map) { return Object.values(map).filter((v) => v.status === 'FAIL').length; }
 function histHuman(name) { return CHECK_HUMAN[name] || name; }

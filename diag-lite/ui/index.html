@@ -108,6 +108,8 @@
   <!-- 视图二：结果中心（v1.1.0 A 段：问题优先——按严重度归并，全部检查项另开一页） -->
   <section class="view" id="view-results">
     <div class="verdict-banner hidden" id="verdict-banner"></div>
+    <!-- 和上次比：本次 vs 上一份报告的一行摘要（无历史报告时不显示） -->
+    <div class="card delta-bar hidden" id="delta-bar"></div>
 
     <div class="card empty-state hidden" id="result-empty">
       <div class="empty-glyph" aria-hidden="true">✦</div>

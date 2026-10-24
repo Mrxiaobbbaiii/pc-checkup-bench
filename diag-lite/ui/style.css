@@ -397,6 +397,13 @@ html[data-theme="dark"] .verdict-banner {
   box-shadow: var(--shadow), 0 0 22px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 .verdict-banner.bad { border-left-color: var(--fail); }
+
+/* 和上次比摘要行（自主迭代轮A）：横幅下一行，轻量不抢戏 */
+.delta-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 10px 16px; border-left: 4px solid var(--accent);
+}
+.delta-txt { font-size: var(--fs-2); font-weight: 600; }
 .verdict-banner.ok { border-left-color: var(--pass); }
 .vb-big { font-size: var(--fs-4); font-weight: 700; line-height: 1.2; letter-spacing: .5px; }
 .vb-big.bad { color: var(--fail); }

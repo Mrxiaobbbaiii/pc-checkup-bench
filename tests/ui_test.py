@@ -190,6 +190,9 @@ def main():
         # 轮7：跑过一轮体检后引导卡永久收起（localStorage diag-guided；reload 后仍隐藏）
         check('C5 跑批后引导卡收起', cdp.eval("document.querySelector('#first-guide')?.classList.contains('hidden')") is True
               and cdp.eval("!!localStorage.getItem('diag-guided')") is True)
+        # 自主迭代轮A：结果页「和上次比」摘要行（本次 vs 预塞 new 份 → 新增项文案）
+        check('C6 和上次比摘要行', (lambda t: '和上次体检' in t and ('新冒出来' in t or '修好了' in t or '没有变化' in t))
+              (str(cdp.eval("document.querySelector('#delta-bar')?.innerText || ''"))))
 
         # ---- D 修复中心联动 ----
         cdp.eval("document.querySelectorAll('.tab')[2].click()")
