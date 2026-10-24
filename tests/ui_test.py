@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 diag UI 自动测试套件（1024 轮3 固化）：CDP 驱动 headless Edge 的 DOM 断言回归网。
-覆盖：A 静态向导页 / B 页签交互 / C mock 跑批全链（dns_deadaddr 断点场景）/ D 修复中心联动。
+覆盖：A 静态向导页 / B 页签交互 / C mock 跑批全链（dns_deadaddr 断点场景+net_dns_public 超时）/ D 修复中心联动 / E 历史对比 / F 修复后感知。
 跑法：python -X utf8 tests/ui_test.py   （退出码 0=全过）
 工艺：起 server(-MockDir)+headless Edge(随机调试端口)→CDP evaluate 断言→bye 收尾零残留。
 """
@@ -30,7 +30,10 @@ MOCKS = {
     'net_public_ping': ROUTE + '\n===PART===\n' + PUBOK,
     'net_dns_deadaddr': DNSDEAD, 'net_dns_default': NSTIMEOUT,
     'net_dns_gateway_proxy': ROUTE + '\n===PART===\n###GW 192.168.1.1\n' + NSTIMEOUT,
-    'net_dns_public': NSOKPUB,
+    # 公共 DNS 也超时（F 段前提：net_dns_public FAIL 才会让「刷新 DNS 缓存」绿卡
+    # 出现在「能代跑的修复」——match_checks=net_dns_public；场景=DNS 全瘫）。
+    # F 段点击修复前会把本项 mock 文件覆写回 NSOKPUB，模拟刷新缓存修复生效→快扫 PASS→改善行。
+    'net_dns_public': NSTIMEOUT,
 }
 
 def http_json(url, method='GET', body=None, timeout=8):
@@ -206,13 +209,28 @@ def main():
             check('E5 死地址恶化/新增行', ('恶化' in cmp_txt or '新增' in cmp_txt) and '死地址' in cmp_txt, cmp_txt[:300])
 
         # ---- F 修复后感知（真实点击修复→自动快扫→对比卡） ----
+        # 模拟修复生效：把 net_dns_public 的 mock 换回成功输出。修复前快照来自内存
+        # S.reportPayload（FAIL 版），快扫 engine 会读新 mock → PASS → 感知卡出「改善」行。
+        open(os.path.join(tmp, 'mocks', 'net_dns_public.txt'), 'w', encoding='utf-8').write(NSOKPUB)
+        cdp.activate()  # E 段 reload 后生命周期可能重置，重新压 active 防轮询节流
         cdp.eval("document.querySelector('[data-view=\"repair\"]').click()")
         time.sleep(1.5)
-        clicked = cdp.eval("(() => { const cards = Array.from(document.querySelectorAll('.action-card')); " + \
+        armed = cdp.eval("(() => { const cards = Array.from(document.querySelectorAll('.action-card')); " + \
                 "const c = cards.find(x => (x.innerText || '').indexOf('刷新 DNS 缓存') >= 0); " + \
                 "if (!c) return 'NO-CARD'; const b = c.querySelector('button.act-run') || c.querySelector('button'); " + \
-                "if (!b) return 'NO-BTN'; b.click(); return 'CLICKED'; })()")
-        check('F1 找到并点击修复卡', clicked == 'CLICKED', str(clicked))
+                "if (!b) return 'NO-BTN'; b.click(); return 'ARMED'; })()")
+        clicked = 'NO-CARD'
+        if armed == 'ARMED':
+            # requires_admin 动作：先弹「管理员确认」modal，再点「执行」才真正 startRepairRun
+            for _ in range(10):
+                time.sleep(0.5)
+                if cdp.eval("!document.querySelector('#repair-modal')?.classList.contains('hidden')"):
+                    cdp.eval("document.getElementById('rm-go').click()")
+                    clicked = 'CLICKED'
+                    break
+            else:
+                clicked = 'NO-MODAL'
+        check('F1 找到并点击修复卡', clicked == 'CLICKED', str(armed) + '/' + str(clicked))
         if clicked == 'CLICKED':
             sense_on = False
             for _ in range(36):
