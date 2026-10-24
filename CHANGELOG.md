@@ -2,6 +2,14 @@
 
 > 历史卷分出（1024 拍板）：第一～二十四切片（v0.1～v1.0.1，2026-10-19～22）= archive/CHANGELOG-历史卷-v0.1-至-v1.0.1.md
 
+## 2026-10-24 v1.3.0-dev 轮2-6 进化施工片（第三十二切片；审计拍板落地：WPF 剔除+哈希公示+UI 测试固化+历史对比/趋势+修复后感知半程；轮6 F1 待下一棒）
+
+**轮2（commit 186fc6f）legacy WPF 入口剔除+哈希公示**：diag-lite/gui/ 整目录+「全面体检（图形版）.bat」删除（用户拍板；主仓 gui/ 源码保留不分发）；使用说明.txt 四处改写（标题/条目7删+8改7/【怎么用】推荐改网页版/背景行只留 ui 放法）；build.ps1 守卫清单去 gui+bat 数线 10→9+**staging 先清空再组（只加不减式 Copy 会把已剔除件残留打进新包的坑）**+双出口哈希公示（setup/zip 各出 .sha256 旁文件+build/RELEASES.md 出包台账）；装新卸新验证=gui 零残留+engine 数据根新码入包+卸净+留机重装；setup 瘦身 4882578→4875769B。
+**轮3（commit ccfb91f）UI 自动测试固化**：tests/ui_test.py=CDP 驱动 headless Edge 的 DOM 断言回归网（起 server+随机调试端口+evaluate 断言+bye 收尾零残留）；A 静态向导/B 页签交互/C mock 跑批全链/D 修复中心联动四段 11 断言全 PASS；零新依赖（python websocket-client 既有）。**坑两记：python 生成器同名赋值作用域 NameError；headless 页面生命周期节流致 UI 轮询停摆=Page.setWebLifecycleState('active')+focus 模拟，跑批完成仍不渲染时用 reload 走 F5 恢复机制（server 事件缓冲重放+静默拉报告）兜底**。
+**轮4/5（commit ef25f53）历史对比+问题数趋势**：server +/api/reports/list（数据根 diag-*.json 列表）；ui 第四页签「历史对比」=体检记录列表（时间/树/FAIL 数）+两次对比引擎（buildCmpRows 五行分档：改善/恶化/仍在/新增/未查+问题数汇总，只展示有信息量行）+问题数趋势条形图；对比纯前端实现（/reports/ 下发既有白名单复用），判定层零碰。ui_test 11→16 断言全 PASS（E 段：**测试数据根 env 注入零污染主仓 reports**+预塞双报告→列表 3 份+趋势+对比卡+死地址恶化行全链）；lite 四件双写同；205/205 双版本。
+**轮6（半程，未 commit——CTX 闸收口）修复后感知**：app.js startRun 参数化（tree/fast 可注入）+修复成功挂 scheduleSense（match_checks 前缀→关联树快速快扫+修复前快照）+loadReport 挂 renderFixSense+buildCmpHtml 对比引擎公共化（历史对比/修复感知共用）+修复中心顶部感知卡（修复前后对比行+「再感知一次」按钮）。ui_test 16→17=16 过+**F1 挂（NO-CARD：修复中心未见「刷新 DNS 缓存」卡——action-card 类名/绿卡渲染条件待诊断，grep ui/app.js buildActionCard 段）**；lite ui/app.js 双写未做；commit 命令贴用户。
+**收口挂账**：轮6 F1 诊断+lite 双写+commit→轮7 首次启动引导→全量收口（205+ui_test 全绿+群文案更新：新增历史对比/修复后感知两个卖点）；MSIX 挂账=商店上架链（Partner Center 注册/makeappx 需 Windows SDK 或 MSIX Packaging Tool/正式签名/unvirtualizedResources 受限能力审批）+server crash log %TEMP% 虚拟化（低频）；工作树=轮6 app.js 改动+ui_test F 段在途未 commit。
+
 ## 2026-10-24 v1.3.0-dev 轮1 MSIX 适配片·✅毕（第三十一切片；1024 审计拍板「商店 MSIX 优先」首轮：写路径外移+容器语义铁案验证；判定语义零碰）
 
 **背景**：1024 全面审计（推倒重来派立场）结论=核心不推倒，分发进化三选一拍板=商店 MSIX 优先（备选 Trusted Signing 直发）；同轮拍板=WPF 入口剔除/UI 测试固化/报告趋势/首次引导/修复后感知（后续轮次）。

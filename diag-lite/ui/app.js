@@ -337,11 +337,12 @@ $('#btn-run').addEventListener('click', () => {
   startRun();
 });
 
-async function startRun() {
+async function startRun(opts) {
+  opts = opts || {};
   const sel = getSelectionForm();
-  if (sel === 'none' || sel === 'invalid-2-4') return;
-  const treeArg = sel;
-  S.fast = $('#chk-fast').checked;
+  if (!opts.tree && (sel === 'none' || sel === 'invalid-2-4')) return;
+  const treeArg = opts.tree || sel;
+  S.fast = opts.fast !== undefined ? !!opts.fast : $('#chk-fast').checked;
   S.expectSeq = [];
   S.meta.trees.forEach((t) => {
     if (treeArg !== 'all' && t.id !== treeArg) return;
@@ -559,6 +560,7 @@ async function loadReport() {
     buildResultTree();
     buildRepairList();
     updateResultsShell();
+    if (S.pendingSense && S.appState === 'done') { S.pendingSense = false; renderFixSense(); }
     return true;
   } catch (e) { updateResultsShell(); return false; }
 }
@@ -1555,7 +1557,7 @@ async function startRepairRun(a, btn, card, opts) {
       let st;
       try { st = await (await fetch('/api/repair/status', { cache: 'no-store' })).json(); }
       catch (e) { continue; }
-      if (st.state === 'done' && st.result) { S.repairDoneIds[a.id] = st.result; renderRepairResult(slot, st.result); return; }
+      if (st.state === 'done' && st.result) { S.repairDoneIds[a.id] = st.result; renderRepairResult(slot, st.result); if (st.result.ok) scheduleSense(a); return; }
       if (st.state === 'idle') { renderRepairResult(slot, { ok: false, human: '修复状态丢失，请重试' }); return; }
     }
     renderRepairResult(slot, { ok: false, human: '修复等太久了（超时），请重试' });
@@ -1962,9 +1964,7 @@ async function loadHistory(force) {
   }
 }
 
-function renderCompare(oldRep, newRep) {
-  const out = $('#cmp-out');
-  const om = oldRep.map, nm = newRep.map;
+function buildCmpRows(om, nm) {
   const rows = [];
   let better = 0, worse = 0;
   // 只展示「有信息量」的行：状态变化了、或两次都是 FAIL（还没修好的老问题）
@@ -1982,14 +1982,21 @@ function renderCompare(oldRep, newRep) {
   Object.keys(om).forEach((name) => {
     if (!nm[name]) rows.push({ name, tag: '未查', cls: 'still', txt: '这次体检没查到这一项（可能前面断点截断）' });
   });
-  const sum = '<div class="cmp-sum">问题数 <b>' + oldRep.fails + '</b> → <b>' + newRep.fails + '</b>' +
-    '　·　<span class="better">改善 ' + better + ' 项</span>　<span class="worse">恶化/新增 ' + worse + ' 项</span></div>';
-  const table = rows.length
-    ? '<div class="cmp-rows">' + rows.map((r2) =>
+  return { rows, better, worse };
+}
+function buildCmpHtml(om, nm, oldFails, newFails, sameWord) {
+  const r = buildCmpRows(om, nm);
+  const sum = '<div class="cmp-sum">问题数 <b>' + oldFails + '</b> → <b>' + newFails + '</b>' +
+    '　·　<span class="better">改善 ' + r.better + ' 项</span>　<span class="worse">恶化/新增 ' + r.worse + ' 项</span></div>';
+  const table = r.rows.length
+    ? '<div class="cmp-rows">' + r.rows.map((r2) =>
         '<div class="cmp-row ' + r2.cls + '"><span class="cmp-tag">' + r2.tag + '</span><span class="cmp-name">' + histHuman(r2.name) + '</span><span class="cmp-txt">' + r2.txt + '</span></div>'
       ).join('') + '</div>'
-    : '<div class="placeholder">两次结果一致，全部正常或没有变化。</div>';
-  out.innerHTML = sum + table;
+    : '<div class="placeholder">' + (sameWord || '两次结果一致，全部正常或没有变化。') + '</div>';
+  return sum + table;
+}
+function renderCompare(oldRep, newRep) {
+  $('#cmp-out').innerHTML = buildCmpHtml(oldRep.map, newRep.map, oldRep.fails, newRep.fails);
 }
 
 $('#btn-compare').addEventListener('click', async () => {
@@ -2001,3 +2008,51 @@ $('#btn-compare').addEventListener('click', async () => {
   $('#cmp-out').innerHTML = '<div class="placeholder">正在对比…</div>';
   renderCompare(a, b);
 });
+
+
+/* ---------- 修复后感知（1024 轮6：修复成功→自动对关联树快扫→修复前后对比+再感知一次；复用轮4/5 对比引擎） ---------- */
+function treeOfCheck(n) {
+  return ({ net: 'network', bs: 'bluescreen', hw: 'hardware', pf: 'performance', dv: 'drivers' })[(n || '').split('_')[0]] || null;
+}
+function scheduleSense(action) {
+  const mc = (action && action.match_checks) || [];
+  const tree = mc.length ? treeOfCheck(mc[0]) : null;
+  if (!tree) return;
+  S.lastSenseAction = action;
+  S.reportBeforeFix = S.reportPayload ? JSON.parse(JSON.stringify(S.reportPayload)) : null;
+  S.pendingSense = true;
+  setStatus('修复完成，正在感知电脑当前状态…', '');
+  setTimeout(() => { switchView('wizard'); startRun({ tree, fast: true }); }, 900);
+}
+function renderFixSense() {
+  const before = S.reportBeforeFix, after = S.reportPayload;
+  let host = $('#fix-sense-card');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'fix-sense-card';
+    host.className = 'card';
+    const view = $('#view-repair');
+    view.insertBefore(host, view.querySelector('.card'));
+  }
+  const repOf = (p) => (p && p.report && p.report.trees) ? p.report : p;
+  if (!before || !after) {
+    host.innerHTML = '<div class="card-title">修复后感知</div><div class="placeholder">还没有修复前后的对比数据——修复成功后会自动感知一次，或点下方按钮手动感知。</div>';
+    appendSenseBtn(host);
+    return;
+  }
+  const om = histCheckMap(repOf(before)), nm = histCheckMap(repOf(after));
+  const title = '<div class="card-title">修复后感知 · 刚才那一下修完，电脑现在怎么样</div>';
+  host.innerHTML = title + buildCmpHtml(om, nm, histFailCount(om), histFailCount(nm), '两次感知结果一致，全部正常。');
+  appendSenseBtn(host);
+}
+function appendSenseBtn(host) {
+  const btn = document.createElement('button');
+  btn.className = 'btn';
+  btn.style.marginTop = '10px';
+  btn.textContent = '再感知一次';
+  btn.onclick = () => {
+    if (!S.lastSenseAction) return;
+    scheduleSense(S.lastSenseAction);
+  };
+  host.appendChild(btn);
+}

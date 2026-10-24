@@ -205,6 +205,26 @@ def main():
             check('E4 对比渲染问题数', '问题数' in cmp_txt and '改善' in cmp_txt, cmp_txt[:200])
             check('E5 死地址恶化/新增行', ('恶化' in cmp_txt or '新增' in cmp_txt) and '死地址' in cmp_txt, cmp_txt[:300])
 
+        # ---- F 修复后感知（真实点击修复→自动快扫→对比卡） ----
+        cdp.eval("document.querySelector('[data-view=\"repair\"]').click()")
+        time.sleep(1.5)
+        clicked = cdp.eval("(() => { const cards = Array.from(document.querySelectorAll('.action-card')); " + \
+                "const c = cards.find(x => (x.innerText || '').indexOf('刷新 DNS 缓存') >= 0); " + \
+                "if (!c) return 'NO-CARD'; const b = c.querySelector('button.act-run') || c.querySelector('button'); " + \
+                "if (!b) return 'NO-BTN'; b.click(); return 'CLICKED'; })()")
+        check('F1 找到并点击修复卡', clicked == 'CLICKED', str(clicked))
+        if clicked == 'CLICKED':
+            sense_on = False
+            for _ in range(36):
+                time.sleep(5)
+                if cdp.eval("!!document.querySelector('#fix-sense-card')"):
+                    sense_on = True; break
+            check('F2 修复后感知卡出现', sense_on)
+            if sense_on:
+                fs_txt = str(cdp.eval("document.querySelector('#fix-sense-card').innerText"))
+                check('F3 感知对比渲染', '问题数' in fs_txt and '改善' in fs_txt, fs_txt[:250])
+                check('F4 再感知按钮在', '再感知一次' in fs_txt)
+
         passing = sum(1 for _, ok in RESULTS if ok)
         print('\n================ UI-TESTS: %d/%d PASS ================' % (passing, len(RESULTS)))
         rc = 0 if passing == len(RESULTS) else 1
