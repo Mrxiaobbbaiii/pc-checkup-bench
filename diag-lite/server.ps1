@@ -152,22 +152,40 @@ if (Test-Path -LiteralPath $extActionsDir) {
 }
 }
 
-# ---------- 端口：loopback 随机（TcpListener 探空端口→释放→HttpListener 绑） ----------
-$probe = New-Object System.Net.Sockets.TcpListener ([System.Net.IPAddress]::Loopback, 0)
-$probe.Start()
-$port = $probe.LocalEndpoint.Port
-$probe.Stop()
+# ---------- 端口：固定端口优先（1024 打磨轮修复：随机端口→WebView2 localStorage 按 origin 含端口隔离， ----------
+# 「知道了/上次体检/主题/已读版本」等记忆跨启动全丢。固定 17320 起，被占递增至 17339，全占回退 OS 随机
+# （罕见场景，记忆退化可接受）。
 $listener = New-Object System.Net.HttpListener
 $boundHost = ''
-foreach ($hostName in @('127.0.0.1', 'localhost')) {
-    try {
-        $listener = New-Object System.Net.HttpListener
-        $listener.Prefixes.Add("http://${hostName}:$port/")
-        $listener.Start()
-        $boundHost = $hostName
-        break
-    } catch {
-        Write-CrashLog ("bind failed http://${hostName}:$port/ : " + $_.Exception.Message)
+$port = 0
+foreach ($p in @(17320..17339)) {
+    foreach ($hostName in @('127.0.0.1', 'localhost')) {
+        try {
+            $listener = New-Object System.Net.HttpListener
+            $listener.Prefixes.Add("http://${hostName}:$p/")
+            $listener.Start()
+            $boundHost = $hostName; $port = $p
+            break
+        } catch { }
+    }
+    if ($boundHost -ne '') { break }
+}
+if ($boundHost -eq '') {
+    # 固定段全占回退：OS 随机（TcpListener 探空端口→释放→HttpListener 绑）
+    $probe = New-Object System.Net.Sockets.TcpListener ([System.Net.IPAddress]::Loopback, 0)
+    $probe.Start()
+    $rp = $probe.LocalEndpoint.Port
+    $probe.Stop()
+    foreach ($hostName in @('127.0.0.1', 'localhost')) {
+        try {
+            $listener = New-Object System.Net.HttpListener
+            $listener.Prefixes.Add("http://${hostName}:$rp/")
+            $listener.Start()
+            $boundHost = $hostName; $port = $rp
+            break
+        } catch {
+            Write-CrashLog ("bind failed http://${hostName}:$rp/ : " + $_.Exception.Message)
+        }
     }
 }
 if ($boundHost -eq '') { Write-CrashLog 'no bindable loopback prefix'; exit 3 }

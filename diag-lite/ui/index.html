@@ -58,24 +58,19 @@
   <section class="view active" id="view-wizard">
     <div class="hero">
       <h1>给电脑做个全面体检</h1>
-      <p>全程只读：只看、不动你电脑的任何设置。第一次用，跟着下面三步走就行。</p>
+      <p>只看、不动你电脑的任何设置。</p>
       <p class="last-run hidden" id="last-run"></p>
     </div>
     <!-- 首次启动三步引导（轮7）：没跑过体检才显示；点「知道了」或跑完一轮=永久收起（localStorage 记忆） -->
     <div class="card first-guide hidden" id="first-guide">
       <div class="card-title">第一次用？跟着这三步走</div>
       <ol class="fg-steps">
-        <li><b>1</b><span>点「开始体检」<small>默认就是全面体检，什么都不用改</small></span></li>
-        <li><b>2</b><span>等几分钟出报告<small>中途可以取消</small></span></li>
-        <li><b>3</b><span>去「修复中心」看怎么修<small>每个问题都配了人话步骤，能代跑的会先讲清楚再动手</small></span></li>
+        <li><b>1</b><span>点「开始体检」<small>默认全面体检，不用改</small></span></li>
+        <li><b>2</b><span>等几分钟出报告</span></li>
+        <li><b>3</b><span>去「修复中心」照提示修</span></li>
       </ol>
-      <div class="fg-btn-row"><button class="btn" id="fg-got-it">知道了，不用再提醒</button></div>
+      <div class="fg-btn-row"><button class="btn" id="fg-got-it">知道了</button></div>
     </div>
-    <ol class="steps-strip" aria-label="使用步骤">
-      <li><b>1</b><span>选范围<small>默认全面体检，查得最全</small></span></li>
-      <li><b>2</b><span>点开始<small>等 1–3 分钟，可以中途取消</small></span></li>
-      <li><b>3</b><span>看问题<small>按高/中/低排好，每项能跳去修</small></span></li>
-    </ol>
     <div class="card" id="select-card">
       <div class="card-title">选择要查的项目</div>
       <div class="check-grid" id="check-grid">
@@ -261,7 +256,6 @@
 <div class="overlay hidden" id="update-modal" role="dialog" aria-modal="true" aria-labelledby="um-title">
   <div class="modal">
     <div class="modal-title" id="um-title"></div>
-    <div class="modal-sub">这次更新加了这些东西，看一眼就好——以后不会再弹。</div>
     <ul id="um-list" class="um-list"></ul>
     <div class="modal-btns">
       <button class="btn-primary" id="um-ok">知道了</button>
