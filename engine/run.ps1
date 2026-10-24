@@ -296,6 +296,7 @@ pre.ev { background: #f6f9fc; border: 1px solid #e3eaf2; border-radius: 8px; pad
 .empty-note { font-size: 13px; color: #667085; }
 footer { text-align: center; font-size: 12px; color: #8a94a6; margin: 18px 0 8px 0; }
 @media print { body { background: #fff; padding: 0; } .card, details.layer { box-shadow: none; } details.layer .body { display: block !important; } }
+@media (max-width: 480px) { pre.ev { font-size: 13.5px; } .check-head { font-size: 13px; } body { padding: 10px; } }
 '@
 
 # 合并报告专用样式（只挂在 all 页面，单树页面 CSS 逐字节不动）
