@@ -179,6 +179,8 @@ namespace DiagHost
             ClientSize = new Size(1000, 740);
             MinimumSize = new Size(820, 600);
             StartPosition = FormStartPosition.CenterScreen;
+            // 1024 用户反馈：打开就是全屏，省一次最大化点击；最小尺寸兜底小屏
+            WindowState = FormWindowState.Maximized;
 
             _web = new WebView2
             {

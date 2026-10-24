@@ -162,6 +162,11 @@ def main():
         check('A4 只读承诺文案', '只看、不动你电脑的任何设置' in str(cdp.eval('document.body.innerText')))
         # 轮7 首次启动引导：全新 profile（localStorage 空）→三步引导卡可见
         check('A5 首次启动引导卡在', cdp.eval("!!document.querySelector('#first-guide') && !document.querySelector('#first-guide').classList.contains('hidden')"))
+        # 打磨轮：引导卡确认制——点「知道了」立即收起并写键；清键还原让 C5 继续测跑批路径
+        cdp.eval("document.getElementById('fg-got-it').click()")
+        a6_ok = cdp.eval("document.querySelector('#first-guide').classList.contains('hidden')") is True             and cdp.eval("!!localStorage.getItem('diag-guided')") is True
+        check('A6 引导卡知道了按钮', a6_ok)
+        cdp.eval("localStorage.removeItem('diag-guided')")
 
         # ---- B 页签交互 ----
         cdp.eval("document.querySelector('[data-view=\"repair\"]')?.click() || document.querySelectorAll('.tab')[2].click()")
@@ -258,6 +263,18 @@ def main():
             time.sleep(1.2)
             rh_txt = str(cdp.eval("document.querySelector('#repair-hist')?.textContent || ''"))
             check('F5 修复小史含本次动作', '刷新 DNS 缓存' in rh_txt and '修好了' in rh_txt, rh_txt[:160])
+
+        # ---- G 版本更新弹窗（打磨轮：老用户升级后弹一次，知道了后不再弹） ----
+        cdp.eval("localStorage.setItem('diag-guided','1'); localStorage.removeItem('diag-seen-ver')")
+        cdp.eval('location.reload()')
+        cdp.wait_ready(); time.sleep(2)
+        g1 = cdp.eval("!document.querySelector('#update-modal').classList.contains('hidden')") is True             and '更新到' in str(cdp.eval("document.querySelector('#um-title')?.textContent || ''"))
+        check('G1 升级用户更新弹窗在', g1)
+        cdp.eval("document.getElementById('um-ok').click()")
+        g2 = cdp.eval("document.querySelector('#update-modal').classList.contains('hidden')") is True             and cdp.eval("localStorage.getItem('diag-seen-ver')") is not None
+        cdp.eval('location.reload()'); cdp.wait_ready(); time.sleep(1.5)
+        g3 = cdp.eval("document.querySelector('#update-modal').classList.contains('hidden')") is True
+        check('G2 知道了后收起且不再弹', g2 and g3)
 
         passing = sum(1 for _, ok in RESULTS if ok)
         print('\n================ UI-TESTS: %d/%d PASS ================' % (passing, len(RESULTS)))

@@ -90,6 +90,38 @@ function renderFirstGuide() {
   try { seen = !!localStorage.getItem('diag-guided'); } catch (e) {}
   el.classList.toggle('hidden', seen);
 }
+$('#fg-got-it').addEventListener('click', markGuided); // 用户确认过=不再打扰（1024 用户反馈：确认制）
+
+/* ---------- 版本更新弹窗（1024 用户拍板：更新内容在用户 UI 弹一次；只装最新一版，完整开发史=仓库 CHANGELOG.md） ---------- */
+const RELEASE_NOTES = {
+  'v1.3.0': [
+    '跑完体检直接告诉你「和上次比修好了几项、又新冒出来几项」',
+    '每次体检都留底：「历史对比」里选两份一比，就知道哪些好了、哪些是新毛病',
+    '修复中心记「修复小史」：修过什么、成没成，都查得到',
+    '界面明暗自动跟 Windows 走（外观菜单也可手动选）',
+    '第一次打开有三步引导，看过一次或点过「知道了」就不再打扰',
+  ],
+};
+(function checkUpdateNotes() {
+  let seen = null;
+  try { seen = localStorage.getItem('diag-seen-ver'); } catch (e) {}
+  if (seen === APP_VERSION) return;
+  // 老用户（有使用痕迹）升级后弹一次；全新用户不弹（首次有三步引导卡，不叠弹窗），直接记版本
+  let hasTraces = false;
+  try {
+    hasTraces = !!(localStorage.getItem('diag-guided') || localStorage.getItem('diag-last-run') || localStorage.getItem('diag-theme2'));
+  } catch (e) {}
+  const notes = RELEASE_NOTES[APP_VERSION];
+  try { localStorage.setItem('diag-seen-ver', APP_VERSION); } catch (e) {}
+  if (!hasTraces || !notes) return;
+  $('#um-title').textContent = '电脑体检台更新到 ' + APP_VERSION;
+  $('#um-list').innerHTML = notes.map((t) => '<li>' + esc(t) + '</li>').join('');
+  $('#update-modal').classList.remove('hidden');
+})();
+$('#um-ok').addEventListener('click', () => {
+  try { localStorage.setItem('diag-seen-ver', APP_VERSION); } catch (e) {}
+  $('#update-modal').classList.add('hidden');
+});
 function renderLastRun() {
   const el = $('#last-run'); if (!el) return;
   let v = null;
