@@ -574,6 +574,7 @@ function updateResultsShell() {
   }
   $('#btn-browser').disabled = !S.htmlUrl;
   $('#btn-folder').disabled = false;
+  $('#btn-copylist').disabled = false;
 }
 
 /* 展示层归并：跨树同名只留一条；同名取最坏状态；建议/证据补空 */
@@ -1071,6 +1072,36 @@ function resetToIdle() {
   updateSelUi();
   updateResultsShell();
 }
+
+/* 复制问题清单：把结果一段纯文本复制出去求助（组名+严重度+人话检查名） */
+function buildCopyList() {
+  const es = S.entries || [];
+  const fails = es.filter((e) => e.status === 'FAIL');
+  const lines = [];
+  if (!fails.length) {
+    lines.push('这轮体检没查出问题（查了 ' + es.length + ' 项）。');
+  } else {
+    PROBLEM_GROUPS.forEach((g) => {
+      const items = fails.filter((e) => groupFor(e.name).id === g.id)
+        .sort((x, y) => SEV_RANK[checkSeverity(x.name)] - SEV_RANK[checkSeverity(y.name)]);
+      if (!items.length) return;
+      const sev = checkSeverity(items[0].name);
+      lines.push('【' + (sev === 'high' ? '高' : sev === 'medium' ? '中' : '低') + '】' + g.title + '：' +
+        items.map((e) => humanCheck(e.name)).join('、'));
+    });
+    const ungrouped = fails.filter((e) => groupFor(e.name).id === 'other');
+    ungrouped.forEach((e) => lines.push('【其他】' + humanCheck(e.name)));
+  }
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return '电脑体检台体检结果 ' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' +
+    pad(d.getHours()) + ':' + pad(d.getMinutes()) + '（查了 ' + es.length + ' 项' +
+    (fails.length ? '，发现问题 ' + fails.length + ' 项' : '') + '）\n\n' + lines.join('\n') +
+    '\n\n（详细证据和修法在软件里看：结果中心→去修复中心）';
+}
+$('#btn-copylist').addEventListener('click', () => {
+  doCopy(buildCopyList(), $('#btn-copylist'), '复制问题清单');
+});
 
 /* ---------- 复制 ---------- */
 async function copyText(t) {
