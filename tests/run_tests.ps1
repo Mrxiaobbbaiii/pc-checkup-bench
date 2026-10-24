@@ -309,7 +309,7 @@ foreach ($dc in $global:DiagDataRootCases) {
     if ($dataReports.Count -ge 1) {
         try { $j = Get-Content $dataReports[0].FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $j = $null }
         if ($null -eq $j) { $bad += 'data-root json unparsable' }
-        elseif ($j.engine -ne '电脑体检台 v1.2.0') { $bad += 'engine field: ' + $j.engine }
+        elseif ($j.engine -ne '电脑体检台 v1.3.0') { $bad += 'engine field: ' + $j.engine }
     }
     if ($bad.Count -gt 0) { Add-Result 'dataroot' $dc.name '' $false ($bad -join '; ') }
     else { Add-Result 'dataroot' $dc.name '' $true }

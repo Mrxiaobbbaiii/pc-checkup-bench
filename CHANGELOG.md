@@ -2,6 +2,15 @@
 
 > 历史卷分出（1024 拍板）：第一～二十四切片（v0.1～v1.0.1，2026-10-19～22）= archive/CHANGELOG-历史卷-v0.1-至-v1.0.1.md
 
+## 2026-10-24 v1.3.0 发版片·✅毕（第三十三切片；用户令「要钱的不干」+免费 token 自主迭代：轮A/B/C 三功能+版本收口出包；判定层零碰）
+
+**拍板**：MSIX 商店链（PartnerCenter 19 美元）与代码签名证书（年费级）两挂账正式砍掉——SmartScreen 首装警告由文案教点法兜底；免费迭代三件+发版 v1.3.0。
+**轮A（commit cafa61d）结果页「和上次比」摘要行**：跑完体检若数据根有上一份报告，结果页横幅下一行给大白话摘要（修好了 N 项/又新冒出来 M 项/没有变化+具体上次时间）+「去历史对比看明细」跳转按钮；纯前端复用对比口径（改善=上次 FAIL 这次不 FAIL），无历史报告不显示。ui_test 22→23（C6）。
+**轮B（commit 5a3c531）主题自动跟随系统**：新用户默认「自动」（prefers-color-scheme 解析明暗+matchMedia change 实时跟随系统切换），外观菜单加「自动」选项，老用户已存 dark/light 手选不迁移，恢复默认=回自动。ui_test 23→24（B3）。
+**轮C（commit 02a726f）修复小史**：server 新增 /api/repair/history（数据根 repair-log.json 尾 20 条精简投影：时间/动作/等级/成败；host 与步骤明细不下发）+修复中心底部「修复小史（最近 20 次）」折叠卡（修好了/没修好+失败阶段）；修复完成置缓存失效下次进页重拉。**坑⑳：details 折叠态 innerText 不含未展开内容——断言改 textContent**。ui_test 24→25（F5）。
+**版本收口+出包**：主真源四处（engine $engVersion/server $webVersion/ui APP_VERSION/ver-chip）+tests 三处断言（cases_b banner/run_tests ⑥节 dataroot×2/ui_test A3）+build.ps1（zip 名×3+setup Filter）+installer/diag-setup.iss（MyAppVersion+OutputBaseFilename）+lite 附带件（使用说明【版本】段补 v1.3.0 行+旧版归 v1.2.0/全面体检.bat/一键安装卸载.bat/ext README）全升 v1.3.0；lite 主源四件双写。**build.ps1 真缺陷修复：host-out 清空后重建断链**——csc 只产 host.exe，Core/WinForms 两个 WebView2 托管 dll 历来靠 host-out 一次性手工副本（片1 遗留），clean 重建即 staging 守卫报缺；补 third_party→hostOut 同步拷贝步骤，构建自足（1024 垃圾清理把 host-out 删掉后暴露）。出包：setup-v1.3.0.exe 4880684B+sha256 公示；diag-lite-v1.3.0.zip+sha256。tests **205/205×5.1+pwsh7**+ui_test **25/25** 全绿。
+**离线能力核验**：ui 零外链（无 CDN/字体）+app.js fetch 全相对路径+engine/repair 零下载类命令=完全离线可用（唯装机缺 WebView2 需联网一次；断网时网络类检查如实报 FAIL 是检查内容非依赖）。
+
 ## 2026-10-24 v1.3.0-dev 轮2-7 进化施工片·✅毕（第三十二切片；审计拍板落地：WPF 剔除+哈希公示+UI 测试固化+历史对比/趋势+修复后感知+首次引导；全量收口）
 
 **轮2（commit 186fc6f）legacy WPF 入口剔除+哈希公示**：diag-lite/gui/ 整目录+「全面体检（图形版）.bat」删除（用户拍板；主仓 gui/ 源码保留不分发）；使用说明.txt 四处改写（标题/条目7删+8改7/【怎么用】推荐改网页版/背景行只留 ui 放法）；build.ps1 守卫清单去 gui+bat 数线 10→9+**staging 先清空再组（只加不减式 Copy 会把已剔除件残留打进新包的坑）**+双出口哈希公示（setup/zip 各出 .sha256 旁文件+build/RELEASES.md 出包台账）；装新卸新验证=gui 零残留+engine 数据根新码入包+卸净+留机重装；setup 瘦身 4882578→4875769B。

@@ -1,10 +1,10 @@
 ﻿#Requires -Version 5.1
 <#
-diag build.ps1 v1.2.0 —— 发群一键出包（v1.1.0 封装片 2026-10-23；白名单遍历 diag-lite/ 打 zip）
+diag build.ps1 v1.3.0 —— 发群一键出包（v1.1.0 封装片 2026-10-23；白名单遍历 diag-lite/ 打 zip）
 规则：ui/bg.jpg 与 ui/bg-light.jpg（版权背景插画）不入包；reports/ 只带「报告在这里.txt」占位
      （真实报告 diag-*、repair-log.json、rollback/ 一律不入包）；其余全收（含 brand.png/favicon.png，1022 拍板随包）。
 用法：powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
-产物：<仓库根>\diag-lite-v1.2.0.zip（.gitignore *.zip 已挡入库）；打完自印条目清单，字节抽验由验证脚本另行执行。
+产物：<仓库根>\diag-lite-v1.3.0.zip（.gitignore *.zip 已挡入库）；打完自印条目清单，字节抽验由验证脚本另行执行。
 #>
 param([switch]$Setup)
 
@@ -57,6 +57,10 @@ if ($Setup) {
         ('"' + (Join-Path $hostDir 'Program.cs') + '"'))
     & $csc @cscArgs
     if ($LASTEXITCODE -ne 0) { throw "csc failed: $LASTEXITCODE" }
+    # csc 只产 host.exe；引用的 WebView2 托管 dll 要随包分发——从 third_party 同步进 hostOut
+    # （1024 修复：此前靠 host-out 里的一次性手工副本，clean 重建即断链；现在构建自足）
+    Copy-Item (Join-Path $hostDir 'third_party\Microsoft.Web.WebView2.Core.dll') $hostOut -Force
+    Copy-Item (Join-Path $hostDir 'third_party\Microsoft.Web.WebView2.WinForms.dll') $hostOut -Force
     # 1024 轮2：staging 先清空再组——只加不减式 Copy 会把已剔除件（gui 等）残留打进新包
     if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $staging | Out-Null
@@ -78,7 +82,7 @@ if ($Setup) {
     if ($LASTEXITCODE -ne 0) { throw "ISCC failed: $LASTEXITCODE" }
     # 注：本行曾用「Get-ChildItem ... | Select-Object -First 1」管道式在脚本内稳定报
     # 「FileInfo→SwitchParameter 绑定错」（单独复现不报、BOM 正常，根因未定案）——改数组式绕行，语义不变。
-    $setupFiles = @(Get-ChildItem -Path (Join-Path $sroot 'build') -Filter '*setup-v1.2.0.exe')
+    $setupFiles = @(Get-ChildItem -Path (Join-Path $sroot 'build') -Filter '*setup-v1.3.0.exe')
     if ($setupFiles.Count -ne 1 -or $setupFiles[0].Length -lt 1000000) { throw 'setup.exe missing or suspiciously small' }
     Write-Host ("SETUP BUILD OK: {0} ({1} bytes)" -f $setupFiles[0].Name, $setupFiles[0].Length)
 
@@ -99,7 +103,7 @@ if ($Setup) {
 
 $root = $PSScriptRoot
 $src = Join-Path $root 'diag-lite'
-$outZip = Join-Path $root 'diag-lite-v1.2.0.zip'
+$outZip = Join-Path $root 'diag-lite-v1.3.0.zip'
 $placeholder = 'reports/报告在这里.txt'
 
 # ---- 守卫：打包面关键件在位，残缺即停 ----
@@ -141,7 +145,7 @@ try {
 $check = [System.IO.Compression.ZipFile]::OpenRead($outZip)
 try {
     $total = ($check.Entries | Measure-Object -Property Length -Sum).Sum
-    Write-Host "=== diag-lite-v1.2.0.zip: $($check.Entries.Count) entries, $total bytes uncompressed ==="
+    Write-Host "=== diag-lite-v1.3.0.zip: $($check.Entries.Count) entries, $total bytes uncompressed ==="
     foreach ($e in $check.Entries) { Write-Host ("  {0}  ({1} bytes)" -f $e.FullName, $e.Length) }
 } finally {
     $check.Dispose()
