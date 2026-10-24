@@ -22,3 +22,12 @@ foreach ($n in @('repair\repair-log.json', 'repair\rollback')) {
     }
 }
 Write-Output ("backup done: " + $backup)
+
+# Keep only the 3 newest backup dirs (names carry yyyyMMddHHmm, so name sort = time sort).
+# Prevents unbounded accumulation on machines that uninstall/reinstall often (1024 round-18).
+$prefix = $name + '-' + $suffix + '-'
+$all = @(Get-ChildItem -LiteralPath $env:LOCALAPPDATA -Directory -Filter ($prefix + '*') | Sort-Object Name -Descending)
+if ($all.Count -gt 3) {
+    $all | Select-Object -Skip 3 | Remove-Item -Recurse -Force
+    Write-Output ("pruned old backups, kept 3 of " + $all.Count)
+}
