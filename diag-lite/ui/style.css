@@ -255,6 +255,23 @@ html[data-theme="dark"] .steps-strip b { box-shadow: 0 0 10px color-mix(in srgb,
 .steps-strip span { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-2); font-weight: 600; line-height: 1.35; }
 .steps-strip small { font-size: var(--fs-1); font-weight: 400; color: var(--dim); }
 
+/* 首次启动三步引导卡（轮7）：没跑过体检才显示；accent 左边条醒目但不喧宾 */
+.first-guide { margin: 0 auto 12px; border-left: 3px solid var(--accent); }
+.fg-steps {
+  list-style: none; margin: 8px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.fg-steps li { display: flex; align-items: flex-start; gap: 10px; }
+.fg-steps b {
+  flex: none; width: 24px; height: 24px; border-radius: 6px;
+  display: grid; place-items: center; font-size: var(--fs-1);
+  background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent);
+}
+html[data-theme="dark"] .fg-steps b { box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent); }
+.fg-steps span { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-2); font-weight: 600; line-height: 1.35; }
+.fg-steps small { font-size: var(--fs-1); font-weight: 400; color: var(--dim); }
+@media (max-width: 560px) { .fg-steps { grid-template-columns: 1fr; } }
+
 /* ---------- 卡片 / 勾选 ---------- */
 .card {
   background: color-mix(in srgb, var(--panel) 90%, transparent);

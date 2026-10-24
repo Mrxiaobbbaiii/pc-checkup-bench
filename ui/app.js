@@ -77,6 +77,18 @@ function saveLastRun(sec) {
     localStorage.setItem('diag-last-run', JSON.stringify({ at: Date.now(), total: es.length, fails: es.filter((e) => e.status === 'FAIL').length, sec: sec }));
   } catch (e) {}
   renderLastRun();
+  markGuided(); // 跑过一轮体检：首次引导卡永久收起（独立键，不随 30 天过期回潮）
+}
+/* 首次启动三步引导（轮7）：无 diag-guided 键=没跑过体检→显示；体检完成写键→本会话收起+以后不再出现 */
+function markGuided() {
+  try { localStorage.setItem('diag-guided', '1'); } catch (e) {}
+  renderFirstGuide();
+}
+function renderFirstGuide() {
+  const el = $('#first-guide'); if (!el) return;
+  let seen = false;
+  try { seen = !!localStorage.getItem('diag-guided'); } catch (e) {}
+  el.classList.toggle('hidden', seen);
 }
 function renderLastRun() {
   const el = $('#last-run'); if (!el) return;
@@ -1884,10 +1896,12 @@ if (/[?&]probe/.test(location.search)) {
       await loadReport();
       $('#btn-run').textContent = '再跑一次';
       updateSelUi();
+      markGuided(); // server 侧已跑完＝跑过一轮体检：首次引导卡同样永久收起（防跑完瞬间刷新回潮）
     }
   } catch (e) {}
   updateResultsShell();
   renderLastRun();
+  renderFirstGuide();
 })();
 
 /* ---------- 历史对比（1024 轮4/5：报告列表+两次对比+问题数趋势；纯前端展示层，判定零碰） ---------- */

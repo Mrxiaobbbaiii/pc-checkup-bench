@@ -160,6 +160,8 @@ def main():
         check('A2 开始体检按钮在', cdp.eval("!!document.querySelector('#btn-run')"))
         check('A3 版本串 v1.2.0', 'v1.2.0' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
         check('A4 只读承诺文案', '只看、不动你电脑的任何设置' in str(cdp.eval('document.body.innerText')))
+        # 轮7 首次启动引导：全新 profile（localStorage 空）→三步引导卡可见
+        check('A5 首次启动引导卡在', cdp.eval("!!document.querySelector('#first-guide') && !document.querySelector('#first-guide').classList.contains('hidden')"))
 
         # ---- B 页签交互 ----
         cdp.eval("document.querySelector('[data-view=\"repair\"]')?.click() || document.querySelectorAll('.tab')[2].click()")
@@ -185,6 +187,9 @@ def main():
         check('C2 大结论横幅发现问题', '发现问题' in results_txt, results_txt[:120])
         check('C3 DNS 死地址人话名', '死地址' in results_txt or 'DNS' in results_txt, results_txt[:200])
         check('C4 零断点黑话', '断点' not in results_txt)
+        # 轮7：跑过一轮体检后引导卡永久收起（localStorage diag-guided；reload 后仍隐藏）
+        check('C5 跑批后引导卡收起', cdp.eval("document.querySelector('#first-guide')?.classList.contains('hidden')") is True
+              and cdp.eval("!!localStorage.getItem('diag-guided')") is True)
 
         # ---- D 修复中心联动 ----
         cdp.eval("document.querySelectorAll('.tab')[2].click()")
