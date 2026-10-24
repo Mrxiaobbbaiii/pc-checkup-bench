@@ -57,6 +57,9 @@ if ($Setup) {
         ('"' + (Join-Path $hostDir 'Program.cs') + '"'))
     & $csc @cscArgs
     if ($LASTEXITCODE -ne 0) { throw "csc failed: $LASTEXITCODE" }
+    # 1024 轮2：staging 先清空再组——只加不减式 Copy 会把已剔除件（gui 等）残留打进新包
+    if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
+    New-Item -ItemType Directory -Force -Path $staging | Out-Null
     Copy-Item (Join-Path $hostOut '*') $staging -Force
     Copy-Item (Join-Path $hostDir 'third_party\x64\WebView2Loader.dll') $staging -Force
 
@@ -78,6 +81,18 @@ if ($Setup) {
     $setupFiles = @(Get-ChildItem -Path (Join-Path $sroot 'build') -Filter '*setup-v1.2.0.exe')
     if ($setupFiles.Count -ne 1 -or $setupFiles[0].Length -lt 1000000) { throw 'setup.exe missing or suspiciously small' }
     Write-Host ("SETUP BUILD OK: {0} ({1} bytes)" -f $setupFiles[0].Name, $setupFiles[0].Length)
+
+    # 步骤 4（1024 轮2-B 哈希公示）：出包即写 .sha256 旁文件 + RELEASES.md 累积台账（分发完整性）
+    $sha = (Get-FileHash -LiteralPath $setupFiles[0].FullName -Algorithm SHA256).Hash
+    [System.IO.File]::WriteAllText(($setupFiles[0].FullName + '.sha256'), ($sha + '  ' + $setupFiles[0].Name + "`r`n"), (New-Object System.Text.UTF8Encoding($true)))
+    $relLog = Join-Path $buildDir 'RELEASES.md'
+    $relLine = ("| {0} | {1} | {2} | {3} |" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $setupFiles[0].Name, $setupFiles[0].Length, $sha)
+    if (-not (Test-Path $relLog)) {
+        [System.IO.File]::WriteAllText($relLog, ("# RELEASES（出包台账：时间 | 文件 | 字节 | SHA256）`r`n`r`n" + $relLine + "`r`n"), (New-Object System.Text.UTF8Encoding($true)))
+    } else {
+        [System.IO.File]::AppendAllText($relLog, ($relLine + "`r`n"), (New-Object System.Text.UTF8Encoding($true)))
+    }
+    Write-Host ("HASH PUBLISHED: {0}" -f $sha)
     return
 }
 
@@ -88,7 +103,7 @@ $outZip = Join-Path $root 'diag-lite-v1.2.0.zip'
 $placeholder = 'reports/报告在这里.txt'
 
 # ---- 守卫：打包面关键件在位，残缺即停 ----
-foreach ($rel in @('engine/run.ps1', 'server.ps1', 'gui/run_gui.ps1', 'ui/index.html', 'ui/app.js', 'ui/style.css')) {
+foreach ($rel in @('engine/run.ps1', 'server.ps1', 'ui/index.html', 'ui/app.js', 'ui/style.css')) {
     if (-not (Test-Path (Join-Path $src ($rel -replace '/', '\')))) { throw "missing staging file: $rel" }
 }
 if (-not (Test-Path (Join-Path $src ($placeholder -replace '/', '\')))) { throw "missing reports placeholder" }
@@ -97,7 +112,7 @@ foreach ($rel in @('ext/README.txt', 'ext/示例/checks/demo_ext_check.ps1', 'ex
     if (-not (Test-Path (Join-Path $src ($rel -replace '/', '\')))) { throw "missing ext staging file: $rel" }
 }
 $batCount = @(Get-ChildItem (Join-Path $src '*.bat')).Count
-if ($batCount -ne 10) { throw "expect 10 bat launchers (8 trees + install/uninstall), got $batCount" }
+if ($batCount -ne 9) { throw "expect 9 bat launchers (7 functional + install/uninstall; legacy WPF entry removed 1024 round 2), got $batCount" }
 foreach ($b in @('一键安装.bat', '一键卸载.bat')) {
     if (-not (Test-Path (Join-Path $src $b))) { throw "missing installer bat: $b" }
 }
@@ -132,3 +147,8 @@ try {
     $check.Dispose()
 }
 Write-Host "BUILD OK: $outZip"
+
+# 哈希公示（1024 轮2-B）：lite zip 同样出 .sha256 旁文件
+$zipSha = (Get-FileHash -LiteralPath $outZip -Algorithm SHA256).Hash
+[System.IO.File]::WriteAllText(($outZip + '.sha256'), ($zipSha + '  ' + (Split-Path $outZip -Leaf) + "`r`n"), (New-Object System.Text.UTF8Encoding($true)))
+Write-Host ("HASH PUBLISHED: {0}" -f $zipSha)

@@ -2,6 +2,15 @@
 
 > 历史卷分出（1024 拍板）：第一～二十四切片（v0.1～v1.0.1，2026-10-19～22）= archive/CHANGELOG-历史卷-v0.1-至-v1.0.1.md
 
+## 2026-10-24 v1.3.0-dev 轮1 MSIX 适配片·✅毕（第三十一切片；1024 审计拍板「商店 MSIX 优先」首轮：写路径外移+容器语义铁案验证；判定语义零碰）
+
+**背景**：1024 全面审计（推倒重来派立场）结论=核心不推倒，分发进化三选一拍板=商店 MSIX 优先（备选 Trusted Signing 直发）；同轮拍板=WPF 入口剔除/UI 测试固化/报告趋势/首次引导/修复后感知（后续轮次）。
+**容器语义铁案（轮1-A 探针实验）**：自建最小探针包（csc 编 RegProbe2+手写 AppxManifest+loose Register）双变体对照——①带 `desktop6:RegistryWriteVirtualization=disabled`+`FileSystemWriteVirtualization=disabled`（配 unvirtualizedResources 受限能力）：容器身份（GetCurrentPackageFullName 返回 PFN 铁证）下 HKCU/AppData 写入**真实落盘包外可见**；②去掉开关（默认虚拟化）：写入全部进包私有 hive 包外不可见（旁路信号文件=探针确曾运行的独立证据）。结论=微软文档口径实锤+双开关是商店版必需品（不开则修复写 HKCU/报告落盘全部静默失效）。**方法论坑：Start-Process 直启 exe=无包身份的普通进程（首次实验假阳性）——包身份验证必须 `explorer.exe shell:AppsFolder\<PFN>!App` 激活+进程内 GetCurrentPackageFullName 自检双证**。
+**写路径外移（轮1-B 代码改造）**：engine/run.ps1+repair/repair.ps1+server.ps1 三件统一数据根探测=`DIAG_DATA_ROOT` 环境变量（server 注入给子进程/测试覆盖）> `\WindowsApps\` 路径探测（→%LOCALAPPDATA%\电脑体检台）> 应用根回落（Inno/lite/开发仓行为零变化）；engine reports 落盘/自愈/50 份裁剪+repair 台账/回滚包+server reportsDir 全部改挂数据根；server ext 树/动作双目录扫描（数据根用户扩展先注册=同名用户版赢）+engine ext 检查第三落点对齐。判定语义/阈值/mock 契约零改动。
+**tests 203→205**：新增 cases_dataroot.ps1+run_tests.ps1 ⑥节（dataroot_env_override=env 注入断言报告落数据根+不漏应用根；dataroot_windowsapps_detect=临时仓造 \WindowsApps\ 路径+进程级 LOCALAPPDATA 重定向断言自动外移）；双版本 205/205 全绿。lite 三件双写逐字节同+BOM 断言。
+**MSIX 全旅程真机验证**：installer/msix-build.ps1 组 loose 布局（staging+新三件+B1 派生图标+manifest）→Register→shell:AppsFolder 激活：host 起窗+server 容器内服务（/api/meta v1.2.0 五树）→API 驱动全面体检（38 事件到 done，报告 diag-all-*.html/json 落布局目录 reports——loose 布局 InstallLocation 不含 \WindowsApps\ 故数据根=布局目录=设计内；真实商店安装才外移）→21 动作列表→绿级 net_flush_dns 容器内真跑五段（ok=true 复检 1/1 正常+repair-log 追加 390B）→bye 关窗→卸载零残留。**坑：ps1 含中文字面量无 BOM 在 5.1 下 GBK 误读炸 XML（本片踩 2 次：manifest 组装脚本+验证脚本，补 BOM 后过）；netstat 匹配 powershell PID 找不到 HttpListener 端口（http.sys PID 4 代持）——PortFile 直读法（fs 虚拟化禁用后 %TEMP% 真实落盘）替代。**
+**挂账**：①商店上架链（Partner Center 注册/名称预留/makeappx 打包需 Windows SDK 或 MSIX Packaging Tool/正式签名/审核——unvirtualizedResources 受限能力审批风险待过）；②server crash log 仍在 %TEMP%（MSIX 下虚拟化包内，host 弹窗指路失效——低频挂账）；③REPORT-HTML 内存态字段 loose 环境未复现非阻断（UI 路径走 /reports/ 下发不受影响）。commit 1a97905。
+
 ## 2026-10-23 v1.2.0 片5 收尾汇总片·✅毕（第三十切片；全量回归+版本串收口+tag 落+guicheck 终验毕；终验带出的 ETA 门槛/卸载清壳两修缮=轮5）
 
 **全量回归（发版闸①）**：tests **203/203 × PowerShell 5.1 + pwsh7 双版本全绿**（版本串改动后复跑两轮确认）；真机全量真跑（all 五树 -Full）报告 json 完整性程序级核验=整体 json.load 成功/0 空证据/0 非法状态（24 PASS/5 SKIP/15 FAIL，与片4 基线同分布，15 FAIL 对 coverage.json 闭环率 100%）；lite 同步=91 文件逐字节同+版本串 4 文件双写后断言同（唯一差异 reports/repair-log.json=运行时日志非同步口径）。
