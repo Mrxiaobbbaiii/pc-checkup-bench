@@ -168,6 +168,9 @@ def main():
         time.sleep(0.6)
         check('B1 修复中心激活', cdp.eval("document.querySelector('#view-repair')?.classList.contains('active')"))
         check('B2 三色分级文案', '直接代跑' in str(cdp.eval("document.querySelector('#view-repair').innerText")) and '逐项确认' in str(cdp.eval("document.querySelector('#view-repair').innerText")))
+        # 自主迭代轮B：默认主题=自动跟随系统（首次无记忆 → auto 激活且实际渲染=系统明暗）
+        check('B3 主题默认跟随系统', cdp.eval("document.querySelector('[data-theme-opt=\"auto\"]').classList.contains('active')") is True
+              and cdp.eval("document.documentElement.dataset.theme === (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')") is True)
 
         # ---- C mock 跑批全链 ----
         http_json('http://127.0.0.1:%d/api/start' % port, method='POST', body='{"tree":"network"}')

@@ -1736,9 +1736,12 @@ window.addEventListener('pagehide', () => {
 /* ---------- 外观：明暗 + 强调色 + 背景原画（合并为一个菜单） ---------- */
 const ACCENTS = { blue: '#4cc2ff', cyan: '#2dd4bf', green: '#3fd68f', violet: '#a78bfa', orange: '#ffb35c', pink: '#ff7b9c' };
 const ACCENT_NAMES = { blue: '蓝色', cyan: '青色', green: '绿色', violet: '紫色', orange: '橙色', pink: '粉色' };
+function sysTheme() { return (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark'; }
+function resolveTheme(t) { return t === 'light' ? 'light' : 'dark'; }
 function applyTheme(theme, accent) {
   const h = document.documentElement;
-  h.dataset.theme = theme;
+  // theme 可为 'auto'（跟随系统）：存原值、界面按解析后的实际明暗渲染
+  h.dataset.theme = theme === 'auto' ? sysTheme() : resolveTheme(theme);
   h.dataset.accent = accent;
   try { localStorage.setItem('diag-theme2', JSON.stringify({ t: theme, a: accent })); } catch (e) {}
   $$('[data-theme-opt]').forEach((b) => {
@@ -1753,10 +1756,16 @@ function applyTheme(theme, accent) {
   });
 }
 function initTheme() {
-  let cfg = { t: 'dark', a: 'cyan' };
+  let cfg = { t: 'auto', a: 'cyan' }; // 新用户默认跟随系统明暗（自主迭代轮B）；老用户已存的 dark/light 手选不动
   try { const raw = localStorage.getItem('diag-theme2'); if (raw) cfg = JSON.parse(raw); } catch (e) {}
   if (!ACCENTS[cfg.a]) cfg.a = 'cyan';
-  if (cfg.t !== 'light') cfg.t = 'dark';
+  if (cfg.t !== 'light' && cfg.t !== 'dark' && cfg.t !== 'auto') cfg.t = 'auto';
+  // 系统明暗切换时，「自动」模式实时跟随（手选的 dark/light 不受影响）
+  try {
+    matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+      try { const c = JSON.parse(localStorage.getItem('diag-theme2') || '{}'); if (c.t === 'auto') applyTheme('auto', c.a || 'cyan'); } catch (e) {}
+    });
+  } catch (e) {}
   const row = $('#accent-row');
   Object.keys(ACCENTS).forEach((k) => {
     const s = document.createElement('button');
@@ -1787,7 +1796,7 @@ function initTheme() {
     if (menu.contains(e.target) || aBtn.contains(e.target)) return;
     setMenu(false);
   });
-  $('#appearance-reset').addEventListener('click', () => { applyTheme('dark', 'cyan'); setMenu(false); });
+  $('#appearance-reset').addEventListener('click', () => { applyTheme('auto', 'cyan'); setMenu(false); });
 }
 
 /* ---------- 背景图原画弹层（点任意处关闭；图缺失时 img 不渲染，层仍可开不致命） ---------- */
