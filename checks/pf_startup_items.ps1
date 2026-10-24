@@ -100,7 +100,7 @@ if ($hits.Count -ge 1) {
 } elseif ($overload) {
     $status = 'FAIL'
     $evidence = "$cmdTag`n共 $($cmds.Count) 项（$locSummary），超过 20 项负担线`n$listAll`n$noteDisabled"
-    $suggestion = "自启项共 $($cmds.Count) 个，超过 20 项工程负担线——开机要挨个拉起它们，开机慢的常驻侧元凶。逐个识别：认识的、不必要的在任务管理器→「启动应用」右键禁用；不认识的不急着自己动，先对照任务管理器启动页影响评级再定。`n【修复命令，请自己执行】无（手动操作：任务管理器→启动应用 右键禁用）`n【回滚】同一位置右键重新启用`n$noteDisabled"
+    $suggestion = "自启项共 $($cmds.Count) 个，超过 20 项工程负担线——开机要挨个拉起它们，开机慢的常驻侧元凶。逐个识别：认识的、不必要的在任务管理器→「启动应用」右键禁用；不认识的不急着自己动，先对照任务管理器启动页影响评级再定。`n【修复命令，请自己执行】无（手动操作：按 Ctrl+Shift+Esc 打开任务管理器 → 左侧「启动应用」→ 右键不要的项 → 点「禁用」）。`n【看到什么算成功】该行右侧显示「已禁用」、字变灰；重启后开机明显变快、本项计数下降。`n【这步失败了先】右键里没有「禁用」= 该项来自系统或策略，跳过别硬动；拿不准的项一律先不动。`n【回滚】同一位置右键重新启用`n$noteDisabled"
 } else {
     $status = 'PASS'
     $evidence = "$cmdTag`n共 $($cmds.Count) 项（$locSummary）`n$($cmds | Select-Object -First 8 | ForEach-Object { '[{0}] {1}' -f $_.location, $_.name })`n$noteDisabled"

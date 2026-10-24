@@ -8,9 +8,39 @@
   "requires_admin": true,
   "prechecks": [],
   "steps": [
-    { "exe": "dism.exe", "args": ["/Online", "/Cleanup-Image", "/ScanHealth"], "desc": "第 1 步：右键屏幕左下角「开始」按钮→点「终端(管理员)」→粘贴此命令回车。给零件库做深度体检，约 5-15 分钟。" },
-    { "exe": "dism.exe", "args": ["/Online", "/Cleanup-Image", "/RestoreHealth"], "desc": "第 2 步：接着粘贴此命令回车。真修：坏件换原装件，约 10-20 分钟，进度到 100% 完事。" },
-    { "exe": "sfc.exe", "args": ["/scannow"], "desc": "第 3 步：最后粘贴此命令回车做整体复检，约 5-10 分钟。跑完按屏幕提示重启电脑。" }
+    {
+      "exe": "dism.exe", "args": ["/Online", "/Cleanup-Image", "/ScanHealth"],
+      "desc": "第 1 步：先深度体检（约 5-15 分钟）",
+      "how": {
+        "at": "键盘按 Win+X（或右键点屏幕左下角的开始按钮）→ 菜单里点「终端(管理员)」→ 弹出的蓝色确认框点「是」。英文界面：Terminal (Admin) / Yes",
+        "click": "黑窗口空白处点一下鼠标右键 = 粘贴（Ctrl+V 也行）",
+        "type": "DISM /Online /Cleanup-Image /ScanHealth",
+        "ok": "粘贴后按回车，等进度走完（5-15 分钟），最后出现「操作成功完成」或「未检测到组件存储损坏」。英文：The operation completed successfully",
+        "fail": "报错 87 = 命令没粘全，重新复制上面这条再贴一次；还是不行就记下错误码，直接做第 2 步"
+      }
+    },
+    {
+      "exe": "dism.exe", "args": ["/Online", "/Cleanup-Image", "/RestoreHealth"],
+      "desc": "第 2 步：真修——坏零件换原装件（约 10-20 分钟）",
+      "how": {
+        "at": "还用刚才那个黑窗口（关掉了就按第 1 步重开一个）",
+        "click": "黑窗口空白处点一下鼠标右键 = 粘贴",
+        "type": "DISM /Online /Cleanup-Image /RestoreHealth",
+        "ok": "按回车后进度走到 100%，末行显示「操作成功完成」；中间出现「修复操作」字样属正常，等它走完",
+        "fail": "报错 0x800f081f = 缺官方零件文件：确认电脑已联网，原样再跑一次；仍报错就记下代码，继续第 3 步"
+      }
+    },
+    {
+      "exe": "sfc.exe", "args": ["/scannow"],
+      "desc": "第 3 步：整体复检（约 5-10 分钟）",
+      "how": {
+        "at": "同一个黑窗口",
+        "click": "黑窗口空白处点一下鼠标右键 = 粘贴",
+        "type": "sfc /scannow",
+        "ok": "按回车后出现「未找到任何完整性冲突」或「成功修复了这些文件」——然后按屏幕提示重启电脑，再回来重跑体检。英文：Windows Resource Protection did not find any integrity violations",
+        "fail": "提示「另一个修复操作正在挂起」= 先重启电脑，重启后再粘贴一次这条命令"
+      }
+    }
   ],
   "rollback": [],
   "rollback_note": "不用回滚：不会改坏东西；万一异常用「系统还原」退回修之前的状态",

@@ -8,11 +8,61 @@
   "requires_admin": false,
   "prechecks": [],
   "steps": [
-    { "exe": "cmd.exe", "args": ["/c", "start C:\\Windows\\System32\\drivers"], "desc": "第 1 步（验签分色）：回车打开驱动目录，按报告点名的文件名（如 xxdrv.sys）找到文件→右键→属性→「数字签名」选项卡。有正规厂商签名（签名者=公司名、带时间戳）→白色，保留不动；「没有签名」或签名者眼生→灰色，继续往下验。风险：只看不改。" },
-    { "exe": "cmd.exe", "args": ["/c", "driverquery /v"], "desc": "第 2 步（认主）：右键「开始」→「终端」，粘贴回车，在输出里找同名行看「显示名称」列——一般能看出它属于哪个软件/硬件。" },
-    { "exe": "cmd.exe", "args": ["/c", "start https://www.bing.com"], "desc": "第 3 步（验明正身）：回车打开搜索，搜「驱动文件名 sys」（如 xxdrv.sys），看它是哪家软件/硬件的驱动。加速器/优化工具/全家桶捆绑→黄色；正规外设小厂→白色保留；查无来历→黄色处置（下一步）。" },
-    { "exe": "cmd.exe", "args": ["/c", "start ms-settings:appsfeatures"], "desc": "第 4 步（黄色处置）：回车打开「设置→应用」，卸载验明为嫌疑的来源软件（加速器/全家桶）；内核过滤类驱动转「嫌疑驱动/网络过滤层处置」卡按步走。" },
-    { "exe": "cmd.exe", "args": ["/c", "start ms-settings:windowsupdate-optionalupdates"], "desc": "第 5 步（古董驱动处置）：报告说驱动文件是 2015 年前的老古董→回车打开 Windows 更新的可选更新看有没有驱动更新；没有的，去设备厂商官网下新版。装完重启电脑，重跑体检看「签名与年代」层变化。" }
+    {
+      "exe": "cmd.exe", "args": ["/c", "start C:\\Windows\\System32\\drivers"],
+      "desc": "第 1 步：看签名定颜色",
+      "how": {
+        "at": "键盘按 Win+R（Win 键+R 键）→ 小输入框出现",
+        "click": "输入 drivers 按回车，打开驱动文件夹 → 按报告点名的文件名（如 xxdrv.sys）找到文件 → 右键它 → 点「属性」→ 顶部点「数字签名」选项卡。英文：Properties → Digital Signatures",
+        "type": "drivers",
+        "ok": "签名列表里有公司名和时间戳（NVIDIA / Intel / Realtek / 知名安全厂商）= 白色，保留不动，本卡到此结束",
+        "fail": "没有「数字签名」选项卡、或签名者眼生 = 灰色，继续第 2 步"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "driverquery /v"],
+      "desc": "第 2 步：查它属于哪个软件",
+      "how": {
+        "at": "键盘按 Win+X → 点「终端」（这步不用管理员）",
+        "click": "黑窗口空白处点一下鼠标右键 = 粘贴",
+        "type": "driverquery /v",
+        "ok": "按回车后输出一长串，往上翻找到同名行，看「显示名称」列——一般能看出它属于哪个软件/硬件",
+        "fail": "找不到同名行 = 这个驱动没在跑，跳到第 4 步处理它的来源软件"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "start https://www.bing.com"],
+      "desc": "第 3 步：搜它的来历",
+      "how": {
+        "at": "打开浏览器（Edge / 百度 / Bing 都行）",
+        "click": "点一下搜索框",
+        "type": "驱动文件名.sys（如 xxdrv.sys）",
+        "ok": "按回车看结果：正规硬件厂商（NVIDIA/Realtek/联想…）= 白色保留；加速器/优化工具/全家桶捆绑 = 黄色，做第 4 步；查无来历 = 黄色，做第 4 步",
+        "fail": "搜出来全是论坛/下载站 = 按黄色处理（第 4 步），别从这些站下载任何「驱动修复工具」"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "start ms-settings:appsfeatures"],
+      "desc": "第 4 步：黄色=卸载来源软件",
+      "how": {
+        "at": "键盘按 Win+I 打开「设置」（内核过滤类驱动改按「嫌疑驱动/网络过滤层处置」卡走）",
+        "click": "左侧「应用」→「安装的应用」→ 搜来源软件名（加速器/全家桶）→「…」→「卸载」。英文：Apps → Installed apps → Uninstall",
+        "type": "（这一步不用输命令）",
+        "ok": "软件从列表里消失",
+        "fail": "「卸载」按钮是灰的 = 软件正在跑：先右键屏幕底部任务栏上的它 → 退出，再回来卸"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "start ms-settings:windowsupdate-optionalupdates"],
+      "desc": "第 5 步：报告说是老古董（2015 年前）就更新驱动",
+      "how": {
+        "at": "键盘按 Win+I 打开「设置」",
+        "click": "「Windows 更新」→「高级选项」→「可选更新」→「驱动程序更新」。英文：Windows Update → Advanced options → Optional updates → Driver updates",
+        "type": "（这一步不用输命令）",
+        "ok": "有更新 → 勾选 → 点「下载并安装」→ 装完重启电脑，回来重跑体检看「驱动年代」变绿",
+        "fail": "「可选更新」里没有驱动 = 去电脑/设备厂商官网搜你的型号下载驱动，别用第三方「驱动管家」"
+      }
+    }
   ],
   "rollback": [],
   "rollback_note": "分诊零改动无需回滚；后续卸载/更新驱动的回滚=重装对应软件或设备管理器「回退驱动」",

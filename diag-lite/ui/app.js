@@ -1691,6 +1691,16 @@ function onRedArm(e, a) {
   setTimeout(() => { if (btn.dataset.armed === '1') { btn.dataset.armed = ''; btn.textContent = old; btn.setAttribute('aria-label', old); } }, 4000);
 }
 let guideText = '';
+/* 宝宝巴士五要素（v1.4.0 轮2）：红卡/指南步可带 how={at,click,type,ok,fail}——
+   在哪/点什么/输入什么/算成功/失败了先，一行一要素零废话；渲染与整段复制共用 */
+const BB_KEYS = [['at', '在哪'], ['click', '点什么'], ['type', '输入什么'], ['ok', '看到什么算成功'], ['fail', '这步失败了先']];
+function howHtml(st) {
+  return '<div class="bb-lines">' + BB_KEYS.filter(([k]) => st.how[k]).map(([k, w]) =>
+    '<div class="bb-line"><span class="bb-key">' + w + '</span><span class="bb-val">' + esc(st.how[k]) + '</span></div>').join('') + '</div>';
+}
+function howText(st) {
+  return BB_KEYS.filter(([k]) => st.how[k]).map(([k, w]) => '　' + w + '：' + st.how[k]).join('\n');
+}
 function guideTextFor(a) {
   const lines = [];
   lines.push(a.name || '高风险操作');
@@ -1702,7 +1712,10 @@ function guideTextFor(a) {
   if (undo) lines.push('怎么撤销：' + undo);
   lines.push('');
   lines.push('步骤：');
-  (a.steps || []).forEach((st, i) => lines.push((i + 1) + '. ' + (st.desc || '') + '（' + stepCmdText(st) + '）'));
+  (a.steps || []).forEach((st, i) => {
+    lines.push((i + 1) + '. ' + (st.how ? (st.desc || '') : (st.desc || '') + '（' + stepCmdText(st) + '）'));
+    if (st.how) lines.push(howText(st));
+  });
   lines.push('');
   lines.push('每一步都看清再做；做之前先确认「怎么撤销」。');
   return lines.join('\n');
@@ -1725,9 +1738,28 @@ function showRedGuide(a) {
   const steps = document.createElement('div');
   steps.className = 'ac-steps';
   (a.steps || []).forEach((st, i) => {
-    const line = document.createElement('div');
-    line.textContent = (i + 1) + '. ' + (st.desc || '') + '（' + stepCmdText(st) + '）';
-    steps.appendChild(line);
+    if (st.how) {
+      const line = document.createElement('div');
+      line.className = 'bb-step';
+      const num = document.createElement('span');
+      num.className = 'bb-num';
+      num.textContent = String(i + 1);
+      const body = document.createElement('div');
+      body.className = 'bb-body';
+      if (st.desc) {
+        const t = document.createElement('div');
+        t.className = 'bb-title';
+        t.textContent = st.desc;
+        body.appendChild(t);
+      }
+      body.insertAdjacentHTML('beforeend', howHtml(st));
+      line.appendChild(num); line.appendChild(body);
+      steps.appendChild(line);
+    } else {
+      const line = document.createElement('div');
+      line.textContent = (i + 1) + '. ' + (st.desc || '') + '（' + stepCmdText(st) + '）';
+      steps.appendChild(line);
+    }
   });
   rows.appendChild(steps);
   document.getElementById('guide-overlay').classList.remove('hidden');

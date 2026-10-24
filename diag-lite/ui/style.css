@@ -428,6 +428,29 @@ html[data-theme="dark"] .verdict-banner {
 .ff-btns { display: flex; gap: 8px; }
 .ff-btns .btn, .ff-btns .btn-primary { padding: 6px 16px; }
 
+/* 宝宝巴士五要素步骤（v1.4.0 轮2）：在哪/点什么/输入什么/算成功/失败了先——一行一要素零废话 */
+.bb-step {
+  display: flex; gap: 10px; padding: 10px 12px; margin-bottom: 8px;
+  border: 1px solid color-mix(in srgb, var(--fail) 30%, var(--line));
+  border-radius: var(--radius-sm); background: color-mix(in srgb, var(--panel-2) 40%, transparent);
+}
+.bb-num {
+  flex: 0 0 auto; width: 24px; height: 24px; border-radius: 999px; margin-top: 2px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: var(--fs-1); font-weight: 700; color: var(--fail);
+  border: 1px solid color-mix(in srgb, var(--fail) 45%, var(--line));
+}
+.bb-body { flex: 1 1 auto; min-width: 0; }
+.bb-title { font-size: var(--fs-3); font-weight: 600; margin-bottom: 4px; }
+.bb-lines { display: flex; flex-direction: column; gap: 3px; }
+.bb-line { display: flex; gap: 8px; align-items: baseline; font-size: var(--fs-2); line-height: 1.55; }
+.bb-key {
+  flex: 0 0 92px; font-size: var(--fs-1); font-weight: 600; color: var(--accent);
+  white-space: nowrap; text-align: right;
+}
+.bb-val { flex: 1 1 auto; min-width: 0; }
+
+
 .delta-txt { font-size: var(--fs-2); font-weight: 600; }
 .verdict-banner.ok { border-left-color: var(--pass); }
 .vb-big { font-size: var(--fs-4); font-weight: 700; line-height: 1.2; letter-spacing: .5px; }

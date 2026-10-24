@@ -8,11 +8,72 @@
   "requires_admin": true,
   "prechecks": [],
   "steps": [
-    { "exe": "cmd.exe", "args": ["/c", "driverquery /v | findstr /i nnndisfilter"], "desc": "第 1 步（确认在跑）：右键「开始」→「终端(管理员)」，粘贴回车。有输出=驱动还在；显示「信息: 没有运行的任务匹配」=已经干净，直接跳到第 5 步复查。查别的嫌疑驱动，把 nnndisfilter 换成报告点名的驱动名再跑。" },
-    { "exe": "cmd.exe", "args": ["/c", "start ms-settings:appsfeatures"], "desc": "第 2 步（卸载本体）：回车打开「设置→应用→安装的应用」，搜报告点名的软件（如给梨加速器）→点卸载。风险：卸载瞬间重置网络绑定，网络闪断几秒属正常；捆绑的过滤驱动随主程序一起卸载。" },
-    { "exe": "cmd.exe", "args": ["/c", "driverquery /v | findstr /i nnndisfilter"], "desc": "第 3 步（验证卸净）：再做一次第 1 步的命令。输出为空或「没有运行的任务匹配」=卸干净了，跳到第 5 步；还显示 Running=先重启电脑，再验一次，仍在才做第 4 步。" },
-    { "exe": "cmd.exe", "args": ["/c", "pnputil /enum-drivers"], "desc": "第 4 步（残留清理，仅重启后驱动还在才做）：回车列出全部第三方驱动包，找「原始名称」含嫌疑字样（如 nnndisfilter）的行，记下它的「发布名称」（形如 oem12.inf），再在管理员终端执行 pnputil /delete-driver oem12.inf /uninstall。风险：删错 inf 会废掉别的设备驱动——只删驱动名和厂商都对得上的那一行，删完重启电脑。官方命令说明见 learn.microsoft.com 的 windows-commands 分册（driverquery / pnputil 两篇）。" },
-    { "exe": "cmd.exe", "args": ["/c", "driverquery /v | findstr /i nnndisfilter"], "desc": "第 5 步（复查收口）：重启后最后验一次（同第 1 步命令），然后重跑一遍体检，看「嫌疑驱动」和「网络过滤层」两项转绿。" }
+    {
+      "exe": "cmd.exe", "args": ["/c", "driverquery /v | findstr /i nnndisfilter"],
+      "desc": "第 1 步：确认驱动还在不在（查别的驱动，把 nnndisfilter 换成报告点名的名字）",
+      "how": {
+        "at": "键盘按 Win+X → 点「终端(管理员)」→ 蓝色确认框点「是」。英文：Terminal (Admin) / Yes",
+        "click": "黑窗口空白处点一下鼠标右键 = 粘贴",
+        "type": "driverquery /v | findstr /i nnndisfilter",
+        "ok": "按回车后出一条带驱动名的行 = 驱动还在，接着做第 2 步；显示「信息: 没有运行的任务匹配指定标准。」= 已经干净，直接跳到第 5 步",
+        "fail": "窗口一闪而过或没反应 = 命令没粘全，重新复制整条（含竖线 |）再贴一次"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "start ms-settings:appsfeatures"],
+      "desc": "第 2 步：卸载带它的软件本体（卸载瞬间网络闪断几秒属正常）",
+      "how": {
+        "at": "键盘按 Win+I 打开「设置」",
+        "click": "左侧点「应用」→ 点「安装的应用」→ 顶部搜索框输入报告点名的软件名（如：给梨加速器）→ 点软件右边的「…」→ 点「卸载」→ 再点一次「卸载」确认。英文界面：Apps → Installed apps → Uninstall",
+        "type": "（这一步不用输命令，搜软件名就行）",
+        "ok": "软件从列表里消失了；期间网络图标闪几下、断几秒，属正常",
+        "fail": "搜不到这个软件 = 以前卸过，直接做第 3 步验证"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "driverquery /v | findstr /i nnndisfilter"],
+      "desc": "第 3 步：验证卸干净没有（和第 1 步同一条命令）",
+      "how": {
+        "at": "还用第 1 步那个终端(管理员)窗口",
+        "click": "点一下鼠标右键 = 再粘贴一次",
+        "type": "driverquery /v | findstr /i nnndisfilter",
+        "ok": "没有任何输出或显示「没有运行的任务匹配」= 卸干净了，跳到第 5 步",
+        "fail": "还有输出 = 先重启电脑再验一次；重启后仍在，才继续做第 4 步"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "pnputil /enum-drivers"],
+      "desc": "第 4 步·上：翻出残留驱动包的编号（只第 3 步重启后仍在时才做）",
+      "how": {
+        "at": "终端(管理员)窗口",
+        "click": "点一下鼠标右键 = 粘贴",
+        "type": "pnputil /enum-drivers",
+        "ok": "列出很多条驱动包——逐条找「原始名称」里含嫌疑字样（如 nnndisfilter）的那条，把它的「发布名称」抄下来（形如 oem12.inf），接着做第 4 步·下",
+        "fail": "翻遍都没有含嫌疑字样的行 = 没有残留，直接跳第 5 步"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "pnputil /delete-driver oem12.inf /uninstall"],
+      "desc": "第 4 步·下：删掉残留（把 oem12.inf 换成你上一步抄的编号）",
+      "how": {
+        "at": "同一个终端(管理员)窗口",
+        "click": "点一下鼠标右键 = 粘贴（先改好编号再粘贴）",
+        "type": "pnputil /delete-driver oem12.inf /uninstall",
+        "ok": "显示「已成功删除驱动程序包」→ 重启电脑。英文：Driver package deleted successfully",
+        "fail": "显示「拒绝访问」= 终端不是管理员的，按第 1 步重开管理员终端再做；删之前再核一遍：原始名称和厂商都对得上才删，删错会废掉别的设备"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "driverquery /v | findstr /i nnndisfilter"],
+      "desc": "第 5 步：复查收口",
+      "how": {
+        "at": "重启电脑后，Win+X →「终端(管理员)」",
+        "click": "点一下鼠标右键 = 粘贴",
+        "type": "driverquery /v | findstr /i nnndisfilter",
+        "ok": "没有任何输出 = 干净了。回到「电脑体检台」重跑一轮体检，看「嫌疑驱动」「网络过滤层」两项变绿",
+        "fail": "还有输出 = 报告点名的可能是另一个驱动名，换名字再查；或带着体检报告找懂电脑的人看"
+      }
+    }
   ],
   "rollback": [],
   "rollback_note": "撤销=重装对应软件（过滤驱动随主程序恢复）；误删驱动用「系统还原」回退",

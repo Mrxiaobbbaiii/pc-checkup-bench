@@ -77,7 +77,7 @@ if ($events.Count -eq 0) {
 } elseif ($cnt55 -ge 1 -or $cnt98 -ge 1 -or $cnt153 -ge 3) {
     $status = 'FAIL'
     $evidence = "$cmdTag`n$breakdown`n$recent"
-    $suggestion = "近 30 天发现文件系统错误：$breakdown。55/98 多为目录/卷结构损坏（突然断电、坏道、线材松动都可能导致），先备份重要数据再修。`n【修复命令，请自己执行】先在线只读扫描：chkdsk C: /scan（按实际盘符替换，不改盘）；确认后再修复：chkdsk C: /f（会要求重启并锁盘，别断电）；SMART 同时异常的盘尽快换盘。`n【回滚】chkdsk /f 是修复动作，无自动回滚；动手前先备份数据。"
+    $suggestion = "近 30 天发现文件系统错误：$breakdown。55/98 多为目录/卷结构损坏（突然断电、坏道、线材松动都可能导致），先备份重要数据再修。`n【修复命令，请自己执行】先在线只读扫描：chkdsk C: /scan（按实际盘符替换，不改盘）；确认后再修复：chkdsk C: /f（会要求重启并锁盘，别断电）；SMART 同时异常的盘尽快换盘。`n【怎么开】Win+X → 终端(管理员) → 黑窗口里右键粘贴命令，回车。`n【看到什么算成功】/scan 末尾显示「未发现问题」或列出具体问题位置；/f 重启修完后，本项重跑不再新增计数。`n【这步失败了先】提示「无法锁定当前驱动器」属正常——输入 Y 安排下次重启时修复；SMART 也报警的盘别再修了，先备份数据换盘。`n【回滚】chkdsk /f 是修复动作，无自动回滚；动手前先备份数据。"
 } else {
     $status = 'PASS'
     $evidence = "$cmdTag`n$breakdown（153 少量=偶发写入延迟，暂未见结构损坏）`n$recent"
