@@ -25,3 +25,4 @@ diag-lite/ui/favicon.png
 # v1.2.0 slice1: native shell build artifacts (rebuildable via build.ps1 -Setup)
 build/
 installer/bootstrapper/*.exe
+__pycache__/
