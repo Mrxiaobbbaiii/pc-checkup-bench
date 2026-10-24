@@ -2,7 +2,7 @@
 
 > 历史卷分出（1024 拍板）：第一～二十四切片（v0.1～v1.0.1，2026-10-19～22）= archive/CHANGELOG-历史卷-v0.1-至-v1.0.1.md
 
-## 2026-10-24 v1.3.0 发版片·✅毕（第三十三切片；用户令「要钱的不干」+免费 token 自主迭代：轮A/B/C 三功能+版本收口出包；判定层零碰）
+## 2026-10-24 v1.3.0 发版片·✅毕（第三十三切片；用户令「要钱的不干」+免费 token 自主迭代：轮A/B/C 三功能+打磨/极简两轮+真 bug 根修+版本收口出包；判定层零碰）
 
 **拍板**：MSIX 商店链（PartnerCenter 19 美元）与代码签名证书（年费级）两挂账正式砍掉——SmartScreen 首装警告由文案教点法兜底；免费迭代三件+发版 v1.3.0。
 **轮A（commit cafa61d）结果页「和上次比」摘要行**：跑完体检若数据根有上一份报告，结果页横幅下一行给大白话摘要（修好了 N 项/又新冒出来 M 项/没有变化+具体上次时间）+「去历史对比看明细」跳转按钮；纯前端复用对比口径（改善=上次 FAIL 这次不 FAIL），无历史报告不显示。ui_test 22→23（C6）。
@@ -10,6 +10,11 @@
 **轮C（commit 02a726f）修复小史**：server 新增 /api/repair/history（数据根 repair-log.json 尾 20 条精简投影：时间/动作/等级/成败；host 与步骤明细不下发）+修复中心底部「修复小史（最近 20 次）」折叠卡（修好了/没修好+失败阶段）；修复完成置缓存失效下次进页重拉。**坑⑳：details 折叠态 innerText 不含未展开内容——断言改 textContent**。ui_test 24→25（F5）。
 **版本收口+出包**：主真源四处（engine $engVersion/server $webVersion/ui APP_VERSION/ver-chip）+tests 三处断言（cases_b banner/run_tests ⑥节 dataroot×2/ui_test A3）+build.ps1（zip 名×3+setup Filter）+installer/diag-setup.iss（MyAppVersion+OutputBaseFilename）+lite 附带件（使用说明【版本】段补 v1.3.0 行+旧版归 v1.2.0/全面体检.bat/一键安装卸载.bat/ext README）全升 v1.3.0；lite 主源四件双写。**build.ps1 真缺陷修复：host-out 清空后重建断链**——csc 只产 host.exe，Core/WinForms 两个 WebView2 托管 dll 历来靠 host-out 一次性手工副本（片1 遗留），clean 重建即 staging 守卫报缺；补 third_party→hostOut 同步拷贝步骤，构建自足（1024 垃圾清理把 host-out 删掉后暴露）。出包：setup-v1.3.0.exe 4880684B+sha256 公示；diag-lite-v1.3.0.zip+sha256。tests **205/205×5.1+pwsh7**+ui_test **25/25** 全绿。
 **离线能力核验**：ui 零外链（无 CDN/字体）+app.js fetch 全相对路径+engine/repair 零下载类命令=完全离线可用（唯装机缺 WebView2 需联网一次；断网时网络类检查如实报 FAIL 是检查内容非依赖）。
+**打磨轮（commit 9cb2b8e，用户四连反馈前两条）**：①引导卡确认制——「知道了」按钮点击即永久收起（不再只等跑批触发）；②host 启动即最大化（WindowState=Maximized，省一次点击）；③版本更新弹窗——老用户（有使用痕迹）升级后弹一次本版内容（RELEASE_NOTES 只装最新版，完整开发史留仓库 CHANGELOG），全新用户不弹（有引导卡不叠弹窗）；④群发文案人话重写。ui_test 25→28（A6 确认制/G1 G2 弹窗单次）。
+**guicheck 实锤真 bug+根修（commit 4343ef3 极简轮内）**：**server 随机端口→WebView2 localStorage 按 origin（含端口）隔离→全部记忆跨启动丢失**——更新弹窗从未原生弹过、「知道了」点过照样回来、「上次体检」30 天记忆/主题选择实际从未持久（v1.2.0 轮13 起潜伏，同会话内验证掩盖跨启动缺陷）。根修=固定端口 17320 起，被占递增至 17339，全占回退 OS 随机（罕见，记忆退化可接受）；实测 1s 起听+bye 净退。**坑㉑：Start-Process ArgumentList 数组式传含空格路径会被拆参（-File 收到「F:\Zcode」报非 .ps1）——路径必须内层引号包裹**。
+**极简轮（commit 4343ef3，用户第三/四反馈「啰嗦和强调是两回事」「弹一次窗不需要文字兜底」）**：更新弹窗删解释性 sub 行；按钮「知道了，不用再提醒」→「知道了」；hero 副标砍成一句；引导卡三步小字精简（③步「照提示修」）；**删常驻三步条 steps-strip**（与首次引导卡信息重复=视觉冗余，样式段同删）；RELEASE_NOTES 条目压短。
+**guicheck 终验（打磨版装机两轮）**：轮一 6P/1F 实锤端口 bug（见上）；轮二（根修后）**5P+1U**——启动即最大化 IsZoomed 实测/端口 17320 固定监听/**记忆跨启动成立**（点掉引导卡→关窗净退→重开无卡无弹窗）/极简文案实测（hero 一句+无常驻三步条+按钮「知道了」）/v1.3.0 徽章+四页签/净退 2.5s；UNCLEAR=同版本重装场景更新弹窗不弹（seen-ver 已记，设计内）。setup 终版 4881267B+sha256。
+**零号用户报告（1024 晚，发布验收）**：真机 all -Full 全面体检出报告，按「优势/功能/本机暗病/弊大于利忽略项」四段口径向用户汇报（数据=当轮真机 json）；GitHub 发布=待用户拍板（涉公开仓库与 CHANGELOG 开发史隐私预审）。
 
 ## 2026-10-24 v1.3.0-dev 轮2-7 进化施工片·✅毕（第三十二切片；审计拍板落地：WPF 剔除+哈希公示+UI 测试固化+历史对比/趋势+修复后感知+首次引导；全量收口）
 
