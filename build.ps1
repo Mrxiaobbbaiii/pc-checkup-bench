@@ -62,6 +62,8 @@ if ($Setup) {
 
     # 步骤 2：组 staging = diag-lite 全量（bg 双图随包，1023 解除不入包拍板）+ host 四件
     Copy-Item (Join-Path $sroot 'diag-lite\*') $staging -Recurse -Force
+    # 运行时修复日志不进安装包：防升级覆盖装把用户修复历史回滚（1024 轮16 实锤）
+    Remove-Item (Join-Path $staging 'reports\repair-log.json') -Force -ErrorAction SilentlyContinue
     foreach ($f in @('host.exe', 'Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.WinForms.dll', 'WebView2Loader.dll')) {
         if (-not (Test-Path -LiteralPath (Join-Path $staging $f))) { throw "staging incomplete: $f" }
     }
