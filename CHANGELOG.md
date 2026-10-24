@@ -2,13 +2,14 @@
 
 > 历史卷分出（1024 拍板）：第一～二十四切片（v0.1～v1.0.1，2026-10-19～22）= archive/CHANGELOG-历史卷-v0.1-至-v1.0.1.md
 
-## 2026-10-24 v1.3.0-dev 轮2-6 进化施工片（第三十二切片；审计拍板落地：WPF 剔除+哈希公示+UI 测试固化+历史对比/趋势+修复后感知半程；轮6 F1 待下一棒）
+## 2026-10-24 v1.3.0-dev 轮2-7 进化施工片·✅毕（第三十二切片；审计拍板落地：WPF 剔除+哈希公示+UI 测试固化+历史对比/趋势+修复后感知+首次引导；全量收口）
 
 **轮2（commit 186fc6f）legacy WPF 入口剔除+哈希公示**：diag-lite/gui/ 整目录+「全面体检（图形版）.bat」删除（用户拍板；主仓 gui/ 源码保留不分发）；使用说明.txt 四处改写（标题/条目7删+8改7/【怎么用】推荐改网页版/背景行只留 ui 放法）；build.ps1 守卫清单去 gui+bat 数线 10→9+**staging 先清空再组（只加不减式 Copy 会把已剔除件残留打进新包的坑）**+双出口哈希公示（setup/zip 各出 .sha256 旁文件+build/RELEASES.md 出包台账）；装新卸新验证=gui 零残留+engine 数据根新码入包+卸净+留机重装；setup 瘦身 4882578→4875769B。
 **轮3（commit ccfb91f）UI 自动测试固化**：tests/ui_test.py=CDP 驱动 headless Edge 的 DOM 断言回归网（起 server+随机调试端口+evaluate 断言+bye 收尾零残留）；A 静态向导/B 页签交互/C mock 跑批全链/D 修复中心联动四段 11 断言全 PASS；零新依赖（python websocket-client 既有）。**坑两记：python 生成器同名赋值作用域 NameError；headless 页面生命周期节流致 UI 轮询停摆=Page.setWebLifecycleState('active')+focus 模拟，跑批完成仍不渲染时用 reload 走 F5 恢复机制（server 事件缓冲重放+静默拉报告）兜底**。
 **轮4/5（commit ef25f53）历史对比+问题数趋势**：server +/api/reports/list（数据根 diag-*.json 列表）；ui 第四页签「历史对比」=体检记录列表（时间/树/FAIL 数）+两次对比引擎（buildCmpRows 五行分档：改善/恶化/仍在/新增/未查+问题数汇总，只展示有信息量行）+问题数趋势条形图；对比纯前端实现（/reports/ 下发既有白名单复用），判定层零碰。ui_test 11→16 断言全 PASS（E 段：**测试数据根 env 注入零污染主仓 reports**+预塞双报告→列表 3 份+趋势+对比卡+死地址恶化行全链）；lite 四件双写同；205/205 双版本。
-**轮6（半程，未 commit——CTX 闸收口）修复后感知**：app.js startRun 参数化（tree/fast 可注入）+修复成功挂 scheduleSense（match_checks 前缀→关联树快速快扫+修复前快照）+loadReport 挂 renderFixSense+buildCmpHtml 对比引擎公共化（历史对比/修复感知共用）+修复中心顶部感知卡（修复前后对比行+「再感知一次」按钮）。ui_test 16→17=16 过+**F1 挂（NO-CARD：修复中心未见「刷新 DNS 缓存」卡——action-card 类名/绿卡渲染条件待诊断，grep ui/app.js buildActionCard 段）**；lite ui/app.js 双写未做；commit 命令贴用户。
-**收口挂账**：轮6 F1 诊断+lite 双写+commit→轮7 首次启动引导→全量收口（205+ui_test 全绿+群文案更新：新增历史对比/修复后感知两个卖点）；MSIX 挂账=商店上架链（Partner Center 注册/makeappx 需 Windows SDK 或 MSIX Packaging Tool/正式签名/unvirtualizedResources 受限能力审批）+server crash log %TEMP% 虚拟化（低频）；工作树=轮6 app.js 改动+ui_test F 段在途未 commit。
+**轮6（commit c2b4821 半程+56b2b88 收尾）修复后感知**：app.js startRun 参数化（tree/fast 可注入）+修复成功挂 scheduleSense（match_checks 前缀→关联树快速快扫+修复前快照）+loadReport 挂 renderFixSense+buildCmpHtml 对比引擎公共化（历史对比/修复感知共用）+修复中心顶部感知卡（修复前后对比行+「再感知一次」按钮）。**F1 收案（56b2b88）**：根因=mock 场景 net_dns_public 为 PASS，而「刷新 DNS 缓存」卡 match_checks=net_dns_public，卡永不进「能代跑」区（探针实锤：场景 FAIL=deadaddr/default/gateway_proxy 三项，各有别卡认领）；修法全在测试脚手架零碰产品——mock 该项改超时输出使 FAIL、F 段两步点击（requires_admin 弹确认 modal 再点「执行」）、点击前覆写 mock 文件为成功输出模拟修复生效（快扫 PASS→感知卡出「改善」行+问题数下降；静态 mock 下前后报告一致「改善」永不出现的次生坑同解）。F2-F4（感知卡出现/对比渲染/再感知按钮）随 F1 通首次真跑。
+**轮7（commit 5e53ecd+4b9fa3d）首次启动三步引导**：localStorage 无 diag-guided 键（=没跑过体检）时向导页顶部显示三步卡（①点「开始体检」②等几分钟出报告③去「修复中心」看怎么修）；跑完一轮永久收起——独立键不随 diag-last-run 30 天过期回潮；**F5 恢复路径补同收**（server 侧已跑完=跑过一轮，防跑批完成瞬间刷新页面引导卡复活）；ui_test 22 断言（+A5 首次在/C5 跑批后收起）；lite 三件双写同。附净：探针脚本诊断毕删+__pycache__ 入 gitignore。
+**收口读数（1024 晚）**：tests **205/205 × PowerShell 5.1 + pwsh7 双版本**+ui_test **22/22** 全绿；群发文案-v1.3.0.md 备好（正文零「群」字；新增卖点=历史对比「每次体检都留底，选两份一比就知道哪些修好了哪些新冒出来」+首次启动三步引导；已知限制保留 SmartScreen/WebView2 两条）待用户过目发布。MSIX 挂账=商店上架链（Partner Center 注册/makeappx 需 Windows SDK 或 MSIX Packaging Tool/正式签名/unvirtualizedResources 受限能力审批）+server crash log %TEMP% 虚拟化（低频）。
 
 ## 2026-10-24 v1.3.0-dev 轮1 MSIX 适配片·✅毕（第三十一切片；1024 审计拍板「商店 MSIX 优先」首轮：写路径外移+容器语义铁案验证；判定语义零碰）
 
