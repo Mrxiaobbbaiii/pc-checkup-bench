@@ -2,7 +2,7 @@
 <#
 检查项：pf_boot_degradation_events —— Windows 点名拖慢开机事件（层：boot）
 命令：Get-WinEvent 'Microsoft-Windows-Diagnostics-Performance/Operational' 近 30 天 id=101/103 且 Level≥Warning（101=应用拖慢启动、103=服务拖慢启动，微软点名事件，只读）
-判定（design 十一节 2）：≥3 条→FAIL（附 top5 谁拖了多少毫秒）；1-2 条→PASS 附注清单；0 条→PASS；日志不可读→SKIP
+判定：≥3 条→FAIL（附 top5 谁拖了多少毫秒）；1-2 条→PASS 附注清单；0 条→PASS；日志不可读→SKIP
 只收 101/103：102/106/108/110 等=实拍确认后才扩（design 铁则，本版禁预收）
 mock 契约：逐行 `EventID | who | ms`；空=PASS（0 条）；首行 QUERY-ERROR=SKIP
 语言无关：who/ms 从 ToXml() 的 EventData 抓（Name/FileName/ServiceName 类=who，DegradationTime 无则 TotalTime=ms），不靠消息文案。

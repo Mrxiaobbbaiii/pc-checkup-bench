@@ -2,7 +2,7 @@
 <#
 检查项：pf_memory_pressure —— 内存压力（层：runtime）
 命令：Get-CimInstance Win32_OperatingSystem（TotalVirtualMemorySize/FreeVirtualMemory，KB）+ Win32_ComputerSystem（TotalPhysicalMemory，字节）（只读）
-判定（design 十一节 6）：物理 <4GB→FAIL（Win11 官方最低内存线）；commit 率>90%→FAIL（内存+页面文件双吃紧=卡顿进行时）；物理 4-8GB 且 commit≤90%→PASS 附注「规格贴最低线」；≥8GB→PASS 附容量+commit 率；查询失败→SKIP
+判定：物理 <4GB→FAIL（Win11 官方最低内存线）；commit 率>90%→FAIL（内存+页面文件双吃紧=卡顿进行时）；物理 4-8GB 且 commit≤90%→PASS 附注「规格贴最低线」；≥8GB→PASS 附容量+commit 率；查询失败→SKIP
 设计要点：不用「空闲物理内存低」判 FAIL（Windows 拿空闲内存做缓存=正常设计，空闲低≠故障）——FreePhysicalMemory 只取证不判定
 mock 契约：单行 `物理GB | commit总量GB | commit空闲GB`；空=SKIP
 #>

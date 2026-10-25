@@ -2,7 +2,7 @@
 <#
 检查项：pf_service_timeouts —— 服务启动失败/响应超时史（层：startup）
 命令：Get-WinEvent System 日志 Provider=Service Control Manager 近 30 天 id=7000/7009/7011（7000=服务启动失败、7009=等待连接超时、7011=事务响应超时；官方默认超时=30000 毫秒，1020 校准勿写 15 秒；只读）
-判定（design 十一节 4）：三类合计 ≥3→FAIL（附 top 服务名+各自条数）；1-2 条→PASS 附注；0 条→PASS；System 日志不可读→SKIP
+判定：三类合计 ≥3→FAIL（附 top 服务名+各自条数）；1-2 条→PASS 附注；0 条→PASS；System 日志不可读→SKIP
 mock 契约：逐行 `EventID | 服务名`（每行一条事件）；空=PASS（0 条）；首行 QUERY-ERROR=SKIP
 语言无关：服务名=事件 Properties[0]（SCM 消息首参恒为服务名）。
 #>

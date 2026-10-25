@@ -1,8 +1,8 @@
 ﻿#Requires -Version 5.1
 <#
 检查项：dv_thirdparty_inventory —— 第三方驱动体量聚合（层：stack）
-命令：Get-CimInstance Win32_SystemDriver（State=Running，只读）→ PathName 清洗 → VersionInfo.CompanyName 聚合（只读元数据不验签=快；与 dv_driver_signature 不做缓存共享=小拍板①）
-判定（design 十二节 3，施工单 v0.5 条目 3）：非微软总数（含无厂商元数据桶）>30→FAIL 附聚合表；15-30→PASS 附注「偏厚」；≤15→PASS 附聚合表（微软桶一行）；枚举失败→SKIP。30/15=工程线
+命令：Get-CimInstance Win32_SystemDriver（State=Running，只读）→ PathName 清洗 → VersionInfo.CompanyName 聚合（只读元数据不验签=快；与 dv_driver_signature 不做缓存共享）
+判定：非微软总数（含无厂商元数据桶）>30→FAIL 附聚合表；15-30→PASS 附注「偏厚」；≤15→PASS 附聚合表（微软桶一行）；枚举失败→SKIP。30/15=工程线
 mock 契约：逐行 `驱动名 | CompanyName | 路径`（路径列可空）；首行 QUERY-ERROR=SKIP；空=SKIP
 注：CompanyName 为空或读取失败→「无厂商元数据」桶（非微软）。
 #>

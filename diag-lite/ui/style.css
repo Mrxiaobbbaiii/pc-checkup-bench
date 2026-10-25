@@ -235,7 +235,7 @@ html[data-theme="dark"] .hero h1 { text-shadow: 0 0 18px color-mix(in srgb, var(
 .hero.small h1 { font-size: var(--fs-3); }
 .hero.small p { font-size: var(--fs-2); }
 
-/* 首次启动三步引导卡（轮7，1024 极简版：常驻三步条已删，首次教学只在此卡）：没跑过体检才显示；accent 左边条醒目但不喧宾 */
+/* 首次启动三步引导卡（常驻三步条已删，首次教学只在此卡）：没跑过体检才显示；accent 左边条醒目但不喧宾 */
 .first-guide { margin: 0 auto 12px; border-left: 3px solid var(--accent); }
 .fg-steps {
   list-style: none; margin: 8px 0 0; padding: 0;
@@ -382,7 +382,7 @@ html[data-theme="dark"] .verdict-banner {
 }
 .verdict-banner.bad { border-left-color: var(--fail); }
 
-/* 修复小史（自主迭代轮C）：折叠卡，一行一次修复 */
+/* 修复小史：折叠卡，一行一次修复 */
 .rep-hist summary { cursor: pointer; font-weight: 700; font-size: var(--fs-2); }
 .rh-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); font-size: var(--fs-1); }
 .rh-row:last-child { border-bottom: none; }
@@ -395,13 +395,13 @@ html[data-theme="dark"] .verdict-banner {
 .rh-ok { color: var(--pass); font-weight: 600; }
 .rh-bad { color: var(--fail); font-weight: 600; }
 
-/* 和上次比摘要行（自主迭代轮A）：横幅下一行，轻量不抢戏 */
+/* 和上次比摘要行：横幅下一行，轻量不抢戏 */
 .delta-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
   padding: 10px 16px; border-left: 4px solid var(--accent);
 }
 
-/* 先修这个（v1.4.0 轮1）：根因关联行动区——合并项+单项行动，按收益÷风险×把握排序 */
+/* 先修这个（v1.4.0）：根因关联行动区——合并项+单项行动，按收益÷风险×把握排序 */
 .first-fix { border-left: 4px solid var(--accent); }
 .ff-intro { font-size: var(--fs-2); color: var(--dim); line-height: 1.5; margin: 2px 0 10px; }
 .ff-item {
@@ -428,7 +428,7 @@ html[data-theme="dark"] .verdict-banner {
 .ff-btns { display: flex; gap: 8px; }
 .ff-btns .btn, .ff-btns .btn-primary { padding: 6px 16px; }
 
-/* 宝宝巴士五要素步骤（v1.4.0 轮2）：在哪/点什么/输入什么/算成功/失败了先——一行一要素零废话 */
+/* 分步指南五要素步骤：在哪/点什么/输入什么/算成功/失败了先——一行一要素零废话 */
 .bb-step {
   display: flex; gap: 10px; padding: 10px 12px; margin-bottom: 8px;
   border: 1px solid color-mix(in srgb, var(--fail) 30%, var(--line));
@@ -450,13 +450,13 @@ html[data-theme="dark"] .verdict-banner {
 }
 .bb-val { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 
-/* 官方依据链接行（v1.4.0 轮3 权威溯源） */
+/* 官方依据链接行（权威溯源） */
 .src-row { border-top: 1px dashed var(--line); padding-top: 6px; margin-top: 2px; }
 .src-row .ac-key { color: var(--pass); }
 .src-row a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .src-row a:hover { text-decoration: none; }
 
-/* launcher 一键直达组（v1.4.0 轮4）：小卡网格；卡内=窗口名+一句用途+「打开」按钮（文案业界口径） */
+/* launcher 一键直达组：小卡网格；卡内=窗口名+一句用途+「打开」按钮（文案业界口径） */
 .launcher-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
 .launcher-grid .action-card { padding: 10px 12px; }
 .launcher-grid .ac-badge b { font-size: var(--fs-3); }
@@ -884,7 +884,7 @@ html[data-theme="dark"] .repair-item, html[data-theme="dark"] .action-card {
   html { scroll-behavior: auto !important; }
 }
 
-/* ===== 迭代轮6 弹层与问题卡动效（业界口径：stagger 50-100ms 间隔、modal 150-250ms ease-out；上方 prefers-reduced-motion 兜底自动豁免） ===== */
+/* ===== 弹层与问题卡动效（业界口径：stagger 50-100ms 间隔、modal 150-250ms ease-out；上方 prefers-reduced-motion 兜底自动豁免） ===== */
 /* 弹层开合双向过渡：@starting-style + display allow-discrete（WebView2 Chromium 117+ 生效，旧内核降级瞬切=原行为） */
 .overlay { transition: opacity 160ms ease-out, display 160ms allow-discrete; }
 .overlay .modal { transition: transform 200ms ease-out, opacity 200ms ease-out, display 200ms allow-discrete; }
@@ -911,7 +911,7 @@ html[data-theme="dark"] .repair-item, html[data-theme="dark"] .action-card {
 /* 上次体检时间戳（向导 hero，localStorage 本机记忆） */
 .last-run { font-size: var(--fs-1); color: var(--dim); margin-top: 6px; }
 
-/* ---------- 历史对比视图（1024 轮4/5：列表+两次对比+趋势条；跟随深浅主题变量） ---------- */
+/* ---------- 历史对比视图（列表+两次对比+趋势条；跟随深浅主题变量） ---------- */
 .hist-list { display: flex; flex-direction: column; gap: 6px; }
 .hist-item { display: flex; align-items: center; gap: 14px; padding: 9px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; font-size: var(--fs-2); }
 .hist-time { color: var(--dim); min-width: 135px; }

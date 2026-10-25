@@ -38,7 +38,7 @@ $scriptDir = $PSScriptRoot
 if ($ActionsDir -eq '') { $ActionsDir = Join-Path $scriptDir 'actions' }
 if ($Root -eq '') { $Root = Split-Path $scriptDir -Parent }
 $checksDir = Join-Path $Root 'checks'
-# 数据根（1024 轮1-B，MSIX 适配）：商店版安装目录只读，台账/回滚包外移到 %LOCALAPPDATA%\电脑体检台；
+# 数据根（MSIX 适配）：商店版安装目录只读，修复记录/回滚包外移到 %LOCALAPPDATA%\电脑体检台；
 # DIAG_DATA_ROOT（server 注入/测试覆盖）优先；Inno/lite 布局不变（数据根=应用根）。判定与动作语义零碰。
 $dataRoot = $Root
 if ($env:DIAG_DATA_ROOT) { $dataRoot = $env:DIAG_DATA_ROOT }
@@ -528,7 +528,7 @@ if ($preOk) {
             $execNote = [string]$r.note
             if ($r.backup_failed) { $failStage = 'rollback_pkg' }
             if ($r.declined) { $elevDeclinedNote = [string]$r.note }
-            # 失败分支也如实带出已跑步骤（备份跑到哪一步、退出码——排障与台账都要）
+            # 失败分支也如实带出已跑步骤（备份跑到哪一步、退出码——排障与记录都要）
             foreach ($st in @($r.steps)) {
                 $execSteps += @{
                     phase = [string]$st.phase

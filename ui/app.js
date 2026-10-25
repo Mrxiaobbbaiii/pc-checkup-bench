@@ -209,7 +209,7 @@ function saveLastRun(sec) {
   renderLastRun();
   markGuided(); // 跑过一轮体检：首次引导卡永久收起（独立键，不随 30 天过期回潮）
 }
-/* 首次启动三步引导（轮7）：无 diag-guided 键=没跑过体检→显示；体检完成写键→本会话收起+以后不再出现 */
+/* 首次启动三步引导：无 diag-guided 键=没跑过体检→显示；体检完成写键→本会话收起+以后不再出现 */
 function markGuided() {
   try { localStorage.setItem('diag-guided', '1'); } catch (e) {}
   renderFirstGuide();
@@ -222,7 +222,7 @@ function renderFirstGuide() {
 }
 $('#fg-got-it').addEventListener('click', markGuided); // 用户确认过=不再打扰（1024 用户反馈：确认制）
 
-/* ---------- 版本更新弹窗（1024 用户拍板：更新内容在用户 UI 弹一次；只装最新一版，完整开发史=仓库 CHANGELOG.md） ---------- */
+/* ---------- 版本更新弹窗（更新内容在用户 UI 弹一次；只装最新一版，完整开发史=仓库 CHANGELOG.md） ---------- */
 const RELEASE_NOTES = null; /* 更新说明文案真源=语言包 groups.notes（词条随语言切换） */
 (function checkUpdateNotes() {
   let seen = null;
@@ -307,7 +307,7 @@ function groupFor(name) {
   return g || { id: 'other', prefix: '' };
 }
 
-/* ---------- 先修这个（v1.4.0 轮1）：根因关联规则表 ----------
+/* ---------- 先修这个（v1.4.0）：根因关联规则表 ----------
    跨树交叉定位——同一元凶的多项 FAIL 合并成一个行动项（如嫌疑驱动+网络过滤层+蓝屏码频次
    → 一个根因：过滤驱动）。命中门槛=规则 checks 里 ≥minHits 项 FAIL（单项不硬凑根因，归普通行动项）。
    排序分 score = 收益 gain × 把握 conf ÷ 风险 risk（手工标定，宁稳勿激进），而非纯严重度。
@@ -1459,7 +1459,7 @@ function stepCmdText(st) {
 }
 
 /* 问题修复置顶（绿/黄 → 红 → 自己动手），常用修复折叠到最后。同一动作只渲染一次。 */
-/* launcher 组（v1.4.0 轮4）：「一键直达系统窗口」绿级零修改动作——只拉起系统窗口并指路，
+/* launcher 组（v1.4.0）：「一键直达系统窗口」绿级零修改动作——只拉起系统窗口并指路，
    不改任何设置；单列一节常驻（不依赖体检结果），给红卡手动步骤配套「在哪」这一步减负。
    文案口径（1025 用户吐槽「帮你打开设备管理器都说安全可修」→业界调研定稿）：按钮=动词本身
    「打开」（微软 WAC/Win32 文案指南：按钮名=用户动作的动词）、开窗类零安全声明零撤销说明
@@ -1690,7 +1690,7 @@ function buildActionCard(a, hits) {
     card.appendChild(row);
   });
 
-  /* 权威溯源（v1.4.0 轮3）：动作卡展示官方依据链接——修复方法可溯源，禁「信我」式黑箱 */
+  /* 权威溯源：动作卡展示官方依据链接——修复方法可溯源，禁「信我」式黑箱 */
   if (a.sources && a.sources.length) {
     const row = document.createElement('div');
     row.className = 'ac-row src-row';
@@ -1867,7 +1867,7 @@ function onRedArm(e, a) {
   setTimeout(() => { if (btn.dataset.armed === '1') { btn.dataset.armed = ''; btn.textContent = old; btn.setAttribute('aria-label', old); } }, 4000);
 }
 let guideText = '';
-/* 宝宝巴士五要素（v1.4.0 轮2）：红卡/指南步可带 how={at,click,type,ok,fail}——
+/* 分步指南五要素：红卡/指南步可带 how={at,click,type,ok,fail}——
    在哪/点什么/输入什么/算成功/失败了先，一行一要素零废话；渲染与整段复制共用（词条=chrome.bb_*，术语表五要素口径） */
 const BB_KEYS = [['at', 'chrome.bb_at'], ['click', 'chrome.bb_click'], ['type', 'chrome.bb_type'], ['ok', 'chrome.bb_ok'], ['fail', 'chrome.bb_fail']];
 function howHtml(st) {
@@ -1988,7 +1988,7 @@ function setRepairBusy(busy, btn) {
   if (busy) { $$('.act-run').forEach((b) => { b.dataset.origLabel = b.textContent; b.disabled = true; }); if (btn) btn.textContent = t('chrome.repair_busy_btn'); }
   else { $$('.act-run').forEach((b) => { b.disabled = false; if (b.dataset.origLabel) b.textContent = b.dataset.origLabel; }); REPH.stale = true; }
 }
-/* ---------- 修复小史（1024 自主迭代轮C）：最近修过什么、成没成（数据根 repair-log.json 经 server 精简投影） ---------- */
+/* ---------- 修复小史：最近修过什么、成没成（数据根 repair-log.json 经 server 精简投影） ---------- */
 const REPH = { loaded: false, stale: true, rows: [] };
 async function loadRepairHistory(force) {
   const box = $('#rep-hist-body'), wrap = $('#repair-hist');
@@ -2068,7 +2068,7 @@ function renderRepairResult(slot, res, okWord) {
 
   appendRepairDetailFold(slot, res);
 }
-/* 修复五段明细折叠（预检/回滚包/执行/复查/台账）——成功默认收起、失败自动展开 */
+/* 修复五段明细折叠（预检/回滚包/执行/复查/记录）——成功默认收起、失败自动展开 */
 function appendRepairDetailFold(slot, res) {
   const ok = !!res.ok;
   const fold = document.createElement('details');
@@ -2205,7 +2205,7 @@ function applyTheme(theme, accent) {
   });
 }
 function initTheme() {
-  let cfg = { t: 'auto', a: 'cyan' }; // 新用户默认跟随系统明暗（自主迭代轮B）；老用户已存的 dark/light 手选不动
+  let cfg = { t: 'auto', a: 'cyan' }; // 新用户默认跟随系统明暗；老用户已存的 dark/light 手选不动
   try { const raw = localStorage.getItem('diag-theme2'); if (raw) cfg = JSON.parse(raw); } catch (e) {}
   if (!ACCENTS[cfg.a]) cfg.a = 'cyan';
   if (cfg.t !== 'light' && cfg.t !== 'dark' && cfg.t !== 'auto') cfg.t = 'auto';
@@ -2364,7 +2364,7 @@ if (/[?&]probe/.test(location.search)) {
   renderFirstGuide();
 })();
 
-/* ---------- 历史对比（1024 轮4/5：报告列表+两次对比+问题数趋势；纯前端展示层，判定零碰） ---------- */
+/* ---------- 历史对比（报告列表+两次对比+问题数趋势；纯前端展示层，判定零碰） ---------- */
 const HIST = { loaded: false, reports: [] };
 
 function histCheckMap(rep) {
@@ -2379,7 +2379,7 @@ function histCheckMap(rep) {
   });
   return map;
 }
-/* 和上次比（1024 自主迭代轮A）：结果页顶部一行摘要——本次 vs 上一份历史报告；
+/* 和上次比：结果页顶部一行摘要——本次 vs 上一份历史报告；
    纯前端复用对比口径（改善=上次 FAIL 这次不 FAIL；新增=上次不 FAIL 这次 FAIL），明细去历史对比页看 */
 async function renderDeltaBar() {
   const el = $('#delta-bar'); if (!el) return;
@@ -2512,7 +2512,7 @@ $('#btn-compare').addEventListener('click', async () => {
 });
 
 
-/* ---------- 修复后感知（1024 轮6：修复成功→自动对关联树快扫→修复前后对比+再感知一次；复用轮4/5 对比引擎） ---------- */
+/* ---------- 修复后感知（修复成功→自动对关联树快扫→修复前后对比+再感知一次；复用历史对比引擎） ---------- */
 function treeOfCheck(n) {
   return ({ net: 'network', bs: 'bluescreen', hw: 'hardware', pf: 'performance', dv: 'drivers' })[(n || '').split('_')[0]] || null;
 }

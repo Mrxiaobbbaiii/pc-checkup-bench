@@ -2,7 +2,7 @@
 <#
 检查项：bs_suspect_drivers —— 已知嫌疑驱动在跑（层：evidence）
 命令：Get-CimInstance Win32_SystemDriver（只读），对照 checks/bs_suspects.json 嫌疑名单（数据与代码分离，可增长）
-判定：任一驱动 Name/PathName 包含名单 pattern 且 State=Running→FAIL（附名单 label+advice）；无命中→PASS；名单文件缺失或 JSON 损坏→SKIP 带证据（施工单完工问 1）
+判定：任一驱动 Name/PathName 包含名单 pattern 且 State=Running→FAIL（附名单 label+advice）；无命中→PASS；名单文件缺失或 JSON 损坏→SKIP 带证据
 mock 契约：逐行 `name | state | path`（如 `nnndisfilter | Running | C:\Windows\system32\drivers\nnndisfilter.sys`）
 注：Win32_SystemDriver 的 State 值恒为英文（Running/Stopped），不随系统语言变。
 #>
@@ -11,7 +11,7 @@ if ($MockFile -ne '' -and $MockRaw -eq '') { $MockRaw = Get-Content -LiteralPath
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 
-# 名单加载（缺失/损坏→SKIP 不得崩，施工单完工问 1 的既定行为）
+# 名单加载（缺失/损坏→SKIP 不得崩的既定行为）
 $listPath = if ($SuspectsFile -ne '') { $SuspectsFile } else { Join-Path $PSScriptRoot 'bs_suspects.json' }
 $suspects = $null
 try { $suspects = (Get-Content -LiteralPath $listPath -Raw -Encoding UTF8 | ConvertFrom-Json).suspects } catch { $suspects = $null }

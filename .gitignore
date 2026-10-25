@@ -22,7 +22,7 @@ build/
 installer/bootstrapper/*.exe
 __pycache__/
 
-# 内部文档与退役件（本地保留，不入公开库；1025 发布拍板）
+# 内部文档与退役件（保留在本地，不随仓库分发）
 00-规程*.md
 路书.md
 design.md

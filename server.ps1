@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag web server v1.5.0 —— Edge 壳本地服务（design 第四节；判定零改动，engine B 案数据通路沿用；
+diag web server v1.5.0 —— Edge 壳本地服务（判定零改动，engine 数据通路沿用；
       v1.1.0 起加载 ext	rees 与 ext
 epairctions：只新增不覆盖，同名冲突忽略+crash log 告警）
 用法（bat 启动器代跑）：powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File server.ps1
@@ -31,7 +31,7 @@ param(
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
-# 数据根（1024 轮1-B，MSIX 适配）：商店版安装目录（...\WindowsApps\...）只读——探测后写入环境变量
+# 数据根（MSIX 适配）：商店版安装目录（...\WindowsApps\...）只读——探测后写入环境变量
 # DIAG_DATA_ROOT，engine/repair 子进程自动继承同一路径；Inno/lite 布局不变（数据根=应用根）。
 $dataRoot = $root
 if ($env:DIAG_DATA_ROOT) { $dataRoot = $env:DIAG_DATA_ROOT }
@@ -94,7 +94,7 @@ foreach ($t in $menuOrder) {
 }
 
 # ---------- v1.1.0 ext 扩展树（ext\trees\*.yaml，内容格式同内置；只新增不覆盖：同名冲突忽略+crash log 告警） ----------
-# 1024 轮1-B：先扫数据根（MSIX 用户扩展放 %LOCALAPPDATA%），再扫应用根（包内示例）；数据根先注册=同名时用户版赢
+# 先扫数据根（MSIX 用户扩展放 %LOCALAPPDATA%），再扫应用根（包内示例）；数据根先注册=同名时用户版赢
 $extTreesDirs = @((Join-Path $dataRoot 'ext\trees'), (Join-Path $root 'ext\trees')) | Select-Object -Unique
 foreach ($extTreesDir in $extTreesDirs) {
 if (Test-Path -LiteralPath $extTreesDir) {
@@ -137,7 +137,7 @@ if (Test-Path -LiteralPath $repairActionsDir) {
 }
 
 # ---------- v1.1.0 ext 扩展修复动作（ext\repair\actions\*.json；只新增不覆盖：id 与内置冲突忽略+crash log 告警；红级照样零执行） ----------
-# 1024 轮1-B：同 ext 树——数据根先扫（用户扩展），应用根后扫（包内示例）
+# 同 ext 树——数据根先扫（用户扩展），应用根后扫（包内示例）
 $extActionsDirs = @((Join-Path $dataRoot 'ext\repair\actions'), (Join-Path $root 'ext\repair\actions')) | Select-Object -Unique
 foreach ($extActionsDir in $extActionsDirs) {
 if (Test-Path -LiteralPath $extActionsDir) {
@@ -266,7 +266,7 @@ function Stop-EngineTree {
     }
 }
 
-# ---------- 引擎事件流增量读（B 案；与 GUI Read-NewEvents 同构）
+# ---------- 引擎事件流增量读（与 GUI Read-NewEvents 同构）
 # 读取用 FileShare.ReadWrite 显式共享写（Get-Content 默认共享模式会在 mock 高频追加下与 engine Add-Content 抢锁，
 # engine Stop 偏好下锁冲突=终止错误中途退出——实测 mock 全流程死于第 15 项的根因）；末行解析失败=撕裂行，留待下轮重读 ----------
 function Read-NewEvents {
@@ -418,7 +418,7 @@ function Invoke-Route($ctx) {
             return
         }
         if ($path -eq '/api/reports/list') {
-            # 1024 轮4/5 历史对比：报告列表（文件名+时间，降序）；详情走既有 /reports/<file> 下发
+            # 历史对比：报告列表（文件名+时间，降序）；详情走既有 /reports/<file> 下发
             $list = @(Get-ChildItem -LiteralPath $reportsDir -Filter 'diag-*.json' -File -ErrorAction SilentlyContinue |
                 Sort-Object LastWriteTime -Descending |
                 ForEach-Object { [ordered]@{ file = $_.Name; mtime = $_.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss') } })
@@ -498,7 +498,7 @@ function Invoke-Route($ctx) {
             return
         }
         if ($path -eq '/api/repair/history') {
-            # 修复小史（1024 自主迭代轮C）：数据根 repair-log.json 尾 20 条精简投影（时间/动作/等级/结果；host 与步骤明细不下发）
+            # 修复小史：数据根 repair-log.json 尾 20 条精简投影（时间/动作/等级/结果；host 与步骤明细不下发）
             $hist = @()
             $logPath = Join-Path $reportsDir 'repair-log.json'
             if (Test-Path -LiteralPath $logPath) {

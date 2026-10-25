@@ -1,8 +1,8 @@
 ﻿#Requires -Version 5.1
 <#
 检查项：dv_driver_age —— 古董驱动年代扫描（层：integrity）
-命令：Get-CimInstance Win32_SystemDriver（State=Running，只读）→ PathName 清洗 → (Get-Item).LastWriteTime 作驱动年代代理（Win32_PnPSignedDriver.DriverDate 官方字段不用=拍板 12；文件出厂时间=稳定代理口径）
-判定（design 十二节 2，施工单 v0.5 条目 2）：古董线=文件日期 < 2015-07-29（Win10 RTM 官方发布锚）；≥5→FAIL 附升序全清单；1-4→PASS 附注点名；0→PASS 附最早日期一行；枚举失败→SKIP。计数线 5=工程线
+命令：Get-CimInstance Win32_SystemDriver（State=Running，只读）→ PathName 清洗 → (Get-Item).LastWriteTime 作驱动年代代理（文件出厂时间=稳定代理口径）
+判定：古董线=文件日期 < 2015-07-29（Win10 RTM 官方发布锚）；≥5→FAIL 附升序全清单；1-4→PASS 附注点名；0→PASS 附最早日期一行；枚举失败→SKIP。计数线 5=工程线
 mock 契约：逐行 `驱动名 | CompanyName | 文件日期(yyyy-MM-dd) | 路径`；首行 QUERY-ERROR=SKIP；空=SKIP
 #>
 param([string]$MockRaw = '', [string]$MockFile = '')

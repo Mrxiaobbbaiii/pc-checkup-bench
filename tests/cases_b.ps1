@@ -1,5 +1,5 @@
 ﻿#Requires -Version 5.1
-# B 案输出层用例（v0.6 拍板 9：-ProgressFile 事件流 + -JsonReport 结构化报告；默认关回归）
+# 输出层用例（-ProgressFile 事件流 + -JsonReport 结构化报告；默认关回归）
 # 结构：name / tree / json（是否带 -JsonReport）/ full / expectExit / mocks（复用既有场景集）/ verify（断言 scriptblock，返回失败原因数组）
 # 执行方式：临时仓（engine/checks/trees 复制到 temp）跑 engine，reports 落盘零污染主仓（run_tests.ps1 ③ 节）。
 

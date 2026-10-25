@@ -7,7 +7,7 @@
       UNREACH → SKIP（WAN 本身断，前层项已管）；空/QUERY-ERROR → SKIP
 mock 契约：`PING | REPLY | TTL=xx` / `PING | NEED-FRAG` / `PING | TIMEOUT` / `PING | UNREACH`；首行 QUERY-ERROR=SKIP；空=SKIP
 官方依据：ping 命令参考（learn.microsoft.com windows-commands/ping，-f=-f 不允许分片、-l=length）；
-      PMTUD 语义 RFC 1191/1981；223.5.5.5 允许 ICMP 口径同 net_public_ping（知识来源 §一）。
+      PMTUD 语义 RFC 1191/1981；223.5.5.5 允许 ICMP 口径同 net_public_ping。
 阈值标注：1472=标准 MTU 探针值（工程口径），1492=PPPoE 常见值（工程口径）。
 #>
 param([string]$MockRaw = '', [string]$MockFile = '')

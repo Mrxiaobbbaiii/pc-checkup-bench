@@ -2,8 +2,8 @@
 <#
 检查项：dv_driver_signature —— 在跑驱动签名验证（层：integrity）
 命令：Get-CimInstance Win32_SystemDriver（State=Running，只读）→ PathName 清洗 → CompanyName 分桶（微软桶跳过验签=性能护栏）→ 非微软子集逐个 Get-AuthenticodeSignature -FilePath（两段式）
-判定（design 十二节 1，施工单 v0.5 条目 1）：待验桶 NotSigned/HashMismatch/UnknownError ≥1→FAIL；非微软全 Valid→PASS 附公司聚合；其余非常规状态（NotSupported 等）→PASS 走主判定+evidence 追加登记行（真机实拍见→HANDOFF 登记，不扩判）；枚举失败→SKIP
-边界声明（进知识来源.md）：CompanyName 文件元数据≠Authenticode 法律签名，FAIL 只由验签结果定；Get-AuthenticodeSignature 只认内嵌签名，目录签名(catalog)报 NotSigned=已知边界——真机见正规厂商 NotSigned→登记 HANDOFF 待拍板，禁当场改判定
+判定：待验桶 NotSigned/HashMismatch/UnknownError ≥1→FAIL；非微软全 Valid→PASS 附公司聚合；其余非常规状态（NotSupported 等）→PASS 走主判定+evidence 追加登记行（真机实拍见→登记待办，不扩判）；枚举失败→SKIP
+边界声明：CompanyName 文件元数据≠Authenticode 法律签名，FAIL 只由验签结果定；Get-AuthenticodeSignature 只认内嵌签名，目录签名(catalog)报 NotSigned=已知边界——真机见正规厂商 NotSigned 时保持判定不变
 mock 契约：逐行 `驱动名 | CompanyName | SigStatus | 路径`（SigStatus=Valid/NotSigned/HashMismatch/UnknownError/NotSupported，mock 直接信任不真验签）；首行 QUERY-ERROR=SKIP；空=SKIP
 注：Win32_SystemDriver 的 State 恒英文；Get-AuthenticodeSignature 的 Status 枚举值恒英文（语言无关）。
 #>

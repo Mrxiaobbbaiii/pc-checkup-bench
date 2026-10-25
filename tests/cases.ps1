@@ -291,7 +291,7 @@ Request timed out.
 2026-10-01 10:00 | 0x00000139 | C:\WINDOWS\Minidump\100126-1-01.dmp
 2026-10-02 10:00 | 0x0000007E | C:\WINDOWS\Minidump\100226-2-01.dmp
 '@ },
-    @{ check = 'bs_code_frequency'; note = '码书JSON损坏→SKIP不得崩(完工问1)'
+    @{ check = 'bs_code_frequency'; note = '码书JSON损坏→SKIP不得崩'
        expectStatus = 'SKIP'; expectEvidenceKeyword = '不可用'
        mock = @'
 2026-10-01 10:00 | 0x00000139 | C:\WINDOWS\Minidump\100126-1-01.dmp
@@ -367,7 +367,7 @@ HTTP | Stopped | C:\Windows\system32\drivers\HTTP.sys
 nvlddmkm | Running | C:\Windows\system32\drivers\nvlddmkm.sys
 HTTP | Stopped | C:\Windows\system32\drivers\HTTP.sys
 '@ },
-    @{ check = 'bs_suspect_drivers'; note = '名单JSON损坏→SKIP不得崩(完工问1)'
+    @{ check = 'bs_suspect_drivers'; note = '名单JSON损坏→SKIP不得崩'
        expectStatus = 'SKIP'; expectEvidenceKeyword = '不可用'
        mock = @'
 nnndisfilter | Running | C:\Windows\system32\drivers\nnndisfilter.sys

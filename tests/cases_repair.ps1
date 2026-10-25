@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag 修复域用例（v0.9 第十三切片；四断言=命令序列/回滚序列/超时负例/权限负例；绿黄双级）
+diag 修复域用例（四断言=命令序列/回滚序列/超时负例/权限负例；绿黄双级）
 结构：
   - rep_schema            ：动作库静态契约（绿+黄级/id 唯一/匹配与验证检查项真实存在/超时范围/命令白名单/
                             黄级回滚包契约 backup_steps+undo_script 均含 {BK}/撤销 import 数≥备份 export 数）
@@ -46,7 +46,7 @@ function Test-SilentElevatable {
     return ($g -match 'S-1-5-32-544')
 }
 
-# 读临时仓修复台账末行（首行带 BOM 用 utf-8 容错读）
+# 读临时仓修复记录末行（首行带 BOM 用 utf-8 容错读）
 function Get-LastRepairLog([string]$TmpRoot) {
     $f = Join-Path $TmpRoot 'reports\repair-log.json'
     if (-not (Test-Path -LiteralPath $f)) { return $null }
@@ -788,7 +788,7 @@ foreach ($xAct in @(
     }
 }
 
-# ---- v0.9.8 ui_icon_refresh：真跑断言（施工单「一律 forceNever」对本动作不可达：
+# ---- v0.9.8 ui_icon_refresh：真跑断言（「一律 forceNever」对本动作不可达：
 #      requires_admin=false，NeverElevate 只拦需提权动作；动作本身零破坏性=只刷图标显示缓存） ----
 $global:DiagRepairCases += @{
     name = 'rep_g_icon_refresh'
@@ -806,7 +806,7 @@ $global:DiagRepairCases += @{
     }
 }
 
-# ---- v1.2.0 片4 扩容 3 动作（1023 拍板优先级修订版）----
+# ---- v1.2.0 扩容 3 动作 ----
 #      net_winhttp_reset（绿，改系统级 WinHTTP 代理=真跑会动本机代理状态）→ forceNever 挡下
 foreach ($s4Act in @(@('rep_g_winhttp_reset', 'net_winhttp_reset', @()),
                      @('rep_y_rescan', 'dv_device_rescan', @('-AllowYellow')))) {
@@ -846,7 +846,7 @@ $global:DiagRepairCases += @{
     }
 }
 
-# ---- v1.2.0 片4 修复中心闭环率断言（1023 拍板：每个可 FAIL 的检查项必须有下文，禁静默断链） ----
+# ---- v1.2.0 修复中心闭环率断言（每个可 FAIL 的检查项必须有下文，禁静默断链） ----
 #      三种合法下文：action=绿/黄动作匹配 / card=红级处置卡匹配 / advice=显式「建议即处置」声明（reason 必填）
 $global:DiagRepairCases += @{
     name = 'rep_closure'
@@ -899,8 +899,8 @@ $global:DiagRepairCases += @{
     }
 }
 
-# ---- v1.4.0 轮3 权威溯源断言：每个动作必有合法 sources（≥1 条微软官方域 https 链接，禁静默断链）；
-#      coverage.json 的 advice 行同样必须有官方 source。URL 考证记录=知识来源.md §七（1025 批量 HTTP 200 实测） ----
+# ---- 权威溯源断言：每个动作必有合法 sources（≥1 条微软官方域 https 链接，禁静默断链）；
+#      coverage.json 的 advice 行同样必须有官方 source。URL 考证记录见项目维护文档 ----
 $global:DiagRepairCases += @{
     name = 'rep_sources'
     kind = 'schema'
@@ -946,7 +946,7 @@ $global:DiagRepairCases += @{
     }
 }
 
-# ---- v1.4.0 轮2 宝宝巴士规范断言：红卡 steps 全部带 how 五要素（在哪/点什么/输入什么/算成功/失败了先），
+# ---- 红卡分步指南规范断言：红卡 steps 全部带 how 五要素（在哪/点什么/输入什么/算成功/失败了先），
 #      规范进测试=机器拦（后续新增红卡不带五要素直接红） ----
 $global:DiagRepairCases += @{
     name = 'rep_how_steps'
@@ -972,7 +972,7 @@ $global:DiagRepairCases += @{
     }
 }
 
-# ---- v1.4.0 轮4 launcher 静态契约：launcher=true 的动作=绿级免提权只开窗——
+# ---- launcher 静态契约：launcher=true 的动作=绿级免提权只开窗——
 #      level=green/requires_admin=false/common=true/match_checks 空/steps 全部 cmd /c start 且目标在允许集合
 #      （「零修改只开窗」进测试=机器拦，禁 launcher 夹带改设置命令） ----
 $global:DiagRepairCases += @{
@@ -1011,7 +1011,7 @@ $global:DiagRepairCases += @{
     }
 }
 
-# ---- v1.4.0 轮3 两张缺口卡用例：红卡必须在加载段拒绝执行（零副作用验证，出厂闸） ----
+# ---- 两张缺口卡用例：红卡必须在加载段拒绝执行（零副作用验证，出厂闸） ----
 foreach ($redAct in @('pf_app_crashes_card', 'dv_display_residue_card')) {
     $global:DiagRepairCases += @{
         name = 'rep_red_' + $redAct

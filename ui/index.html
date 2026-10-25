@@ -71,7 +71,7 @@
       <p data-i18n="chrome.slogan">只看、不动你电脑的任何设置。</p>
       <p class="last-run hidden" id="last-run"></p>
     </div>
-    <!-- 首次启动三步引导（轮7）：没跑过体检才显示；点「知道了」或跑完一轮=永久收起（localStorage 记忆） -->
+    <!-- 首次启动三步引导：没跑过体检才显示；点「知道了」或跑完一轮=永久收起（localStorage 记忆） -->
     <div class="card first-guide hidden" id="first-guide">
       <div class="card-title" data-i18n="chrome.guide_title">第一次用？跟着这三步走</div>
       <ol class="fg-steps">
@@ -115,7 +115,7 @@
   <!-- 视图二：结果中心（v1.1.0 A 段：问题优先——按严重度归并，全部检查项另开一页） -->
   <section class="view" id="view-results">
     <div class="verdict-banner hidden" id="verdict-banner"></div>
-    <!-- 先修这个（v1.4.0 轮1）：跨树根因关联+行动优先级——同一元凶的多项 FAIL 合并成一个行动项，
+    <!-- 先修这个（v1.4.0）：跨树根因关联+行动优先级——同一元凶的多项 FAIL 合并成一个行动项，
          按收益÷风险×把握排序；每项一键跳修复中心对应卡或该项说明。纯前端规则表，判定层零碰 -->
     <div class="card first-fix hidden" id="first-fix"></div>
     <!-- 和上次比：本次 vs 上一份报告的一行摘要（无历史报告时不显示） -->
@@ -178,14 +178,14 @@
       <div class="card-title repair-count-title"><span data-i18n="chrome.repair_round_title">这轮查出来的问题</span><span class="ri-count" id="ri-count"></span></div>
       <div id="repair-list"><div class="placeholder" data-i18n="chrome.repair_placeholder">还没有检查结果——先去「体检向导」跑一轮；下面的常用修复不用体检也能用。</div></div>
     </div>
-    <!-- 修复小史（自主迭代轮C）：最近修过什么、成没成；没修过就不显示 -->
+    <!-- 修复小史：最近修过什么、成没成；没修过就不显示 -->
     <details class="card rep-hist hidden" id="repair-hist">
       <summary data-i18n="chrome.repair_hist_title">修复小史（最近 20 次）</summary>
       <div id="rep-hist-body"></div>
     </details>
   </section>
 
-  <!-- 视图四：历史对比（1024 轮4/5：报告列表+两次对比+问题数趋势；只读展示层） -->
+  <!-- 视图四：历史对比（报告列表+两次对比+问题数趋势；只读展示层） -->
   <section class="view" id="view-history">
     <div class="hero small">
       <h1 data-i18n="chrome.hist_hero_title">历史对比</h1>
@@ -265,7 +265,7 @@
   </div>
 </div>
 
-<!-- 版本更新弹层（1024 用户拍板：更新内容在用户 UI 弹一次，不打扰第二次；完整开发史=仓库 CHANGELOG.md） -->
+<!-- 版本更新弹层（更新内容在用户 UI 弹一次，不打扰第二次；完整开发史=仓库 CHANGELOG.md） -->
 <div class="overlay hidden" id="update-modal" role="dialog" aria-modal="true" aria-labelledby="um-title">
   <div class="modal">
     <div class="modal-title" id="um-title"></div>

@@ -2,7 +2,7 @@
 <#
 检查项：pf_disk_space —— 磁盘水位（层：runtime）
 命令：Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3"（Size/FreeSpace，系统盘按 %SystemDrive% 匹配，只读）
-判定（design 十一节 5）：系统盘剩余 <10% 或 <20GB 任一→FAIL（10%=SSD 高位掉速工程线、20GB=更新预留工程线，Win11 官方最低存储 64GB 无「保留多少」明文——工程线同 v0.3 先例）；系统盘 10-15%→PASS 附注「偏紧」；非系统盘 <10% 且 <20GB→PASS 附 WARN 备注；其余→PASS 附水位表；无本地盘→SKIP
+判定：系统盘剩余 <10% 或 <20GB 任一→FAIL（10%=SSD 高位掉速工程线、20GB=更新预留工程线，Win11 官方最低存储 64GB 无「保留多少」明文——工程线同 v0.3 先例）；系统盘 10-15%→PASS 附注「偏紧」；非系统盘 <10% 且 <20GB→PASS 附 WARN 备注；其余→PASS 附水位表；无本地盘→SKIP
 mock 契约：逐行 `盘符 | 总GB | 剩GB | sys`（系统盘行第 4 列=sys，其余=-）；空=SKIP
 #>
 param([string]$MockRaw = '', [string]$MockFile = '')

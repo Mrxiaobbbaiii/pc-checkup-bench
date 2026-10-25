@@ -1,7 +1,7 @@
 # host/test_installed_e2e.ps1 - installed-copy program-level journey (slice 1b, v1.2.0)
 # ASCII-only source. Phase A: shortcuts/uninstall key/dir checks + tree via shell (window LEFT OPEN
-# for guicheck screenshot); Phase B: clean close + silent uninstall + keep-branch backup checks.
-# Usage: powershell -File host\test_installed_e2e.ps1 -Phase A   (then guicheck shot, then -Phase B)
+# for screenshot checks); Phase B: clean close + silent uninstall + keep-branch backup checks.
+# Usage: powershell -File host\test_installed_e2e.ps1 -Phase A   (then screenshots, then -Phase B)
 param([ValidateSet('A','B')][string]$Phase = 'A')
 $ErrorActionPreference = 'Stop'
 $appName = -join (@(0x7535,0x8111,0x4F53,0x68C0,0x53F0) | ForEach-Object { [char]$_ })
@@ -75,7 +75,7 @@ if ($Phase -eq 'A') {
     Add-Ok 'tree-done-report' ($done -and ($after -gt $before)) ("newReport=" + ($after - $before))
     # save state for phase B
     "$($h.Id)" | Set-Content -LiteralPath $stateFile -Encoding ASCII
-    Write-Host '=== PHASE A DONE (window left open for guicheck; then run -Phase B) ==='
+    Write-Host '=== PHASE A DONE (window left open for screenshots; then run -Phase B) ==='
     exit $(if ($script:failed) { 1 } else { 0 })
 }
 

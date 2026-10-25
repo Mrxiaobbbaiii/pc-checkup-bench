@@ -3,7 +3,7 @@
 检查项：dv_driver_load_failures —— 驱动加载失败史（层：suspect）
 命令：Get-WinEvent -FilterHashtable @{LogName='System'; ProviderName='Microsoft-Windows-Kernel-PnP'; Id=219; StartTime=(当日-30天)}（只读），取回后自滤 Level -in 2,3（Warning=2/Error=3，数字判定语言无关）
 设备实例路径取法（三段降级，语言无关）：$evt.ToXml() 抓 <Data Name=…> 优先 DeviceInstancePath 类字段→Properties 里首个含 `\` 的字符串值（形如 USB\VID_…）→消息首行
-判定（design 十二节 6，施工单 v0.5 条目 6）：≥3 条→FAIL（按路径聚合 top5：同路径 ≥2 次标「反复」单独点名，单次路径合并「其余 N 条各 1 次」=语境护栏）；1-2 条→PASS 附注；0 条→PASS；日志不可读→SKIP
+判定：≥3 条→FAIL（按路径聚合 top5：同路径 ≥2 次标「反复」单独点名，单次路径合并「其余 N 条各 1 次」=语境护栏）；1-2 条→PASS 附注；0 条→PASS；日志不可读→SKIP
 mock 契约：逐行=设备实例路径（每行一条 219 事件）；首行 QUERY-ERROR=SKIP；空=PASS（0 条）
 「找不到与指定的选择条件匹配的事件」=0 条走 PASS 路径（同 pf 先例），真查询错误才 SKIP。
 #>

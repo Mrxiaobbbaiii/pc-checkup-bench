@@ -2,7 +2,7 @@
 # ASCII-only source (ps1 5.1 no-BOM rule); the Chinese window title is built from code points.
 # Verifies: hidden server start + port file + WebView2 nav target alive + single instance
 #           + clean shutdown (host & server gone within 3s after graceful close).
-# GUI look-and-feel (screenshot verdicts) is guicheck-flash's job, NOT this script.
+# GUI look-and-feel (screenshot verdicts) is done by a separate screenshot pass, NOT this script.
 $ErrorActionPreference = 'Stop'
 $title = -join (@(0x7535,0x8111,0x4F53,0x68C0,0x53F0) | ForEach-Object { [char]$_ })
 $root = Split-Path -Parent $PSScriptRoot
@@ -54,7 +54,7 @@ if ($portUsed -gt 0) {
 }
 Add-Result 'server-http-meta' $metaOk "GET /api/meta 200 (nav target alive)"
 
-# -- 2. window present with the right title (program level; visual = guicheck)
+# -- 2. window present with the right title (program level; visual = separate screenshot pass)
 Start-Sleep -Seconds 2
 $hp = Get-Process -Id $host1.Id -ErrorAction SilentlyContinue
 $winOk = ($null -ne $hp) -and ($hp.MainWindowTitle -eq $title)

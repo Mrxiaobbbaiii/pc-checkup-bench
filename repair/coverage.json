@@ -1,5 +1,5 @@
 {
-  "_comment": "修复中心闭环率注册表（v1.2.0 片4，1023 用户拍板）：每个可 FAIL 的检查项必须有下文，禁静默断链。三种合法下文——action=绿/黄级动作匹配（可代跑或确认后代跑）；card=红级处置卡匹配（只给步骤）；advice=显式「建议即处置」声明（该 FAIL 的处置=检查项自带的 suggestion 文本，无库内动作，reason 必填）。程序级断言=tests/cases_repair.ps1 的 rep_closure（检查项全覆盖+声明与动作库 match_checks 一致）。",
+  "_comment": "修复中心闭环率注册表（v1.2.0）：每个可 FAIL 的检查项必须有下文，禁静默断链。三种合法下文——action=绿/黄级动作匹配（可代跑或确认后代跑）；card=红级处置卡匹配（只给步骤）；advice=显式「建议即处置」声明（该 FAIL 的处置=检查项自带的 suggestion 文本，无库内动作，reason 必填）。程序级断言=tests/cases_repair.ps1 的 rep_closure（检查项全覆盖+声明与动作库 match_checks 一致）。",
   "version": "1.0",
   "updated": "2026-10-25",
   "checks": {

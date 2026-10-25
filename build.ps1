@@ -2,7 +2,7 @@
 <#
 diag build.ps1 v1.5.0 —— 发群一键出包（v1.1.0 封装片 2026-10-23；白名单遍历 diag-lite/ 打 zip）
 规则：ui/bg.jpg 与 ui/bg-light.jpg（1025 起为程序生成图，无版权限制）随包分发；reports/ 只带「报告在这里.txt」占位
-     （真实报告 diag-*、repair-log.json、rollback/ 一律不入包）；其余全收（含 brand.png/favicon.png，1022 拍板随包）。
+     （真实报告 diag-*、repair-log.json、rollback/ 一律不入包）；其余全收（含 brand.png/favicon.png）。
 用法：powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 产物：<仓库根>\diag-lite-v1.5.0.zip（.gitignore *.zip 已挡入库）；打完自印条目清单，字节抽验由验证脚本另行执行。
 #>
@@ -61,15 +61,15 @@ if ($Setup) {
     # （1024 修复：此前靠 host-out 里的一次性手工副本，clean 重建即断链；现在构建自足）
     Copy-Item (Join-Path $hostDir 'third_party\Microsoft.Web.WebView2.Core.dll') $hostOut -Force
     Copy-Item (Join-Path $hostDir 'third_party\Microsoft.Web.WebView2.WinForms.dll') $hostOut -Force
-    # 1024 轮2：staging 先清空再组——只加不减式 Copy 会把已剔除件（gui 等）残留打进新包
+    # staging 先清空再组——只加不减式 Copy 会把已剔除件（gui 等）残留打进新包
     if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $staging | Out-Null
     Copy-Item (Join-Path $hostOut '*') $staging -Force
     Copy-Item (Join-Path $hostDir 'third_party\x64\WebView2Loader.dll') $staging -Force
 
-    # 步骤 2：组 staging = diag-lite 全量（bg 双图随包，1023 解除不入包拍板）+ host 四件
+    # 步骤 2：组 staging = diag-lite 全量（bg 双图随包）+ host 四件
     Copy-Item (Join-Path $sroot 'diag-lite\*') $staging -Recurse -Force
-    # 运行时用户数据不进安装包（对齐头注释声明）：修复历史+真实报告+回滚包（防升级覆盖回滚/本机数据外发，1024 轮16/17 实锤）
+    # 运行时用户数据不进安装包（对齐头注释声明）：修复历史+真实报告+回滚包（防升级覆盖回滚/本机数据外发）
     Remove-Item (Join-Path $staging 'reports\repair-log.json') -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $staging 'reports\diag-*') -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $staging 'reports\rollback') -Recurse -Force -ErrorAction SilentlyContinue
@@ -86,13 +86,13 @@ if ($Setup) {
     if ($setupFiles.Count -ne 1 -or $setupFiles[0].Length -lt 1000000) { throw 'setup.exe missing or suspiciously small' }
     Write-Host ("SETUP BUILD OK: {0} ({1} bytes)" -f $setupFiles[0].Name, $setupFiles[0].Length)
 
-    # 步骤 4（1024 轮2-B 哈希公示）：出包即写 .sha256 旁文件 + RELEASES.md 累积台账（分发完整性）
+    # 步骤 4（哈希公示）：出包即写 .sha256 旁文件 + RELEASES.md 累积记录（分发完整性）
     $sha = (Get-FileHash -LiteralPath $setupFiles[0].FullName -Algorithm SHA256).Hash
     [System.IO.File]::WriteAllText(($setupFiles[0].FullName + '.sha256'), ($sha + '  ' + $setupFiles[0].Name + "`r`n"), (New-Object System.Text.UTF8Encoding($false)))
     $relLog = Join-Path $buildDir 'RELEASES.md'
     $relLine = ("| {0} | {1} | {2} | {3} |" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $setupFiles[0].Name, $setupFiles[0].Length, $sha)
     if (-not (Test-Path $relLog)) {
-        [System.IO.File]::WriteAllText($relLog, ("# RELEASES（出包台账：时间 | 文件 | 字节 | SHA256）`r`n`r`n" + $relLine + "`r`n"), (New-Object System.Text.UTF8Encoding($true)))
+        [System.IO.File]::WriteAllText($relLog, ("# RELEASES（出包记录：时间 | 文件 | 字节 | SHA256）`r`n`r`n" + $relLine + "`r`n"), (New-Object System.Text.UTF8Encoding($true)))
     } else {
         [System.IO.File]::AppendAllText($relLog, ($relLine + "`r`n"), (New-Object System.Text.UTF8Encoding($true)))
     }
@@ -151,7 +151,7 @@ try {
 }
 Write-Host "BUILD OK: $outZip"
 
-# 哈希公示（1024 轮2-B）：lite zip 同样出 .sha256 旁文件
+# 哈希公示：lite zip 同样出 .sha256 旁文件
 $zipSha = (Get-FileHash -LiteralPath $outZip -Algorithm SHA256).Hash
 [System.IO.File]::WriteAllText(($outZip + '.sha256'), ($zipSha + '  ' + (Split-Path $outZip -Leaf) + "`r`n"), (New-Object System.Text.UTF8Encoding($false)))
 Write-Host ("HASH PUBLISHED: {0}" -f $zipSha)

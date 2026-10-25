@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-diag UI 自动测试套件（1024 轮3 固化）：CDP 驱动 headless Edge 的 DOM 断言回归网。
+diag UI 自动测试套件：CDP 驱动 headless Edge 的 DOM 断言回归网。
 覆盖：A 静态向导页 / B 页签交互 / C mock 跑批全链（dns_deadaddr 断点场景+net_dns_public 超时）/ D 修复中心联动 / E 历史对比 / F 修复后感知。
 跑法：python -X utf8 tests/ui_test.py   （退出码 0=全过）
 工艺：起 server(-MockDir)+headless Edge(随机调试端口)→CDP evaluate 断言→bye 收尾零残留。
@@ -160,7 +160,7 @@ def main():
         check('A2 开始体检按钮在', cdp.eval("!!document.querySelector('#btn-run')"))
         check('A3 版本串 v1.5.0', 'v1.5.0' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
         check('A4 只读承诺文案', '只看、不动你电脑的任何设置' in str(cdp.eval('document.body.innerText')))
-        # 轮7 首次启动引导：全新 profile（localStorage 空）→三步引导卡可见
+        # 首次启动引导：全新 profile（localStorage 空）→三步引导卡可见
         check('A5 首次启动引导卡在', cdp.eval("!!document.querySelector('#first-guide') && !document.querySelector('#first-guide').classList.contains('hidden')"))
         # 打磨轮：引导卡确认制——点「知道了」立即收起并写键；清键还原让 C5 继续测跑批路径
         cdp.eval("document.getElementById('fg-got-it').click()")
@@ -173,7 +173,7 @@ def main():
         time.sleep(0.6)
         check('B1 修复中心激活', cdp.eval("document.querySelector('#view-repair')?.classList.contains('active')"))
         check('B2 三色分级文案', '直接代跑' in str(cdp.eval("document.querySelector('#view-repair').innerText")) and '逐项确认' in str(cdp.eval("document.querySelector('#view-repair').innerText")))
-        # 自主迭代轮B：默认主题=自动跟随系统（首次无记忆 → auto 激活且实际渲染=系统明暗）
+        # 默认主题=自动跟随系统（首次无记忆 → auto 激活且实际渲染=系统明暗）
         check('B3 主题默认跟随系统', cdp.eval("document.querySelector('[data-theme-opt=\"auto\"]').classList.contains('active')") is True
               and cdp.eval("document.documentElement.dataset.theme === (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')") is True)
 
@@ -195,13 +195,13 @@ def main():
         check('C2 大结论横幅发现问题', '发现问题' in results_txt, results_txt[:120])
         check('C3 DNS 死地址人话名', '死地址' in results_txt or 'DNS' in results_txt, results_txt[:200])
         check('C4 零断点黑话', '断点' not in results_txt)
-        # 轮7：跑过一轮体检后引导卡永久收起（localStorage diag-guided；reload 后仍隐藏）
+        # 跑过一轮体检后引导卡永久收起（localStorage diag-guided；reload 后仍隐藏）
         check('C5 跑批后引导卡收起', cdp.eval("document.querySelector('#first-guide')?.classList.contains('hidden')") is True
               and cdp.eval("!!localStorage.getItem('diag-guided')") is True)
-        # 自主迭代轮A：结果页「和上次比」摘要行（本次 vs 预塞 new 份 → 新增项文案）
+        # 结果页「和上次比」摘要行（本次 vs 预塞 new 份 → 新增项文案）
         check('C6 和上次比摘要行', (lambda t: '和上次体检' in t and ('新冒出来' in t or '修好了' in t or '没有变化' in t))
               (str(cdp.eval("document.querySelector('#delta-bar')?.innerText || ''"))))
-        # v1.4.0 轮1「先修这个」：根因关联行动区（本场景 DNS 三项 FAIL → dns_side 规则命中 → 合并行动项）
+        # 「先修这个」：根因关联行动区（本场景 DNS 三项 FAIL → dns_side 规则命中 → 合并行动项）
         ff_txt = str(cdp.eval("document.querySelector('#first-fix')?.innerText || ''"))
         check('C7 先修这个行动区渲染', '先修这个' in ff_txt and 'DNS' in ff_txt, ff_txt[:160])
         check('C8 根因合并项出现', '一个方向' in ff_txt and '去处理' in ff_txt, ff_txt[:200])
@@ -217,10 +217,10 @@ def main():
         time.sleep(0.8)
         rep_txt = str(cdp.eval("document.querySelector('#view-repair').innerText"))
         check('D1 问题清单联动', '这轮查出来的问题' in rep_txt, rep_txt[:120])
-        # v1.4.0 轮3 权威溯源：动作卡渲染「官方依据」链接（微软官方域 href）
+        # 权威溯源：动作卡渲染「官方依据」链接（微软官方域 href）
         src_link = cdp.eval("(document.querySelector('.action-card .src-row a') || {}).href || ''")
         check('D2 官方依据链接在场', 'microsoft.com' in str(src_link), str(src_link))
-        # v1.4.0 轮4 launcher 组（1025 文案重做：「一键直达」+按钮=动词「打开」，业界口径）：
+        # launcher 组（「一键直达」+按钮=动词「打开」）：
         # 卡上不出现等级徽章「绿色 · 安全可自动修」（开窗类辅助动作零安全声明）
         la_txt = str(cdp.eval("document.querySelector('#view-repair').innerText"))
         la_cnt = cdp.eval("document.querySelectorAll('.launcher-grid .action-card').length")
@@ -280,7 +280,7 @@ def main():
                 fs_txt = str(cdp.eval("document.querySelector('#fix-sense-card').innerText"))
                 check('F3 感知对比渲染', '问题数' in fs_txt and '改善' in fs_txt, fs_txt[:250])
                 check('F4 再查一次按钮在', '再查一次' in fs_txt)
-            # 自主迭代轮C：修复小史——修完切回修复中心，历史区在场且含本次动作
+            # 修复小史——修完切回修复中心，历史区在场且含本次动作
             cdp.eval("document.querySelector('[data-view=\"repair\"]').click()")
             time.sleep(1.2)
             rh_txt = str(cdp.eval("document.querySelector('#repair-hist')?.textContent || ''"))

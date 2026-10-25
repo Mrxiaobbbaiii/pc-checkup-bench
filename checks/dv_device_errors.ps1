@@ -4,7 +4,7 @@
 命令：Get-CimInstance Win32_PnPEntity（Name/ConfigManagerErrorCode/DeviceID，只读）；ErrorCode≠0=设备管理器带黄三角设备
 软码豁免（官方码表语义）：22=已被禁用、45=上次会话的残留记录→非故障态不进 FAIL
 高频码人话（官方码表内置）：10=无法启动、12=资源冲突、28=未安装驱动、31=无法正常工作、43=Windows 已因故障停用它；未收录码=「Code N（详见设备管理器属性页）」
-判定（design 十二节 5，施工单 v0.5 条目 5）：存在 ErrorCode∉{0,22,45} ≥1→FAIL 逐台点名；仅软码→PASS 附注；全 0→PASS 附设备总数；查询失败→SKIP
+判定：存在 ErrorCode∉{0,22,45} ≥1→FAIL 逐台点名；仅软码→PASS 附注；全 0→PASS 附设备总数；查询失败→SKIP
 mock 契约：逐行 `设备名 | ErrorCode`；首行 QUERY-ERROR=SKIP；空=SKIP（空结果物理上不可能=无数据非无故障）
 #>
 param([string]$MockRaw = '', [string]$MockFile = '')

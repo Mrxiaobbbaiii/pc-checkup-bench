@@ -2,7 +2,7 @@
 <#
 检查项：bs_code_frequency —— 同码复发判定（慢性病识别，层：attribution）
 命令：与 bs_event_history 同源（Get-WinEvent System Id=1001 近 90 天，只读），对码聚合计数
-判定：任一码 ≥2 次→FAIL（慢性病）；全部单次→PASS 附注；0 条→PASS；码书 JSON 损坏/缺失→SKIP 带证据（施工单完工问 1）
+判定：任一码 ≥2 次→FAIL（慢性病）；全部单次→PASS 附注；0 条→PASS；码书 JSON 损坏/缺失→SKIP 带证据
 码书联动：checks/bugcheck_codes.json 查到→suggestion 用其 name+cause+ref；查不到→如实写"未收录+官方查询法"（零瞎编）
 mock 契约：同 bs_event_history（逐行 `yyyy-MM-dd HH:mm | 0x00000139 | dump路径`）
 #>
@@ -11,7 +11,7 @@ if ($MockFile -ne '' -and $MockRaw -eq '') { $MockRaw = Get-Content -LiteralPath
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 
-# 码书加载（数据文件损坏→SKIP 不得崩，施工单完工问 1 的既定行为）
+# 码书加载（数据文件损坏→SKIP 不得崩的既定行为）
 $bookPath = if ($CodesFile -ne '') { $CodesFile } else { Join-Path $PSScriptRoot 'bugcheck_codes.json' }
 $book = $null
 try { $book = Get-Content -LiteralPath $bookPath -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $book = $null }

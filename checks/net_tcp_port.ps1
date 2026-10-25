@@ -2,7 +2,7 @@
 <#
 检查项：net_tcp_port —— 端口级连通（TCP 443）（层：wan；v1.2.0 片4）
 命令：[System.Net.Dns]::GetHostAddresses（只读解析）+ .NET TcpClient BeginConnect 3 秒超时（只读连接测试）
-判定（知识来源 §一未覆盖域#1：ICMP 不可靠时的权威替代）：域名解不出 → SKIP（断点更可能在 DNS 层，
+判定（ICMP 不可靠时的权威替代）：域名解不出 → SKIP（断点更可能在 DNS 层，
       不冤枉 WAN）；443 连不上 → FAIL（端口级实锤：能 ping 通也白搭的形态）；连上 → PASS
 mock 契约：
   RESOLVED | IP地址        或  RESOLVED | NONE

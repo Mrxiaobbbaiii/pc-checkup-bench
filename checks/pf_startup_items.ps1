@@ -2,7 +2,7 @@
 <#
 检查项：pf_startup_items —— 自启清单负担（层：startup）
 命令：Get-CimInstance Win32_StartupCommand（Name/Command/Location/User，官方 WMI 类一次拉全注册表 Run 键+启动文件夹，只读），对照 checks/pf_suspects.json 嫌疑名单（实证收录制，v0.4 空名单起步）
-判定（design 十一节 3）：命中名单→FAIL（附 label+advice）；总数>20→FAIL（附全清单+识别指引）；≤20→PASS 附清单+人话；查询失败→SKIP
+判定：命中名单→FAIL（附 label+advice）；总数>20→FAIL（附全清单+识别指引）；≤20→PASS 附清单+人话；查询失败→SKIP
 注：该类不反映任务管理器「已禁用」状态（StartupApproved 二进制无官方文档口径，不解读）——evidence 注明以任务管理器→启动应用页实际状态为准
 mock 契约：逐行 `Name | Location | Command`；空=SKIP
 #>

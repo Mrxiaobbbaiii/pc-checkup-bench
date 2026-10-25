@@ -7,9 +7,9 @@ diag engine v1.5.0 —— 推进器（PowerShell 5.1+ / 7 双兼容，大众普�
   -MockDir   模拟模式：目录内 <检查项名>.txt 作为该检查项的 MockRaw（模拟测试/演示用）
   -OpenReport 跑完自动用默认浏览器打开 HTML 报告（普及版双击场景用；v0.2.1 起替代记事本）
   -NoMenu    -TreeName all 时跳过中文菜单直接连跑五树（自动化用；-MockDir 非空时同样自动跳过）
-  -ProgressFile GUI 数据通路 B 案（拍板 9，默认关）：每完成一检查项向该文件追加一行 JSON 事件
+  -ProgressFile GUI 数据通路（默认关）：每完成一检查项向该文件追加一行 JSON 事件
              （event=check/tree_done/break/done；树/层/项名/状态/耗时；done 带退出码与报告路径）。stdout 零新增。
-  -JsonReport GUI 数据通路 B 案（拍板 9，默认关）：HTML 落盘同时多落一份 diag-<树>-<时间戳>.json
+  -JsonReport GUI 数据通路（默认关）：HTML 落盘同时多落一份 diag-<树>-<时间戳>.json
              （树→层→项 status/evidence/suggestion/detail 全量，与 HTML 同源结构；进 reports/ 50 份裁剪）。
 v0.5：-TreeName all=多树模式（依次跑 network/bluescreen/hardware/performance/drivers 五树出合并报告；
       菜单条件=all 且 MockDir 空且未带 -NoMenu，回车=连跑五树、1-5=单跑该树）；reports/ 保留最新 50 份自动裁剪。
@@ -35,7 +35,7 @@ $root = Split-Path $PSScriptRoot -Parent
 # 子进程解释器=当前解释器自身（5.1→powershell.exe / 7→pwsh.exe，双版本通吃）
 $diagPs = (Get-Process -Id $PID).Path
 
-# 数据根（1024 轮1-B，MSIX 适配）：商店版安装目录（...\WindowsApps\...）只读，报告等写产物必须外移到
+# 数据根（MSIX 适配）：商店版安装目录（...\WindowsApps\...）只读，报告等写产物必须外移到
 # %LOCALAPPDATA%\电脑体检台；Inno/lite/开发仓布局不变（数据根=应用根，行为零变化）。
 # 优先级：DIAG_DATA_ROOT 环境变量（server 注入/测试覆盖）> WindowsApps 探测 > $root。判定语义零碰，仅写盘位置。
 $dataRoot = $root
@@ -45,7 +45,7 @@ $reportsDir = Join-Path $dataRoot 'reports'
 # reports 目录自愈（发行包缺目录防御，幂等；不碰判定与输出）
 if (-not (Test-Path -LiteralPath $reportsDir)) { New-Item -ItemType Directory -Path $reportsDir -Force | Out-Null }
 
-# ---------- 总入口中文菜单（拍板 9：-TreeName all 且 MockDir 空且未带 -NoMenu 才显示，不卡自动化） ----------
+# ---------- 总入口中文菜单（-TreeName all 且 MockDir 空且未带 -NoMenu 才显示，不卡自动化） ----------
 $menuNames = @{ network = '网络体检'; bluescreen = '蓝屏体检'; hardware = '硬件体检'; performance = '性能体检'; drivers = '驱动体检' }
 if ($TreeName -eq 'all' -and $MockDir -eq '' -and -not $NoMenu) {
     $menuMap = @{ '1' = 'network'; '2' = 'bluescreen'; '3' = 'hardware'; '4' = 'performance'; '5' = 'drivers' }
@@ -74,7 +74,7 @@ if ($TreeName -eq 'all' -and $MockDir -eq '' -and -not $NoMenu) {
     }
 }
 
-# ---------- 进度事件流（B 案拍板 9，默认关：-ProgressFile 空则零副作用、零 stdout 新增） ----------
+# ---------- 进度事件流（默认关：-ProgressFile 空则零副作用、零 stdout 新增） ----------
 function Write-ProgressEvent {
     param([hashtable]$Fields)
     if ($ProgressFile -eq '') { return }
@@ -100,7 +100,7 @@ function Invoke-Check {
     param([string]$CheckName, [int]$TimeoutSec = 60, [string]$MockFile = '')
     $script = Join-Path $root "checks/$CheckName.ps1"
     if (-not (Test-Path $script)) { $script = Join-Path $root "ext/checks/$CheckName.ps1" }   # v1.1.0 ext 口子：内置优先，ext 只补缺，永不覆盖内置
-    if (-not (Test-Path $script)) { $script = Join-Path $dataRoot "ext/checks/$CheckName.ps1" }  # 1024 轮1-B：MSIX 用户 ext 检查脚本在数据根（与 server ext 树双目录扫描对齐；默认场景与上行同路径无害）
+    if (-not (Test-Path $script)) { $script = Join-Path $dataRoot "ext/checks/$CheckName.ps1" }  # MSIX 用户 ext 检查脚本在数据根（与 server ext 树双目录扫描对齐；默认场景与上行同路径无害）
     if (-not (Test-Path $script)) {
         return [PSCustomObject]@{ name = $CheckName; status = 'SKIP'; evidence = "check script missing: $script"; suggestion = ''; detail = @{ reason = 'missing-script' } }
     }
@@ -451,7 +451,7 @@ function New-MergedHtmlReport {
     return $h.ToString()
 }
 
-# ---------- JSON 结构化报告（B 案拍板 9，默认关：与 HTML 同源 layerResults，GUI 结果树数据源；禁解析 HTML 充数） ----------
+# ---------- JSON 结构化报告（默认关：与 HTML 同源 layerResults，GUI 结果树数据源；禁解析 HTML 充数） ----------
 function New-JsonPayload {
     param([array]$TreeEntries, [string]$HostName, [string]$Ts)
     $trees = @()
@@ -477,7 +477,7 @@ function New-JsonPayload {
     return [ordered]@{ engine = "电脑体检台 v$engVersion"; host = $HostName; time = $Ts; trees = $trees }
 }
 
-# ---------- reports/ 保留策略（拍板 11：diag-* 的 .html/.txt/.md/.json 保留最新 50 份） ----------
+# ---------- reports/ 保留策略（diag-* 的 .html/.txt/.md/.json 保留最新 50 份） ----------
 function Trim-Reports {
     $repDir = $reportsDir
     if (-not (Test-Path $repDir)) { return }
@@ -493,7 +493,7 @@ function Trim-Reports {
     }
 }
 
-# ---------- 多树模式（拍板 10：-TreeName all；单树执行路径零改动） ----------
+# ---------- 多树模式（-TreeName all；单树执行路径零改动） ----------
 if ($TreeName -eq 'all') {
     $treesOrder = @('network', 'bluescreen', 'hardware', 'performance', 'drivers')
     $treeDatas = @{}

@@ -32,7 +32,7 @@ foreach ($case in $global:DiagCases) {
     $scriptFile = Join-Path $root ("checks/" + $case.check + ".ps1")
     $mockTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-mock-unit-$PID-" + $global:DiagCaseIdx + '.txt')
     Set-Content -Path $mockTmp -Value $case.mock -Encoding UTF8
-    # 可选：注入损坏的码书/名单 JSON，验证检查项 SKIP 路径（施工单 v0.2 完工问 1）
+    # 可选：注入损坏的码书/名单 JSON，验证检查项 SKIP 路径
     $exArgs = @(); $tmpJsons = @()
     if ($case.mockCodesJson) {
         $cj = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-mock-codes-$PID-" + $global:DiagCaseIdx + '.json')
@@ -112,7 +112,7 @@ foreach ($scen in $global:DiagScenarios) {
     else { Add-Result 'scenario' $scen.name '' $true }
 }
 
-# ---------- ③ B 案输出层用例（v0.6：-ProgressFile/-JsonReport；临时仓跑 engine，主仓 reports 零污染） ----------
+# ---------- ③ 输出层用例（-ProgressFile/-JsonReport；临时仓跑 engine，主仓 reports 零污染） ----------
 foreach ($bc in $global:DiagBCases) {
     $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-b-" + $bc.name + "-" + $PID)
     if (Test-Path $tmpRoot) { Remove-Item $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue }
@@ -259,7 +259,7 @@ foreach ($xc in $global:DiagExtCases) {
     Remove-Item $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-# ---------- ⑥ 数据根用例（1024 轮1-B：MSIX 写路径外移；临时仓跑 engine，主仓 reports 零污染） ----------
+# ---------- ⑥ 数据根用例（MSIX 写路径外移；临时仓跑 engine，主仓 reports 零污染） ----------
 $drCleanMocks = ($global:DiagScenarios | Where-Object { $_.name -eq 'full_pass_all_green' }).mocks
 foreach ($dc in $global:DiagDataRootCases) {
     $prevDataRoot = $env:DIAG_DATA_ROOT

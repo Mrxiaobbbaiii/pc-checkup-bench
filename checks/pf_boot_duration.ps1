@@ -2,7 +2,7 @@
 <#
 检查项：pf_boot_duration —— 开机时长（层：boot）
 命令：Get-WinEvent 'Microsoft-Windows-Diagnostics-Performance/Operational' id=100 近 5 次（Windows 每次开机自动记一条，EventData 含 BootTime 毫秒；慢启动时 Level 由 Windows 按官方阈值自动升 Warning/Critical——只读）
-判定（design 十一节 1）：近 5 次 Warning/Critical ≥2→FAIL；均值>60000ms→FAIL（60s=工程线）；均值 30000-60000→PASS 附注「偏慢」；<30000→PASS；日志不存在/无 100 事件/查询失败→SKIP
+判定：近 5 次 Warning/Critical ≥2→FAIL；均值>60000ms→FAIL（60s=工程线）；均值 30000-60000→PASS 附注「偏慢」；<30000→PASS；日志不存在/无 100 事件/查询失败→SKIP
 mock 契约：逐行 `MM-dd | Level | BootMs`（Level=Warning/Critical/Error/Information）；空=SKIP
 语言无关：BootTime 从 ToXml() 的 EventData 抓（不靠消息文案）；Level 用数值 1/2/3=Critical/Error/Warning（标记级）、4=Information。
 #>
