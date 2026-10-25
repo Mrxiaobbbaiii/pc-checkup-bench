@@ -88,7 +88,7 @@ if ($Setup) {
 
     # 步骤 4（1024 轮2-B 哈希公示）：出包即写 .sha256 旁文件 + RELEASES.md 累积台账（分发完整性）
     $sha = (Get-FileHash -LiteralPath $setupFiles[0].FullName -Algorithm SHA256).Hash
-    [System.IO.File]::WriteAllText(($setupFiles[0].FullName + '.sha256'), ($sha + '  ' + $setupFiles[0].Name + "`r`n"), (New-Object System.Text.UTF8Encoding($true)))
+    [System.IO.File]::WriteAllText(($setupFiles[0].FullName + '.sha256'), ($sha + '  ' + $setupFiles[0].Name + "`r`n"), (New-Object System.Text.UTF8Encoding($false)))
     $relLog = Join-Path $buildDir 'RELEASES.md'
     $relLine = ("| {0} | {1} | {2} | {3} |" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $setupFiles[0].Name, $setupFiles[0].Length, $sha)
     if (-not (Test-Path $relLog)) {
@@ -153,5 +153,5 @@ Write-Host "BUILD OK: $outZip"
 
 # 哈希公示（1024 轮2-B）：lite zip 同样出 .sha256 旁文件
 $zipSha = (Get-FileHash -LiteralPath $outZip -Algorithm SHA256).Hash
-[System.IO.File]::WriteAllText(($outZip + '.sha256'), ($zipSha + '  ' + (Split-Path $outZip -Leaf) + "`r`n"), (New-Object System.Text.UTF8Encoding($true)))
+[System.IO.File]::WriteAllText(($outZip + '.sha256'), ($zipSha + '  ' + (Split-Path $outZip -Leaf) + "`r`n"), (New-Object System.Text.UTF8Encoding($false)))
 Write-Host ("HASH PUBLISHED: {0}" -f $zipSha)
