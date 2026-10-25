@@ -2,6 +2,18 @@
 
 > 历史卷分出（1024 拍板）：第一～二十四切片（v0.1～v1.0.1，2026-10-19～22）= archive/CHANGELOG-历史卷-v0.1-至-v1.0.1.md
 
+## 2026-10-25 v1.4.0 发版片·✅毕（第三十四切片；用户口径「宝宝巴士+权威溯源」四轮+文案活人感重做；判定层零碰）
+
+**总目标**（用户原话）：「深度优化诊断和修复功能，更加倾向宝宝巴士版——尽量减少用户动手的部分；必须动手的部分步骤极度详细同时零废话」+「修复库权威溯源」。
+**轮1（commit e384d24）「先修这个」根因关联行动区**：结果页新增 CORR_RULES 纯前端规则表（7 条：磁盘将坏/过滤驱动/DNS/驱动残留/内存供电/代理/开机负担），同一元凶多项 FAIL 合并成一个行动项（如 bs_suspect_drivers+dv_network_filters+bs_code_frequency→「一个根因：网络过滤驱动在捣乱」），排序=收益 gain×把握 conf÷风险 risk 手工标定（非纯严重度）；牵连项 chips 跳详情；行动项一键跳修复卡（focusActionCard 按动作 id 锚卡）；单项 FAIL 全兜底（有动作跳卡/无动作跳说明，禁静默断链）。ui_test 28→31（C7/C8/C9）。
+**轮2（commit d08baac）宝宝巴士五要素改造**：全部 8 张红卡 steps 升级 how 结构{在哪（精确到键：Win+X/Win+R/入口路径）/点什么（界面原文照抄+英文对照）/输入什么（可复制命令值）/看到什么算成功（一句）/这步失败了先（一句）}，零解释性文字；dv_filter_handling 第 4 步拆上下两步（pnputil enum 抄编号→delete 删）；UI 红卡指南弹层+整段复制（guideTextFor）同步五要素渲染；advice 点改 3 项 suggestion 补【怎么开/看到什么算成功/这步失败了先】（hw_disk_errors/pf_startup_items/net_df_ping，断言关键词 chkdsk/识别/1492 全保留）。**红卡实为 8 张非 5 张（net_hosts_clean=common 红卡漏网）——由轮3 新断言首跑实抓后补齐（机器拦第一次真实拦截）**。
+**轮3（commit e175861）权威溯源工程**：①23 动作 JSON 全带 sources 字段（35+枚候选 URL 三轮批量 HTTP 200 实测考证入库；learn 四枚路径迁移页以 WebSearch 搜定新口径：w32tm→networking 分册/net→troubleshoot 分册/powercfg→device-experiences 分册/7000-7011→troubleshoot 分册；ie4uinit 无微软专文→learn 问答域最接近+标注）；②coverage.json 18 条 advice 补官方 source，pf_app_crashes advice→card（新卡认领）；③上棒两张缺口卡兑现：pf_app_crashes_card（崩溃王应用五要素处置+内存诊断分支）+dv_display_residue_card（显卡驱动残留五要素处置+DDU 类工具禁用警示）；④知识来源.md 新增 §七修复层溯源账本（指针制；文件现 ~17KB 超预警线=指针制活数据沿用片4 口径挂 11-01 月审）；⑤tests +4：rep_sources（动作+advice 双面 sources 断言）/rep_how_steps（红卡五要素机器拦）/rep_red_×2（新红卡 load 拒绝）；⑥UI 动作卡渲染「官方依据」链接行。
+**轮4（commit fc6d726）launcher 帮开窗组**：8 个绿级零修改动作（系统保护页/设备管理器/应用与功能/网络适配器/服务/Windows 更新/可选更新/启动应用），requires_admin=false 点击即开窗零弹窗，复用绿级执行链零 server 改动；tests +1 rep_launcher 静态契约（green+免提权+common+match 空+cmd /c start+目标白名单=「只开窗零修改」机器拦）。
+**文案活人感重做（commit c957558，用户实锤「帮你打开个设备管理器都说绿色安全可修，活人感不够」→派搜索代理业界调研后定稿）**：launcher 区改「一键直达系统窗口」口径——按钮=动词「打开」（微软 WAC/Win32 文案指南：按钮名=用户动作的动词）；卡上零等级徽章/零安全声明/零撤销说明（微软 support/CCleaner/Geek/微软电脑管家开窗类文案均无此字样；微软指南明确确认框仅留数据丢失级场景）；说明收敛一句且每卡不同；中文业界惯用词「一键直达」（微软电脑管家/360/联想）；launcher 专用精简卡 buildLauncherCard 不复用修复卡模板；成功反馈「✓ 已打开」不再「✓ 修好了」；两张新红卡 how.at 引用同步；ui_test D3 改口径+新增 D4（按钮=打开）/D5（卡面零安全声明）。
+**版本收口+出包（commit a44fef3+文案轮重出）**：主真源四处（engine $engVersion/server $webVersion/ui APP_VERSION+RELEASE_NOTES/index ver-chip）+tests 三断言（cases_b banner/run_tests dataroot/ui_test A3）+build.ps1+installer iss+lite 附带件（使用说明【版本】段新增 v1.4.0 行旧版归档/全面体检.bat/ext README/一键装卸 bat）全升 v1.4.0；lite 主源双写逐字节同。出包：**电脑体检台-setup-v1.4.0.exe 4893976B+sha256 472F1948EB3471195096BF099B6E6A36FCB8B9419190142623B9C5FDC1B68B37**；diag-lite-v1.4.0.zip+sha256 B867BC38E34E252B3728A950A350896C85AAAC8755AB8732FB6AE976AE4E82EB。
+**验收读数**：①真机全量审计（一次性脚本跑完即删）：本机本轮 13 项 FAIL（较零号报告 15 项=本机数据波动非断链）→「先修这个」全链路覆盖 **13/13 零 DEAD-END**，两条根因合并项真命中（过滤驱动 3 项/内存供电 3 项）；②tests **205→210 × 5.1+pwsh7 双版本全绿**；ui_test **28→35 全绿**；③guicheck-flash 真机两轮：首轮 6/6 PASS（更新弹窗单次/先修这个区+根因合并项+跳转/五要素弹层全文/launcher 开窗 devmgmt 实开+零弹窗/官方依据行/净退零残留），文案重做后轻验 4/4 PASS（新节标题/卡面零安全声明/按钮「打开」+「✓已打开」反馈/8 卡说明零模板重复；UNCLEAR=对勾字形渲染差异非缺陷）。
+**挂账**：GitHub 发布棒（中英双语 README+release 挂 setup+CHANGELOG 隐私预审，上棒用户已拍板仍待启动）；知识来源.md 超预警线 11-01 月审；无降级名单（红级零降级，本棒零红降绿）。
+
 ## 2026-10-24 v1.3.0 发版片·✅毕（第三十三切片；用户令「要钱的不干」+免费 token 自主迭代：轮A/B/C 三功能+打磨/极简两轮+真 bug 根修+版本收口出包；判定层零碰）
 
 **拍板**：MSIX 商店链（PartnerCenter 19 美元）与代码签名证书（年费级）两挂账正式砍掉——SmartScreen 首装警告由文案教点法兜底；免费迭代三件+发版 v1.3.0。
