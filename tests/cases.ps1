@@ -355,8 +355,8 @@ NONE
 '@ },
 
     # ---------- 15. bs_suspect_drivers（嫌疑驱动） ----------
-    @{ check = 'bs_suspect_drivers'; note = 'nnndisfilter Running(给梨命中)'
-       expectStatus = 'FAIL'; expectEvidenceKeyword = '给梨'; expectSuggestionKeyword = '卸载'
+    @{ check = 'bs_suspect_drivers'; note = 'nnndisfilter Running(某加速器命中)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '某加速器'; expectSuggestionKeyword = '卸载'
        mock = @'
 nnndisfilter | Running | C:\Windows\system32\drivers\nnndisfilter.sys
 HTTP | Stopped | C:\Windows\system32\drivers\HTTP.sys
@@ -711,7 +711,7 @@ E: | 100 | 8 | -
     @{ check = 'dv_driver_signature'; note = 'NotSigned 1 个+Valid 3 个(来路不明)'
        expectStatus = 'FAIL'; expectEvidenceKeyword = 'NotSigned'; expectSuggestionKeyword = '蓝屏高发源'
        mock = @'
-nnndisfilter | 给梨科技 | NotSigned | C:\Windows\System32\drivers\nnndisfilter.sys
+nnndisfilter | 示例科技 | NotSigned | C:\Windows\System32\drivers\nnndisfilter.sys
 nvlddmkm | NVIDIA | Valid | C:\Windows\System32\drivers\nvlddmkm.sys
 rt630x64 | Realtek | Valid | C:\Windows\System32\drivers\rt630x64.sys
 vgk | Riot Games | Valid | C:\Windows\System32\drivers\vgk.sys
@@ -789,9 +789,9 @@ s360c | 360 | C:\Windows\System32\drivers\s360c.sys
 s360d | 360 | C:\Windows\System32\drivers\s360d.sys
 s360e | 360 | C:\Windows\System32\drivers\s360e.sys
 s360f | 360 | C:\Windows\System32\drivers\s360f.sys
-gli1 | 给梨科技 | C:\Windows\System32\drivers\gli1.sys
-gli2 | 给梨科技 | C:\Windows\System32\drivers\gli2.sys
-gli3 | 给梨科技 | C:\Windows\System32\drivers\gli3.sys
+gli1 | 示例科技 | C:\Windows\System32\drivers\gli1.sys
+gli2 | 示例科技 | C:\Windows\System32\drivers\gli2.sys
+gli3 | 示例科技 | C:\Windows\System32\drivers\gli3.sys
 vm1 | VMware | C:\Windows\System32\drivers\vm1.sys
 vm2 | VMware | C:\Windows\System32\drivers\vm2.sys
 vm3 | VMware | C:\Windows\System32\drivers\vm3.sys
@@ -857,21 +857,21 @@ QUERY-ERROR
     @{ check = 'dv_network_filters'; note = '4 层第三方+2 行 ms_ 干扰(微软前缀豁免)'
        expectStatus = 'FAIL'; expectEvidenceKeyword = 'nnndisfilter'; expectSuggestionKeyword = '过滤'
        mock = @'
-nnndisfilter | 给梨 NDIS 过滤 | True
+nnndisfilter | 示例 NDIS 过滤 | True
 360Firewall | 360 网络过滤 | True
 xxproxy | XX 代理过滤 | True
 vNano | 虚拟网卡 | True
 ms_tcpip | TCP/IPv4 | True
 ms_msclient | 网络客户端 | True
 '@ },
-    @{ check = 'dv_network_filters'; note = '1 层给梨+名单注入(PASS 附注点名)'
-       expectStatus = 'PASS'; expectEvidenceKeyword = '给梨加速器'
+    @{ check = 'dv_network_filters'; note = '1 层示例+名单注入(PASS 附注点名)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '某加速器'
        mock = @'
-nnndisfilter | 给梨 NDIS 过滤 | True
+nnndisfilter | 示例 NDIS 过滤 | True
 ms_tcpip | TCP/IPv4 | True
 offfilter | 已停用的过滤 | False
 '@
-       mockSuspectsJson = '{"suspects":[{"pattern":"nnndisfilter","label":"给梨加速器捆绑的 NDIS 网络过滤驱动(测试)","advice":"卸载给梨本体。回滚：重装即可"}]}' },
+       mockSuspectsJson = '{"suspects":[{"pattern":"nnndisfilter","label":"某加速器捆绑的 NDIS 网络过滤驱动(测试)","advice":"卸载该加速器本体。回滚：重装即可"}]}' },
     @{ check = 'dv_network_filters'; note = '仅 ms_ 行(0 层)'
        expectStatus = 'PASS'; expectEvidenceKeyword = '0 层'
        mock = @'

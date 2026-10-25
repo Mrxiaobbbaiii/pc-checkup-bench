@@ -210,7 +210,7 @@ $global:DiagScenarios += @(
            bs_suspect_drivers       = $bsDriversClean
        } }
     @{ name = 'bs_local_case'; tree = 'bluescreen'; full = $true; expectExit = 2
-       keywords = @('隐患结论', '给梨', '0x139', '蓝屏史')
+       keywords = @('隐患结论', '某加速器', '0x139', '蓝屏史')
        mocks    = @{
            bs_event_history         = $bs139x3
            bs_powerloss_distinction = $bsPowerlossPaired
@@ -285,7 +285,7 @@ rt630x64 | Realtek | Valid | C:\Windows\System32\drivers\rt630x64.sys
 '@
 
 $dvSigBad = @'
-nnndisfilter | 给梨科技 | NotSigned | C:\Windows\System32\drivers\nnndisfilter.sys
+nnndisfilter | 示例科技 | NotSigned | C:\Windows\System32\drivers\nnndisfilter.sys
 nvlddmkm | NVIDIA | Valid | C:\Windows\System32\drivers\nvlddmkm.sys
 rt630x64 | Realtek | Valid | C:\Windows\System32\drivers\rt630x64.sys
 '@
@@ -306,7 +306,7 @@ newdrv | NVIDIA | 2024-03-14 | C:\Windows\System32\drivers\newdrv.sys
 '@
 
 $dvInv8 = (@(1..8) | ForEach-Object { 'ok{0} | Co{1} | C:\Windows\System32\drivers\ok{0}.sys' -f $_, ($_ % 3 + 1) }) -join "`n"
-$dvInv35 = (@(1..35) | ForEach-Object { 'tp{0} | {1} | C:\Windows\System32\drivers\tp{0}.sys' -f $_, @('NVIDIA', '360', '给梨科技', 'VMware', 'Realtek')[($_ - 1) % 5] }) -join "`n"
+$dvInv35 = (@(1..35) | ForEach-Object { 'tp{0} | {1} | C:\Windows\System32\drivers\tp{0}.sys' -f $_, @('NVIDIA', '360', '示例科技', 'VMware', 'Realtek')[($_ - 1) % 5] }) -join "`n"
 
 $dvFiltersClean = @'
 ms_tcpip | TCP/IPv4 | True
@@ -314,7 +314,7 @@ ms_msclient | 网络客户端 | True
 '@
 
 $dvFilters4 = @'
-nnndisfilter | 给梨 NDIS 过滤 | True
+nnndisfilter | 示例 NDIS 过滤 | True
 360Firewall | 360 网络过滤 | True
 xxproxy | XX 代理过滤 | True
 vNano | 虚拟网卡 | True

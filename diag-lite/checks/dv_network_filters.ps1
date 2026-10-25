@@ -5,7 +5,7 @@
 名单标注：可选加载 checks/bs_suspects.json（-SuspectsFile 参数同 bs_suspect_drivers 先例）；ComponentID 或 DisplayName 包含 pattern→evidence 该行附 `<- label`；文件缺失/损坏→不标注不崩（通用文案照常）
 判定（design 十二节 4，施工单 v0.5 条目 4）：去重后 ≥3→FAIL；1-2→PASS 附注点名；0→PASS；cmdlet 不可用/无适配器→SKIP。3 层线=工程线
 mock 契约：逐行 `ComponentID | DisplayName | Enabled`（Enabled 写 True/False，False 行验证不计数）；首行 NO-CMDLET=SKIP；空=SKIP
-交叉锚：给梨 nnndisfilter 属 NDIS 过滤驱动，在装则必现于绑定链→与蓝屏树证据一致。
+交叉锚：nnndisfilter 属 NDIS 过滤驱动，在装则必现于绑定链→与蓝屏树证据一致。
 #>
 param([string]$MockRaw = '', [string]$MockFile = '', [string]$SuspectsFile = '')
 if ($MockFile -ne '' -and $MockRaw -eq '') { $MockRaw = Get-Content -LiteralPath $MockFile -Raw -Encoding UTF8 }

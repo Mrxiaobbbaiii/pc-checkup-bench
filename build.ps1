@@ -77,12 +77,12 @@ if ($Setup) {
         if (-not (Test-Path -LiteralPath (Join-Path $staging $f))) { throw "staging incomplete: $f" }
     }
 
-    # 步骤 3：ISCC 出 setup.exe（中文文件名由 .iss 的 OutputBaseFilename 决定）
+    # 步骤 3：ISCC 出 setup.exe（文件名由 .iss 的 OutputBaseFilename 决定，1025 起英文化）
     & $iscc (Join-Path $sroot 'installer\diag-setup.iss')
     if ($LASTEXITCODE -ne 0) { throw "ISCC failed: $LASTEXITCODE" }
     # 注：本行曾用「Get-ChildItem ... | Select-Object -First 1」管道式在脚本内稳定报
     # 「FileInfo→SwitchParameter 绑定错」（单独复现不报、BOM 正常，根因未定案）——改数组式绕行，语义不变。
-    $setupFiles = @(Get-ChildItem -Path (Join-Path $sroot 'build') -Filter '*setup-v1.4.0.exe')
+    $setupFiles = @(Get-ChildItem -Path (Join-Path $sroot 'build') -Filter 'PC-CheckupBench-setup-v*.exe')
     if ($setupFiles.Count -ne 1 -or $setupFiles[0].Length -lt 1000000) { throw 'setup.exe missing or suspiciously small' }
     Write-Host ("SETUP BUILD OK: {0} ({1} bytes)" -f $setupFiles[0].Name, $setupFiles[0].Length)
 

@@ -128,7 +128,7 @@ if ($bad.Count -ge 1) {
     $status = 'FAIL'
     $badLines = ($bad | ForEach-Object { '{0}: {1} ({2})' -f $_.sig, $_.file, $_.dir }) -join "`n"
     $evidence = "$cmdTag`n$statLine$extra`n$badLines"
-    $suggestion = "有 $($bad.Count) 个来路不明的驱动正在内核运行（未签名/签名损坏）=蓝屏高发源。按点名文件名搜所属软件，去 设置→应用 卸载对应软件（已知对照：nnndisfilter.sys=给梨加速器捆绑驱动，公开收录的蓝屏嫌疑驱动；目录签名类正规厂商驱动被判 NotSigned 属已知边界）。`n【修复命令，请自己执行】无（设置→应用 卸载对应软件）`n【回滚】需要时重新安装该软件"
+    $suggestion = "有 $($bad.Count) 个来路不明的驱动正在内核运行（未签名/签名损坏）=蓝屏高发源。按点名文件名搜所属软件，去 设置→应用 卸载对应软件（已知对照：nnndisfilter.sys=某加速器捆绑驱动，公开收录的蓝屏嫌疑驱动；目录签名类正规厂商驱动被判 NotSigned 属已知边界）。`n【修复命令，请自己执行】无（设置→应用 卸载对应软件）`n【回滚】需要时重新安装该软件"
 } elseif ($unusual.Count -ge 1) {
     $status = 'PASS'
     $unLines = ($unusual | ForEach-Object { '{0} ({1})' -f $_.file, $_.sig }) -join '、'
