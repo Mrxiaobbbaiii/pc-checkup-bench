@@ -239,8 +239,8 @@ const CORR_RULES = [
     gain: 4, risk: 1.5, conf: 0.85, target: { action: 'net_dns_public_set' } },
   { id: 'driver_residue', title: '一个方向：设备驱动有残留或没装好', minHits: 2,
     checks: ['dv_driver_load_failures', 'dv_device_errors'],
-    why: '驱动加载失败和设备报错同时出现，常见于换过硬件/重装系统后驱动没清干净。先重扫设备，再按显卡残留卡清理。',
-    gain: 4, risk: 3, conf: 0.7, target: { action: 'dv_device_rescan' } },
+    why: '驱动加载失败和设备报错同时出现，常见于换过硬件/重装系统后驱动没清干净。按显卡残留处置卡清理，再装官网驱动。',
+    gain: 4, risk: 3, conf: 0.7, target: { action: 'dv_display_residue_card' } },
   { id: 'mem_hw', title: '一个方向：内存或供电不稳', minHits: 2,
     checks: ['bs_whea_hardware', 'hw_memdiag_history', 'pf_app_crashes'],
     why: '硬件报错记录和多应用崩溃同时出现，优先怀疑内存（跑一次内存诊断），笔记本再查电池供电。',
@@ -1377,10 +1377,28 @@ function stepCmdText(st) {
 }
 
 /* 问题修复置顶（绿/黄 → 红 → 自己动手），常用修复折叠到最后。同一动作只渲染一次。 */
+/* launcher 组（v1.4.0 轮4）：「帮你打开正确的窗口」绿级零修改动作——只拉起系统窗口并指路，
+   不改任何设置；单列一节常驻（不依赖体检结果），给红卡手动步骤配套「在哪」这一步减负。 */
+function appendLauncherFold(box, launcherActs) {
+  if (!launcherActs.length) return;
+  const sec = document.createElement('div');
+  sec.className = 'rep-sec';
+  sec.textContent = '帮你打开正确的窗口（只开窗，不改任何设置）';
+  box.appendChild(sec);
+  const note = document.createElement('div');
+  note.className = 'rep-sec-note';
+  note.textContent = '红色指南卡里说「去设置 / 设备管理器 / 服务」的，先点这里的按钮帮你把窗口打开，再照步骤点。';
+  box.appendChild(note);
+  const wrap = document.createElement('div');
+  wrap.className = 'launcher-grid';
+  launcherActs.forEach((a) => wrap.appendChild(buildActionCard(a, [])));
+  box.appendChild(wrap);
+}
 function buildRepairList() {
   const box = $('#repair-list');
   if (!box) return;
-  const commons = (S.repairActions || []).filter((a) => a.common);
+  const commons = (S.repairActions || []).filter((a) => a.common && !a.launcher);
+  const launchers = (S.repairActions || []).filter((a) => a.launcher);
   const appendCommonsFold = () => {
     if (!commons.length) return;
     const fold = document.createElement('details');
@@ -1396,16 +1414,17 @@ function buildRepairList() {
     box.appendChild(fold);
   };
 
-  // 没报告：只展示常用修复（折叠），不冒充「查出来的问题」
+  // 没报告：launcher 帮开窗 + 常用修复折叠（都不依赖体检结果），不冒充「查出来的问题」
   if (!S.reportPayload) {
     box.innerHTML = '';
     const c0 = $('#ri-count'); if (c0) c0.textContent = '';
     const ph = document.createElement('div');
     ph.className = 'placeholder';
     ph.textContent = commons.length
-      ? '还没跑体检。跑完一轮，查出的问题会按严重度列在这里；下面的常用修复不用体检也能用。'
+      ? '还没跑体检。跑完一轮，查出的问题会按严重度列在这里；下面这些不用体检也能用。'
       : '还没有检查结果——先去「体检向导」跑一轮。';
     box.appendChild(ph);
+    appendLauncherFold(box, launchers);
     appendCommonsFold();
     return;
   }
@@ -1431,6 +1450,7 @@ function buildRepairList() {
     ph.className = 'placeholder';
     ph.textContent = '这一轮体检没有查出需要动手的问题。';
     box.appendChild(ph);
+    appendLauncherFold(box, launchers);
     appendCommonsFold();
     return;
   }
@@ -1491,6 +1511,7 @@ function buildRepairList() {
       box.appendChild(item);
     });
   }
+  appendLauncherFold(box, launchers);
   appendCommonsFold();
 }
 
@@ -1536,6 +1557,28 @@ function buildActionCard(a, hits) {
     row.appendChild(kEl); row.appendChild(vEl);
     card.appendChild(row);
   });
+
+  /* 权威溯源（v1.4.0 轮3）：动作卡展示官方依据链接——修复方法可溯源，禁「信我」式黑箱 */
+  if (a.sources && a.sources.length) {
+    const row = document.createElement('div');
+    row.className = 'ac-row src-row';
+    const kEl = document.createElement('span');
+    kEl.className = 'ac-key';
+    kEl.textContent = '官方依据';
+    const vEl = document.createElement('span');
+    vEl.className = 'ac-val';
+    a.sources.forEach((s, i) => {
+      if (i) vEl.appendChild(document.createElement('br'));
+      const link = document.createElement('a');
+      link.href = s.url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = s.title;
+      vEl.appendChild(link);
+    });
+    row.appendChild(kEl); row.appendChild(vEl);
+    card.appendChild(row);
+  }
 
   const fold = document.createElement('details');
   fold.className = 'steps-fold';

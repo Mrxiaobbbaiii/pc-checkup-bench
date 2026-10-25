@@ -11,7 +11,10 @@
   "steps": [
     {
       "exe": "cmd.exe",
-      "args": ["/c", "powershell -NoProfile -ExecutionPolicy Bypass -Command $as=@(Get-NetAdapter -Physical); foreach($a in $as){ if($a.Status -eq 'Up'){ Set-DnsClientServerAddress -InterfaceIndex $a.ifIndex -ServerAddresses @('223.5.5.5','119.29.29.29') } }; Write-Output 'dns set'"],
+      "args": [
+        "/c",
+        "powershell -NoProfile -ExecutionPolicy Bypass -Command $as=@(Get-NetAdapter -Physical); foreach($a in $as){ if($a.Status -eq 'Up'){ Set-DnsClientServerAddress -InterfaceIndex $a.ifIndex -ServerAddresses @('223.5.5.5','119.29.29.29') } }; Write-Output 'dns set'"
+      ],
       "desc": "用管理员 PowerShell 把已连接网卡的 DNS 改成 223.5.5.5 / 119.29.29.29",
       "display": "自动执行"
     }
@@ -19,7 +22,10 @@
   "backup_steps": [
     {
       "exe": "cmd.exe",
-      "args": ["/c", "powershell -NoProfile -ExecutionPolicy Bypass -Command $as=@(Get-NetAdapter -Physical); $o=@(); foreach($a in $as){ $s=@((Get-DnsClientServerAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv4).ServerAddresses); $o+=@{ifIndex=$a.ifIndex;name=$a.Name;servers=$s} }; $json=ConvertTo-Json -InputObject @($o) -Compress; Set-Content -LiteralPath '{BK}\\dns-backup.json' -Value $json -Encoding UTF8; Write-Output ('backup ' + @($o).Count + ' adapters')"],
+      "args": [
+        "/c",
+        "powershell -NoProfile -ExecutionPolicy Bypass -Command $as=@(Get-NetAdapter -Physical); $o=@(); foreach($a in $as){ $s=@((Get-DnsClientServerAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv4).ServerAddresses); $o+=@{ifIndex=$a.ifIndex;name=$a.Name;servers=$s} }; $json=ConvertTo-Json -InputObject @($o) -Compress; Set-Content -LiteralPath '{BK}\\dns-backup.json' -Value $json -Encoding UTF8; Write-Output ('backup ' + @($o).Count + ' adapters')"
+      ],
       "desc": "备份当前每块网卡的 DNS 原值",
       "display": "自动备份到临时目录"
     }
@@ -30,7 +36,18 @@
     "powershell -NoProfile -ExecutionPolicy Bypass -Command $b=@(ConvertFrom-Json -InputObject (Get-Content -LiteralPath '{BK}\\dns-backup.json' -Raw)); foreach($e in $b){ if(@($e.servers).Count -gt 0){ Set-DnsClientServerAddress -InterfaceIndex $e.ifIndex -ServerAddresses @($e.servers) } else { Set-DnsClientServerAddress -InterfaceIndex $e.ifIndex -ResetServerAddresses } }; Write-Output 'dns restored'"
   ],
   "timeout_sec": 60,
-  "match_checks": ["net_dns_deadaddr"],
-  "verify_checks": ["net_dns_deadaddr", "net_dns_public"],
-  "caveat": "路由器自身故障、VPN/虚拟机网卡的 DNS 不在处理范围；如果原 DNS 是路由器自动下发的，撤销后会恢复成自动获取。"
+  "match_checks": [
+    "net_dns_deadaddr"
+  ],
+  "verify_checks": [
+    "net_dns_deadaddr",
+    "net_dns_public"
+  ],
+  "caveat": "路由器自身故障、VPN/虚拟机网卡的 DNS 不在处理范围；如果原 DNS 是路由器自动下发的，撤销后会恢复成自动获取。",
+  "sources": [
+    {
+      "title": "Set-DnsClientServerAddress 官方 cmdlet 参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/dnsclient/set-dnsclientserveraddress"
+    }
+  ]
 }

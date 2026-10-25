@@ -9,7 +9,11 @@
   "prechecks": [],
   "steps": [
     {
-      "exe": "cmd.exe", "args": ["/c", "mdsched"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "mdsched"
+      ],
       "desc": "第 1 步（WHEA 线索·查内存）：跑一次 Windows 内存诊断（重启自检 10-30 分钟，先保存手头工作）",
       "how": {
         "at": "键盘按 Win+R → 屏幕左下角弹出小输入框",
@@ -20,7 +24,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "powercfg /batteryreport"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "powercfg /batteryreport"
+      ],
       "desc": "第 2 步（掉电线索·查电池供电，笔记本做；台式机跳过，直接查电源线/插座/电源功率）",
       "how": {
         "at": "键盘按 Win+X → 点「终端(管理员)」→ 蓝色确认框点「是」",
@@ -31,7 +39,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "start ms-settings:appsfeatures"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start ms-settings:appsfeatures"
+      ],
       "desc": "第 3 步（软件侧配合）：停用超频/调频类工具，观察一周",
       "how": {
         "at": "键盘按 Win+I 打开「设置」",
@@ -42,7 +54,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "start devmgmt.msc"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start devmgmt.msc"
+      ],
       "desc": "第 4 步（验证收口）：重跑体检看计数",
       "how": {
         "at": "处理完重启电脑，打开「电脑体检台」",
@@ -57,6 +73,24 @@
   "rollback_note": "内存诊断只读零改动；重插的内存插回原位即恢复；停用的软件重装/重启即恢复",
   "timeout_sec": 30,
   "caveat": "官方依据：微软 Bug Check 码总参考与 WHEA-Logger 事件文档（learn.microsoft.com windows-hardware debugger 分册）。反复蓝屏且代码固定→配合「系统组件修复」卡（sfc/DISM）与「非微软驱动三色分诊」卡；dump 还在的=可送深度分析（报告现场层）。",
-  "match_checks": ["bs_powerloss_distinction", "bs_whea_hardware", "hw_memdiag_history"],
-  "verify_checks": []
+  "match_checks": [
+    "bs_powerloss_distinction",
+    "bs_whea_hardware",
+    "hw_memdiag_history"
+  ],
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "Bug Check 代码总参考官方文档（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-code-reference2"
+    },
+    {
+      "title": "微软官方蓝屏修复指南：内存诊断工具用法（mdsched，Microsoft Support）",
+      "url": "https://support.microsoft.com/en-us/windows/experience/performance-optimization/how-to-fix-error-0xa-irql-not-less-or-equal"
+    },
+    {
+      "title": "powercfg 命令行选项官方参考（含电池报告，微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/powercfg-command-line-options"
+    }
+  ]
 }

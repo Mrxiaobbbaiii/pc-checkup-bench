@@ -10,17 +10,51 @@
   "common": true,
   "prechecks": [],
   "backup_steps": [
-    { "exe": "reg.exe", "args": ["export", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings", "{BK}\\wininet-proxy.reg", "/y"], "desc": "备份当前代理设置（含开关与地址）" }
+    {
+      "exe": "reg.exe",
+      "args": [
+        "export",
+        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
+        "{BK}\\wininet-proxy.reg",
+        "/y"
+      ],
+      "desc": "备份当前代理设置（含开关与地址）"
+    }
   ],
   "undo_script": [
     "reg import \"{BK}\\wininet-proxy.reg\""
   ],
   "steps": [
-    { "exe": "reg.exe", "args": ["add", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings", "/v", "ProxyEnable", "/t", "REG_DWORD", "/d", "0", "/f"], "desc": "把用户级代理开关置为关" }
+    {
+      "exe": "reg.exe",
+      "args": [
+        "add",
+        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
+        "/v",
+        "ProxyEnable",
+        "/t",
+        "REG_DWORD",
+        "/d",
+        "0",
+        "/f"
+      ],
+      "desc": "把用户级代理开关置为关"
+    }
   ],
   "rollback": [],
   "rollback_note": "撤销=以管理员运行回滚包里的 undo-net_wininet_proxy_off.bat（把备份的代理设置原样导回）",
   "timeout_sec": 30,
-  "match_checks": ["net_proxy_system", "net_proxy_vpn"],
-  "verify_checks": ["net_proxy_system"]
+  "match_checks": [
+    "net_proxy_system",
+    "net_proxy_vpn"
+  ],
+  "verify_checks": [
+    "net_proxy_system"
+  ],
+  "sources": [
+    {
+      "title": "reg export/import 命令官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/reg"
+    }
+  ]
 }

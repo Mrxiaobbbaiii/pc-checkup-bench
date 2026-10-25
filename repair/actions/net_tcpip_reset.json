@@ -9,20 +9,65 @@
   "restore_point": true,
   "prechecks": [],
   "backup_steps": [
-    { "exe": "reg.exe", "args": ["export", "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters", "{BK}\\tcpip4.reg", "/y"], "desc": "备份 IPv4 网络设置（注册表导出）" },
-    { "exe": "reg.exe", "args": ["export", "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters", "{BK}\\tcpip6.reg", "/y"], "desc": "备份 IPv6 网络设置（注册表导出）" }
+    {
+      "exe": "reg.exe",
+      "args": [
+        "export",
+        "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
+        "{BK}\\tcpip4.reg",
+        "/y"
+      ],
+      "desc": "备份 IPv4 网络设置（注册表导出）"
+    },
+    {
+      "exe": "reg.exe",
+      "args": [
+        "export",
+        "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters",
+        "{BK}\\tcpip6.reg",
+        "/y"
+      ],
+      "desc": "备份 IPv6 网络设置（注册表导出）"
+    }
   ],
   "undo_script": [
     "reg import \"{BK}\\tcpip4.reg\"",
     "reg import \"{BK}\\tcpip6.reg\""
   ],
   "steps": [
-    { "exe": "netsh.exe", "args": ["int", "ipv4", "reset"], "desc": "重置 IPv4 网络栈（重启电脑后生效）" },
-    { "exe": "netsh.exe", "args": ["int", "ipv6", "reset"], "desc": "重置 IPv6 网络栈（重启电脑后生效）" }
+    {
+      "exe": "netsh.exe",
+      "args": [
+        "int",
+        "ipv4",
+        "reset"
+      ],
+      "desc": "重置 IPv4 网络栈（重启电脑后生效）"
+    },
+    {
+      "exe": "netsh.exe",
+      "args": [
+        "int",
+        "ipv6",
+        "reset"
+      ],
+      "desc": "重置 IPv6 网络栈（重启电脑后生效）"
+    }
   ],
   "rollback": [],
   "rollback_note": "撤销=管理员运行回滚包里的 undo-net_tcpip_reset.bat 后重启电脑（固定 IP 需重新填写）",
   "timeout_sec": 45,
-  "match_checks": ["net_ip_dhcp", "net_dns_default"],
-  "verify_checks": ["net_ip_dhcp"]
+  "match_checks": [
+    "net_ip_dhcp",
+    "net_dns_default"
+  ],
+  "verify_checks": [
+    "net_ip_dhcp"
+  ],
+  "sources": [
+    {
+      "title": "netsh（含 int ip reset）命令官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netsh"
+    }
+  ]
 }

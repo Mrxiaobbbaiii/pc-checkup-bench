@@ -9,7 +9,12 @@
   "prechecks": [],
   "steps": [
     {
-      "exe": "dism.exe", "args": ["/Online", "/Cleanup-Image", "/ScanHealth"],
+      "exe": "dism.exe",
+      "args": [
+        "/Online",
+        "/Cleanup-Image",
+        "/ScanHealth"
+      ],
       "desc": "第 1 步：先深度体检（约 5-15 分钟）",
       "how": {
         "at": "键盘按 Win+X（或右键点屏幕左下角的开始按钮）→ 菜单里点「终端(管理员)」→ 弹出的蓝色确认框点「是」。英文界面：Terminal (Admin) / Yes",
@@ -20,7 +25,12 @@
       }
     },
     {
-      "exe": "dism.exe", "args": ["/Online", "/Cleanup-Image", "/RestoreHealth"],
+      "exe": "dism.exe",
+      "args": [
+        "/Online",
+        "/Cleanup-Image",
+        "/RestoreHealth"
+      ],
       "desc": "第 2 步：真修——坏零件换原装件（约 10-20 分钟）",
       "how": {
         "at": "还用刚才那个黑窗口（关掉了就按第 1 步重开一个）",
@@ -31,7 +41,10 @@
       }
     },
     {
-      "exe": "sfc.exe", "args": ["/scannow"],
+      "exe": "sfc.exe",
+      "args": [
+        "/scannow"
+      ],
       "desc": "第 3 步：整体复检（约 5-10 分钟）",
       "how": {
         "at": "同一个黑窗口",
@@ -46,6 +59,24 @@
   "rollback_note": "不用回滚：不会改坏东西；万一异常用「系统还原」退回修之前的状态",
   "timeout_sec": 120,
   "caveat": "硬件报错（WHEA）、断电重启和嫌疑驱动都不是系统文件损坏，SFC/DISM 修不了它们；这几项要按各自的步骤处理。",
-  "match_checks": ["bs_event_history", "bs_minidump_inventory", "bs_code_frequency"],
-  "verify_checks": []
+  "match_checks": [
+    "bs_event_history",
+    "bs_minidump_inventory",
+    "bs_code_frequency"
+  ],
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "DISM 命令行选项官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/deployment-image-servicing-and-management--dism--command-line-options"
+    },
+    {
+      "title": "微软官方指南：使用系统文件检查器修复损坏文件（Microsoft Support）",
+      "url": "https://support.microsoft.com/en-gb/topic/use-the-system-file-checker-tool-to-repair-missing-or-corrupted-system-files-79aa86cb-ca52-166a-92a3-966e85d4094e"
+    },
+    {
+      "title": "sfc 命令官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/sfc"
+    }
+  ]
 }

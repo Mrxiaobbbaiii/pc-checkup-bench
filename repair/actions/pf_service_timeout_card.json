@@ -9,7 +9,11 @@
   "prechecks": [],
   "steps": [
     {
-      "exe": "cmd.exe", "args": ["/c", "sc qc 服务名"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "sc qc 服务名"
+      ],
       "desc": "第 1 步：认主——查出这个服务是哪个软件的（把「服务名」换成报告点名的名字，如 XxxGuard）",
       "how": {
         "at": "键盘按 Win+X → 点「终端(管理员)」→ 蓝色确认框点「是」",
@@ -20,7 +24,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "start services.msc"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start services.msc"
+      ],
       "desc": "第 2 步：看官方描述，双确认",
       "how": {
         "at": "键盘按 Win+R → 小输入框出现",
@@ -31,7 +39,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "start ms-settings:appsfeatures"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start ms-settings:appsfeatures"
+      ],
       "desc": "第 3 步：处置——第三方软件=更新/卸载；微软自带服务=只改「自动(延迟启动)」",
       "how": {
         "at": "第三方软件：键盘按 Win+I 打开「设置」；微软自带服务：回到第 2 步的服务窗口",
@@ -42,7 +54,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "start services.msc"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start services.msc"
+      ],
       "desc": "第 4 步：验证收口",
       "how": {
         "at": "还在服务窗口（关了就 Win+R 输 services.msc 重开）",
@@ -57,6 +73,14 @@
   "rollback_note": "撤销=服务管理器属性里把启动类型改回「自动」；卸载了软件的重装即恢复",
   "timeout_sec": 30,
   "caveat": "官方依据：微软 SCM 事件 7000/7009/7011 文档（learn.microsoft.com，Event ID 7000 and 7011）。服务超时是「点名证据」，个别冷门服务偶发一两次属正常；按报告点名的 top 元凶处理即可，别挨个禁。",
-  "match_checks": ["pf_service_timeouts"],
-  "verify_checks": []
+  "match_checks": [
+    "pf_service_timeouts"
+  ],
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "微软官方排障文：服务超时事件 7000/7011 与 30000 毫秒默认值（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/troubleshoot/windows-server/system-management-components/service-not-start-events-7000-7011-time-out-error"
+    }
+  ]
 }

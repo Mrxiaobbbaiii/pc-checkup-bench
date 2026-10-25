@@ -9,7 +9,11 @@
   "prechecks": [],
   "steps": [
     {
-      "exe": "cmd.exe", "args": ["/c", "start C:\\Windows\\System32\\drivers"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start C:\\Windows\\System32\\drivers"
+      ],
       "desc": "第 1 步：看签名定颜色",
       "how": {
         "at": "键盘按 Win+R（Win 键+R 键）→ 小输入框出现",
@@ -20,7 +24,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "driverquery /v"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "driverquery /v"
+      ],
       "desc": "第 2 步：查它属于哪个软件",
       "how": {
         "at": "键盘按 Win+X → 点「终端」（这步不用管理员）",
@@ -31,7 +39,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "start https://www.bing.com"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start https://www.bing.com"
+      ],
       "desc": "第 3 步：搜它的来历",
       "how": {
         "at": "打开浏览器（Edge / 百度 / Bing 都行）",
@@ -42,7 +54,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "start ms-settings:appsfeatures"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start ms-settings:appsfeatures"
+      ],
       "desc": "第 4 步：黄色=卸载来源软件",
       "how": {
         "at": "键盘按 Win+I 打开「设置」（内核过滤类驱动改按「嫌疑驱动/网络过滤层处置」卡走）",
@@ -53,7 +69,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "start ms-settings:windowsupdate-optionalupdates"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start ms-settings:windowsupdate-optionalupdates"
+      ],
       "desc": "第 5 步：报告说是老古董（2015 年前）就更新驱动",
       "how": {
         "at": "键盘按 Win+I 打开「设置」",
@@ -68,6 +88,21 @@
   "rollback_note": "分诊零改动无需回滚；后续卸载/更新驱动的回滚=重装对应软件或设备管理器「回退驱动」",
   "timeout_sec": 30,
   "caveat": "官方依据：微软驱动签名验证文档与设备管理器错误码文档（learn.microsoft.com）。分诊口诀：先看签名（属性→数字签名），再看归属（driverquery/搜索），后定去留（卸软件不改文件）。",
-  "match_checks": ["dv_driver_signature", "dv_thirdparty_inventory", "dv_driver_age", "dv_driver_load_failures"],
-  "verify_checks": []
+  "match_checks": [
+    "dv_driver_signature",
+    "dv_thirdparty_inventory",
+    "dv_driver_age",
+    "dv_driver_load_failures"
+  ],
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "设备管理器错误代码官方文档（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/device-manager-error-messages"
+    },
+    {
+      "title": "Windows 设备管理器错误码官方指南（Microsoft Support）",
+      "url": "https://support.microsoft.com/en-us/windows/hardware/drivers/error-codes-in-device-manager-in-windows"
+    }
+  ]
 }

@@ -217,6 +217,9 @@ def main():
         time.sleep(0.8)
         rep_txt = str(cdp.eval("document.querySelector('#view-repair').innerText"))
         check('D1 问题清单联动', '这轮查出来的问题' in rep_txt, rep_txt[:120])
+        # v1.4.0 轮3 权威溯源：动作卡渲染「官方依据」链接（微软官方域 href）
+        src_link = cdp.eval("(document.querySelector('.action-card .src-row a') || {}).href || ''")
+        check('D2 官方依据链接在场', 'microsoft.com' in str(src_link), str(src_link))
 
         # ---- E 历史对比（预塞两份+本轮跑批一份） ----
         cdp.eval("document.querySelector('[data-view=\"history\"]').click()")

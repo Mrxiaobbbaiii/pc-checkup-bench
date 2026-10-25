@@ -10,22 +10,63 @@
   "common": true,
   "prechecks": [],
   "backup_steps": [
-    { "exe": "net.exe", "args": ["stop", "spooler"], "desc": "停打印服务，解锁队列文件" },
-    { "exe": "cmd.exe", "args": ["/c", "copy /y \"%systemroot%\\System32\\spool\\PRINTERS\\*\" \"{BK}\\\""], "desc": "把队列文件备份进回滚包" }
+    {
+      "exe": "net.exe",
+      "args": [
+        "stop",
+        "spooler"
+      ],
+      "desc": "停打印服务，解锁队列文件"
+    },
+    {
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "copy /y \"%systemroot%\\System32\\spool\\PRINTERS\\*\" \"{BK}\\\""
+      ],
+      "desc": "把队列文件备份进回滚包"
+    }
   ],
   "undo_script": [
     "copy /y \"{BK}\\*\" \"%systemroot%\\System32\\spool\\PRINTERS\\\"",
     "net start spooler"
   ],
   "steps": [
-    { "exe": "cmd.exe", "args": ["/c", "del /q \"%systemroot%\\System32\\spool\\PRINTERS\\*\""], "desc": "清空队列文件" },
-    { "exe": "net.exe", "args": ["start", "spooler"], "desc": "把打印服务重新启动" }
+    {
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "del /q \"%systemroot%\\System32\\spool\\PRINTERS\\*\""
+      ],
+      "desc": "清空队列文件"
+    },
+    {
+      "exe": "net.exe",
+      "args": [
+        "start",
+        "spooler"
+      ],
+      "desc": "把打印服务重新启动"
+    }
   ],
   "rollback": [
-    { "exe": "net.exe", "args": ["start", "spooler"], "desc": "中止时把打印服务启回来" }
+    {
+      "exe": "net.exe",
+      "args": [
+        "start",
+        "spooler"
+      ],
+      "desc": "中止时把打印服务启回来"
+    }
   ],
   "rollback_note": "撤销=管理员运行回滚包里的 undo-prn_queue_clean.bat（把备份的队列文件拷回并启动打印服务）",
   "timeout_sec": 60,
   "match_checks": [],
-  "verify_checks": []
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "net 命令（含 net stop/start 服务）官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/net-commands-on-operating-systems"
+    }
+  ]
 }

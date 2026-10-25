@@ -8,9 +8,42 @@
   "requires_admin": true,
   "prechecks": [],
   "steps": [
-    { "exe": "notepad.exe", "args": ["C:\\Windows\\System32\\drivers\\etc\\hosts"], "desc": "第 1 步（备份+打开）：开始菜单搜「记事本」→右键→以管理员身份运行→文件→打开→地址栏粘贴此路径，文件类型选「所有文件」。动手前先把这个文件复制一份到桌面当备份。" },
-    { "exe": "notepad.exe", "args": ["C:\\Windows\\System32\\drivers\\etc\\hosts"], "desc": "第 2 步（划掉坏条目+保存）：对照体检报告点名的网址找到那一行，行首加 # 加空格（# 开头=作废）。看不懂的行只加 # 千万别删。改完 Ctrl+S 保存；提示「另存为」=记事本不是管理员身份，回第 1 步重开。" },
-    { "exe": "ipconfig.exe", "args": ["/flushdns"], "desc": "第 3 步（生效）：回到本工具点绿色卡「刷新 DNS 缓存」，或用第 1 步的终端粘贴此命令回车。然后重开那个网站试试。" }
+    {
+      "exe": "notepad.exe",
+      "args": ["C:\\Windows\\System32\\drivers\\etc\\hosts"],
+      "desc": "第 1 步：备份 + 用管理员记事本打开 hosts",
+      "how": {
+        "at": "先备份：按 Win+E 打开文件资源管理器 → 地址栏粘贴 C:\\Windows\\System32\\drivers\\etc 回车 → 右键 hosts 文件 → 复制 → 到桌面右键粘贴（这份就是后悔药）",
+        "click": "回到 etc 文件夹：右键 hosts 文件 → 「打开方式」→「记事本」打不开就直接用管理员记事本：开始菜单搜「记事本」→ 右键 → 「以管理员身份运行」→ 菜单「文件」→「打开」→ 右下角文件类型选「所有文件」。英文：Notepad → Run as administrator → File → Open → All Files",
+        "type": "打开窗口的地址栏粘贴：C:\\Windows\\System32\\drivers\\etc\\hosts",
+        "ok": "记事本里看到 hosts 文件内容（几行到几十行文字，可能有 # 开头的注释行）",
+        "fail": "记事本标题栏写着「管理员」仍提示「拒绝访问」= 你开的不是管理员记事本：关掉，严格按上面「右键→以管理员身份运行」重开"
+      }
+    },
+    {
+      "exe": "notepad.exe",
+      "args": ["C:\\Windows\\System32\\drivers\\etc\\hosts"],
+      "desc": "第 2 步：划掉坏条目（加 # 作废，别删行）",
+      "how": {
+        "at": "还在这份记事本里",
+        "click": "对照体检报告点名的网址，找到那一行，把光标点到行最前面",
+        "type": "输入 # 加一个空格（# 开头=这行作废）。看不懂的行也只加 # 千万别删",
+        "ok": "改完按 Ctrl+S 保存，没有弹任何报错窗 = 存上了",
+        "fail": "弹「另存为」或「拒绝访问」= 记事本不是管理员身份：别保存到别处，关掉回第 1 步重开管理员记事本"
+      }
+    },
+    {
+      "exe": "ipconfig.exe",
+      "args": ["/flushdns"],
+      "desc": "第 3 步：刷新缓存让改动生效，再试网站",
+      "how": {
+        "at": "回到「电脑体检台」修复中心",
+        "click": "点绿色卡「刷新 DNS 缓存」的「执行」按钮",
+        "type": "（也可以自己开管理员终端粘贴：ipconfig /flushdns）",
+        "ok": "刷新完成后重新打开原来打不开的那个网站——能开了=收口；还打不开=hosts 不是元凶，回报告看该网站命中的其他项",
+        "fail": "网站还是打不开 = 划错行了？回第 2 步检查；确认没划错=问题在别处，别继续动 hosts"
+      }
+    }
   ],
   "rollback": [],
   "rollback_note": "撤销=桌面备份复制回原位覆盖，或删掉行首 # 号",
@@ -18,5 +51,11 @@
   "common": true,
   "caveat": "这项只清理 hosts 小抄；如果 DNS 死地址来自网卡设置，清 hosts 没用，要改 DNS。",
   "match_checks": [],
-  "verify_checks": []
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "微软官方指南：将 hosts 文件重置回默认（Microsoft Support）",
+      "url": "https://support.microsoft.com/en-us/windows/experience/how-to-reset-the-hosts-file-back-to-the-default"
+    }
+  ]
 }

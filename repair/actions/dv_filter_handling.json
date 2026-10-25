@@ -9,7 +9,11 @@
   "prechecks": [],
   "steps": [
     {
-      "exe": "cmd.exe", "args": ["/c", "driverquery /v | findstr /i nnndisfilter"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "driverquery /v | findstr /i nnndisfilter"
+      ],
       "desc": "第 1 步：确认驱动还在不在（查别的驱动，把 nnndisfilter 换成报告点名的名字）",
       "how": {
         "at": "键盘按 Win+X → 点「终端(管理员)」→ 蓝色确认框点「是」。英文：Terminal (Admin) / Yes",
@@ -20,7 +24,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "start ms-settings:appsfeatures"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start ms-settings:appsfeatures"
+      ],
       "desc": "第 2 步：卸载带它的软件本体（卸载瞬间网络闪断几秒属正常）",
       "how": {
         "at": "键盘按 Win+I 打开「设置」",
@@ -31,7 +39,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "driverquery /v | findstr /i nnndisfilter"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "driverquery /v | findstr /i nnndisfilter"
+      ],
       "desc": "第 3 步：验证卸干净没有（和第 1 步同一条命令）",
       "how": {
         "at": "还用第 1 步那个终端(管理员)窗口",
@@ -42,7 +54,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "pnputil /enum-drivers"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "pnputil /enum-drivers"
+      ],
       "desc": "第 4 步·上：翻出残留驱动包的编号（只第 3 步重启后仍在时才做）",
       "how": {
         "at": "终端(管理员)窗口",
@@ -53,7 +69,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "pnputil /delete-driver oem12.inf /uninstall"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "pnputil /delete-driver oem12.inf /uninstall"
+      ],
       "desc": "第 4 步·下：删掉残留（把 oem12.inf 换成你上一步抄的编号）",
       "how": {
         "at": "同一个终端(管理员)窗口",
@@ -64,7 +84,11 @@
       }
     },
     {
-      "exe": "cmd.exe", "args": ["/c", "driverquery /v | findstr /i nnndisfilter"],
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "driverquery /v | findstr /i nnndisfilter"
+      ],
       "desc": "第 5 步：复查收口",
       "how": {
         "at": "重启电脑后，Win+X →「终端(管理员)」",
@@ -79,6 +103,19 @@
   "rollback_note": "撤销=重装对应软件（过滤驱动随主程序恢复）；误删驱动用「系统还原」回退",
   "timeout_sec": 30,
   "caveat": "NDIS 过滤驱动在装则必现于网卡绑定链——蓝屏体检里的「嫌疑驱动」与驱动体检里的「网络过滤层」两处点名互相印证时，优先按本卡处理。观察期内不要卸载名单里的驱动做试验（观察期纪律）：只有报告点名且你确认不再使用该软件时才动手。",
-  "match_checks": ["bs_suspect_drivers", "dv_network_filters"],
-  "verify_checks": []
+  "match_checks": [
+    "bs_suspect_drivers",
+    "dv_network_filters"
+  ],
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "driverquery 命令官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/driverquery"
+    },
+    {
+      "title": "pnputil 命令官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/pnputil"
+    }
+  ]
 }

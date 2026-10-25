@@ -1,0 +1,77 @@
+{
+  "id": "pf_app_crashes_card",
+  "name": "应用崩溃王处置（报告点名哪个软件最会崩）",
+  "level": "red",
+  "desc": "报告按崩溃次数点名了「崩溃王」应用（同一个软件崩 2 次以上或多应用都在崩）。处置路径：先更新/重装被点名的应用——崩溃王的病多半随重装消失；多个不同软件都在崩=先怀疑内存（做第 4 步）。本卡只给步骤永不代跑。",
+  "affect": "只动报告点名的应用本身：重装会丢该应用内未同步的设置/登录状态；其他软件和数据一律不碰。",
+  "undo": "重装应用即恢复（重新登录账号即可）；更新无副作用。",
+  "requires_admin": true,
+  "prechecks": [],
+  "steps": [
+    {
+      "exe": "cmd.exe", "args": ["/c", "start ms-settings:appsfeatures"],
+      "desc": "第 1 步：找到报告点名的崩溃王应用",
+      "how": {
+        "at": "键盘按 Win+I 打开「设置」（修复中心底部也有「帮你打开 应用与功能」按钮，点了直接到）",
+        "click": "左侧点「应用」→ 点「安装的应用」。英文界面：Apps → Installed apps",
+        "type": "在顶部搜索框输入报告点名的应用名（如：SystemOptimizer.exe 就搜 SystemOptimizer）",
+        "ok": "列表里出现这个应用",
+        "fail": "搜不到 = 它可能已卸载或不是常规安装的：跳到第 3 步看它是什么再定"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "start ms-settings:appsfeatures"],
+      "desc": "第 2 步：先试更新，不行就卸载重装",
+      "how": {
+        "at": "还在「安装的应用」列表",
+        "click": "点应用右边的「…」：有「修改」或「高级选项」的先点进去找「更新」；没有更新或更新后照崩的，点「卸载」→ 再点「卸载」确认。英文：Modify / Advanced options / Uninstall",
+        "type": "（这一步不用输命令）",
+        "ok": "应用被卸载（列表里消失）；去它的官网重新下载最新版安装",
+        "fail": "「卸载」是灰的 = 应用正在跑：右键屏幕底部任务栏图标退出它，再回来卸"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "start https://www.bing.com"],
+      "desc": "第 3 步：不认识的崩溃王，先查它是谁的",
+      "how": {
+        "at": "打开浏览器（Edge/百度/Bing 都行）",
+        "click": "点一下搜索框",
+        "type": "报告点名的进程名（如 SystemOptimizer.exe）",
+        "ok": "搜出来是正规软件=回第 2 步更新/重装它；搜出来是「全家桶/捆绑/流氓软件」=按第 2 步直接卸载，别再装回来",
+        "fail": "搜不到任何结果 = 没见过的野进程：直接按第 2 步卸载，卸不掉就带着体检报告找懂电脑的人"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "mdsched"],
+      "desc": "第 4 步（多个不同软件都在崩才做）：查内存",
+      "how": {
+        "at": "键盘按 Win+R → 小输入框出现",
+        "click": "输入 mdsched 按回车 → 弹出小窗点「立即重新启动并检查问题」。英文：Restart now and check for problems",
+        "type": "mdsched",
+        "ok": "电脑重启进入蓝色检测屏跑完（10-30 分钟）——多应用集体崩溃指向内存/驱动，这一步给答案",
+        "fail": "手头没保存 = 点「下次启动计算机时检查问题」，先存文件"
+      }
+    },
+    {
+      "exe": "cmd.exe", "args": ["/c", "start devmgmt.msc"],
+      "desc": "第 5 步：复查收口",
+      "how": {
+        "at": "处理完（卸载/重装/内存诊断）重启电脑，打开「电脑体检台」",
+        "click": "首页点「开始体检」",
+        "type": "（不用输入，等它跑完）",
+        "ok": "「应用崩溃/卡死」的计数清零或不再增长 = 收口",
+        "fail": "还在崩且换了软件也崩 = 硬件侧问题：带着体检报告找懂电脑的人，重点查内存条"
+      }
+    }
+  ],
+  "rollback": [],
+  "rollback_note": "重装的应用重新安装即恢复；卸载软件的设置数据随卸载清除（重装后重新登录）",
+  "timeout_sec": 30,
+  "caveat": "官方依据：Windows 错误报告（WER）事件 1000/1002 官方文档（learn.microsoft.com）。崩溃计数只统计近 30 天；刚装的新软件头两天偶崩属正常，观察满一周再动手。",
+  "match_checks": ["pf_app_crashes"],
+  "verify_checks": [],
+  "sources": [
+    { "title": "Windows 错误报告（WER）官方文档（微软 Learn）", "url": "https://learn.microsoft.com/en-us/windows/win32/wer/windows-error-reporting" },
+    { "title": "微软官方蓝屏修复指南：内存诊断工具用法（Microsoft Support）", "url": "https://support.microsoft.com/en-us/windows/experience/performance-optimization/how-to-fix-error-0xa-irql-not-less-or-equal" }
+  ]
+}

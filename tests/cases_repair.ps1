@@ -898,3 +898,94 @@ $global:DiagRepairCases += @{
         return $bad
     }
 }
+
+# ---- v1.4.0 轮3 权威溯源断言：每个动作必有合法 sources（≥1 条微软官方域 https 链接，禁静默断链）；
+#      coverage.json 的 advice 行同样必须有官方 source。URL 考证记录=知识来源.md §七（1025 批量 HTTP 200 实测） ----
+$global:DiagRepairCases += @{
+    name = 'rep_sources'
+    kind = 'schema'
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        $root = $ctx.Root
+        $actionsDir = Join-Path $root 'repair\actions'
+        $msDomains = @('learn.microsoft.com', 'support.microsoft.com', 'www.microsoft.com', 'msdn.microsoft.com')
+        foreach ($jf in (Get-ChildItem -LiteralPath $actionsDir -File -Filter '*.json')) {
+            $a = $null
+            try { $a = Get-Content -LiteralPath $jf.FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $bad += "unparsable: $($jf.Name)"; continue }
+            if (-not $a.PSObject.Properties['sources']) { $bad += "sources missing: $($jf.Name)"; continue }
+            $srcs = @($a.sources)
+            if ($srcs.Count -lt 1) { $bad += "sources empty: $($jf.Name)"; continue }
+            $hasOfficial = $false
+            foreach ($s in $srcs) {
+                if (-not [string]$s.title -or -not [string]$s.url) { $bad += "source needs title+url: $($jf.Name)"; continue }
+                if ([string]$s.url -notmatch '^https://') { $bad += "source url not https: $($jf.Name)" }
+                foreach ($d in $msDomains) { if ([string]$s.url -like ('https://' + $d + '/*')) { $hasOfficial = $true } }
+            }
+            if (-not $hasOfficial) { $bad += "no microsoft-official source: $($jf.Name)" }
+        }
+        $covFile = Join-Path $root 'repair\coverage.json'
+        $cov = $null
+        try { $cov = Get-Content -LiteralPath $covFile -Raw -Encoding UTF8 | ConvertFrom-Json } catch { return $bad + @('coverage.json unparsable') }
+        foreach ($p in @($cov.checks.PSObject.Properties)) {
+            $how = ''
+            if ($p.Value.PSObject.Properties['how']) { $how = [string]$p.Value.how }
+            if ($how -ne 'advice') { continue }
+            if (-not $p.Value.PSObject.Properties['source']) { $bad += "advice row missing source: $($p.Name)"; continue }
+            $as = @($p.Value.source)
+            if ($as.Count -lt 1) { $bad += "advice source empty: $($p.Name)"; continue }
+            $okDomain = $false
+            foreach ($s in $as) {
+                if (-not [string]$s.title -or -not [string]$s.url) { $bad += "advice source needs title+url: $($p.Name)"; continue }
+                if ([string]$s.url -notmatch '^https://') { $bad += "advice source url not https: $($p.Name)" }
+                foreach ($d in $msDomains) { if ([string]$s.url -like ('https://' + $d + '/*')) { $okDomain = $true } }
+            }
+            if (-not $okDomain) { $bad += "advice source not microsoft domain: $($p.Name)" }
+        }
+        return $bad
+    }
+}
+
+# ---- v1.4.0 轮2 宝宝巴士规范断言：红卡 steps 全部带 how 五要素（在哪/点什么/输入什么/算成功/失败了先），
+#      规范进测试=机器拦（后续新增红卡不带五要素直接红） ----
+$global:DiagRepairCases += @{
+    name = 'rep_how_steps'
+    kind = 'schema'
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        $actionsDir = Join-Path $ctx.Root 'repair\actions'
+        foreach ($jf in (Get-ChildItem -LiteralPath $actionsDir -File -Filter '*.json')) {
+            $a = $null
+            try { $a = Get-Content -LiteralPath $jf.FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch { continue }
+            if ([string]$a.level -ne 'red') { continue }
+            $i = 0
+            foreach ($st in @($a.steps)) {
+                $i++
+                if (-not $st.PSObject.Properties['how']) { $bad += "red step without how: $($jf.Name) #$i"; continue }
+                foreach ($k in @('at', 'click', 'type', 'ok', 'fail')) {
+                    if (-not [string]$st.how.$k) { $bad += "red step how missing '$k': $($jf.Name) #$i" }
+                }
+            }
+        }
+        return $bad
+    }
+}
+
+# ---- v1.4.0 轮3 两张缺口卡用例：红卡必须在加载段拒绝执行（零副作用验证，出厂闸） ----
+foreach ($redAct in @('pf_app_crashes_card', 'dv_display_residue_card')) {
+    $global:DiagRepairCases += @{
+        name = 'rep_red_' + $redAct
+        kind = 'real'
+        actionId = $redAct
+        assert = {
+            param($res, $ctx)
+            $bad = @()
+            if ($res.ok -ne $false) { $bad += "expect ok=false got $($res.ok)"; return $bad }
+            if ([string]$res.fail_stage -ne 'load') { $bad += "expect fail_stage=load got $($res.fail_stage)" }
+            if ($res.error -notmatch 'red level') { $bad += "load error should mention red level: $($res.error)" }
+            return $bad
+        }
+    }
+}
+

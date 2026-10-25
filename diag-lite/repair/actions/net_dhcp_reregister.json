@@ -8,11 +8,29 @@
   "requires_admin": true,
   "prechecks": [],
   "steps": [
-    { "exe": "ipconfig.exe", "args": ["/registerdns"], "desc": "重新注册本机 DNS 名字" }
+    {
+      "exe": "ipconfig.exe",
+      "args": [
+        "/registerdns"
+      ],
+      "desc": "重新注册本机 DNS 名字"
+    }
   ],
   "rollback": [],
   "rollback_note": "无需回滚：登记信息会按租期自动更新",
   "timeout_sec": 45,
-  "match_checks": ["net_ip_dhcp", "net_dns_default"],
-  "verify_checks": ["net_ip_dhcp", "net_dns_default"]
+  "match_checks": [
+    "net_ip_dhcp",
+    "net_dns_default"
+  ],
+  "verify_checks": [
+    "net_ip_dhcp",
+    "net_dns_default"
+  ],
+  "sources": [
+    {
+      "title": "ipconfig /registerdns 命令官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/ipconfig"
+    }
+  ]
 }

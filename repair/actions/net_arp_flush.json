@@ -6,13 +6,33 @@
   "affect": "只清自动学来的记录，毫秒级自动重学，上网不中断；预检会先确认你电脑上没有手动加的静态记录，有的话这一步不会跑。",
   "undo": "不用撤销——对照表会自动重建。",
   "requires_admin": true,
-  "prechecks": ["no_static_arp"],
+  "prechecks": [
+    "no_static_arp"
+  ],
   "steps": [
-    { "exe": "arp.exe", "args": ["-d", "*"], "desc": "删除全部动态 ARP 记录" }
+    {
+      "exe": "arp.exe",
+      "args": [
+        "-d",
+        "*"
+      ],
+      "desc": "删除全部动态 ARP 记录"
+    }
   ],
   "rollback": [],
   "rollback_note": "无需回滚：地址记录毫秒级自动重学",
   "timeout_sec": 15,
-  "match_checks": ["net_gateway_ping", "net_gateway_conflict"],
-  "verify_checks": ["net_gateway_ping"]
+  "match_checks": [
+    "net_gateway_ping",
+    "net_gateway_conflict"
+  ],
+  "verify_checks": [
+    "net_gateway_ping"
+  ],
+  "sources": [
+    {
+      "title": "arp 命令官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/arp"
+    }
+  ]
 }

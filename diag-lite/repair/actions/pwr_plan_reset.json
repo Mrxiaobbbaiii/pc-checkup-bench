@@ -10,17 +10,36 @@
   "common": true,
   "prechecks": [],
   "backup_steps": [
-    { "exe": "cmd.exe", "args": ["/c", "powercfg /getactivescheme > \"{BK}\\activescheme.txt\" 2>&1"], "desc": "把当前电源方案名存进回滚包" }
+    {
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "powercfg /getactivescheme > \"{BK}\\activescheme.txt\" 2>&1"
+      ],
+      "desc": "把当前电源方案名存进回滚包"
+    }
   ],
   "undo_script": [
     "echo Not restorable item-by-item. Previous active power scheme name is saved at {BK}\\activescheme.txt; re-pick or re-adjust in Control Panel - Power Options."
   ],
   "steps": [
-    { "exe": "powercfg.exe", "args": ["-restoredefaultschemes"], "desc": "恢复默认电源计划" }
+    {
+      "exe": "powercfg.exe",
+      "args": [
+        "-restoredefaultschemes"
+      ],
+      "desc": "恢复默认电源计划"
+    }
   ],
   "rollback": [],
   "rollback_note": "不可逐项还原（影响栏已说明）；重置前的电源方案名已存进回滚包（activescheme.txt），内置方案可随时在电源选项里重调",
   "timeout_sec": 30,
   "match_checks": [],
-  "verify_checks": []
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "powercfg 命令行选项官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/powercfg-command-line-options"
+    }
+  ]
 }

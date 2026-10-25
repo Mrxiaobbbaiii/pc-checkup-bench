@@ -9,15 +9,40 @@
   "restore_point": true,
   "prechecks": [],
   "backup_steps": [
-    { "exe": "reg.exe", "args": ["export", "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Winsock", "{BK}\\winsock.reg", "/y"], "desc": "备份 Winsock 设置（注册表导出）" },
-    { "exe": "reg.exe", "args": ["export", "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Winsock2", "{BK}\\winsock2.reg", "/y"], "desc": "备份 Winsock2 目录（注册表导出）" }
+    {
+      "exe": "reg.exe",
+      "args": [
+        "export",
+        "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Winsock",
+        "{BK}\\winsock.reg",
+        "/y"
+      ],
+      "desc": "备份 Winsock 设置（注册表导出）"
+    },
+    {
+      "exe": "reg.exe",
+      "args": [
+        "export",
+        "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Winsock2",
+        "{BK}\\winsock2.reg",
+        "/y"
+      ],
+      "desc": "备份 Winsock2 目录（注册表导出）"
+    }
   ],
   "undo_script": [
     "reg import \"{BK}\\winsock.reg\"",
     "reg import \"{BK}\\winsock2.reg\""
   ],
   "steps": [
-    { "exe": "netsh.exe", "args": ["winsock", "reset"], "desc": "重置 Winsock 目录（重启电脑后生效）" }
+    {
+      "exe": "netsh.exe",
+      "args": [
+        "winsock",
+        "reset"
+      ],
+      "desc": "重置 Winsock 目录（重启电脑后生效）"
+    }
   ],
   "rollback": [],
   "rollback_note": "撤销=管理员运行回滚包里的 undo-net_winsock_reset.bat 后重启电脑",
@@ -25,5 +50,11 @@
   "common": true,
   "caveat": "Winsock 重置不会卸载网络过滤驱动（加速器/杀软加的那几层）；过滤层多本身也不算故障，别指望它把层数降下来。",
   "match_checks": [],
-  "verify_checks": []
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "netsh（含 winsock reset）命令官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netsh"
+    }
+  ]
 }

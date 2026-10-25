@@ -10,17 +10,42 @@
   "common": false,
   "prechecks": [],
   "backup_steps": [
-    { "exe": "reg.exe", "args": ["export", "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Class", "{BK}\\device-class.reg", "/y"], "desc": "备份设备类配置（扫描涉及的注册表段）" }
+    {
+      "exe": "reg.exe",
+      "args": [
+        "export",
+        "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Class",
+        "{BK}\\device-class.reg",
+        "/y"
+      ],
+      "desc": "备份设备类配置（扫描涉及的注册表段）"
+    }
   ],
   "undo_script": [
     "reg import \"{BK}\\device-class.reg\""
   ],
   "steps": [
-    { "exe": "pnputil.exe", "args": ["/scan-devices"], "desc": "重新扫描所有硬件设备" }
+    {
+      "exe": "pnputil.exe",
+      "args": [
+        "/scan-devices"
+      ],
+      "desc": "重新扫描所有硬件设备"
+    }
   ],
   "rollback": [],
   "rollback_note": "无需回滚：扫描不改动设备配置；设备类注册表备份已存回滚包以防万一",
   "timeout_sec": 60,
-  "match_checks": ["dv_device_errors"],
-  "verify_checks": ["dv_device_errors"]
+  "match_checks": [
+    "dv_device_errors"
+  ],
+  "verify_checks": [
+    "dv_device_errors"
+  ],
+  "sources": [
+    {
+      "title": "pnputil /scan-devices 命令官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/pnputil"
+    }
+  ]
 }

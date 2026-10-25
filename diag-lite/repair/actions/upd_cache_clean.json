@@ -10,24 +10,86 @@
   "common": true,
   "prechecks": [],
   "backup_steps": [
-    { "exe": "net.exe", "args": ["stop", "wuauserv"], "desc": "停 Windows 更新服务" },
-    { "exe": "net.exe", "args": ["stop", "bits"], "desc": "停后台传输服务，解锁缓存文件" },
-    { "exe": "cmd.exe", "args": ["/c", "dir /s /b \"%systemroot%\\SoftwareDistribution\\Download\" > \"{BK}\\cache-list.txt\" 2>&1"], "desc": "把缓存文件清单存进回滚包备查" }
+    {
+      "exe": "net.exe",
+      "args": [
+        "stop",
+        "wuauserv"
+      ],
+      "desc": "停 Windows 更新服务"
+    },
+    {
+      "exe": "net.exe",
+      "args": [
+        "stop",
+        "bits"
+      ],
+      "desc": "停后台传输服务，解锁缓存文件"
+    },
+    {
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "dir /s /b \"%systemroot%\\SoftwareDistribution\\Download\" > \"{BK}\\cache-list.txt\" 2>&1"
+      ],
+      "desc": "把缓存文件清单存进回滚包备查"
+    }
   ],
   "undo_script": [
     "echo No restore needed: Windows re-downloads the update cache automatically. (cached file list saved at {BK}\\cache-list.txt)"
   ],
   "steps": [
-    { "exe": "cmd.exe", "args": ["/c", "del /q /f /s \"%systemroot%\\SoftwareDistribution\\Download\\*\""], "desc": "清空更新下载缓存" },
-    { "exe": "net.exe", "args": ["start", "bits"], "desc": "重启后台传输服务" },
-    { "exe": "net.exe", "args": ["start", "wuauserv"], "desc": "重启 Windows 更新服务" }
+    {
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "del /q /f /s \"%systemroot%\\SoftwareDistribution\\Download\\*\""
+      ],
+      "desc": "清空更新下载缓存"
+    },
+    {
+      "exe": "net.exe",
+      "args": [
+        "start",
+        "bits"
+      ],
+      "desc": "重启后台传输服务"
+    },
+    {
+      "exe": "net.exe",
+      "args": [
+        "start",
+        "wuauserv"
+      ],
+      "desc": "重启 Windows 更新服务"
+    }
   ],
   "rollback": [
-    { "exe": "net.exe", "args": ["start", "bits"], "desc": "中止时重启后台传输服务" },
-    { "exe": "net.exe", "args": ["start", "wuauserv"], "desc": "中止时重启 Windows 更新服务" }
+    {
+      "exe": "net.exe",
+      "args": [
+        "start",
+        "bits"
+      ],
+      "desc": "中止时重启后台传输服务"
+    },
+    {
+      "exe": "net.exe",
+      "args": [
+        "start",
+        "wuauserv"
+      ],
+      "desc": "中止时重启 Windows 更新服务"
+    }
   ],
   "rollback_note": "无需还原：缓存由系统自动重新下载；重下前的缓存文件清单已存进回滚包（cache-list.txt）备查",
   "timeout_sec": 120,
   "match_checks": [],
-  "verify_checks": []
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "微软官方指南：排查 Windows 更新问题（含 SoftwareDistribution 缓存清理，Microsoft Support）",
+      "url": "https://support.microsoft.com/en-us/windows/deployment/updates-lifecycle/troubleshoot-problems-updating-windows"
+    }
+  ]
 }

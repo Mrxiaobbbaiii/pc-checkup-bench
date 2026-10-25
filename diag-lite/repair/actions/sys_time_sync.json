@@ -9,11 +9,23 @@
   "common": true,
   "prechecks": [],
   "steps": [
-    { "exe": "w32tm.exe", "args": ["/resync"], "desc": "立即与时间服务器对表" }
+    {
+      "exe": "w32tm.exe",
+      "args": [
+        "/resync"
+      ],
+      "desc": "立即与时间服务器对表"
+    }
   ],
   "rollback": [],
   "rollback_note": "无需回滚：对表只会让时间更准",
   "timeout_sec": 30,
   "match_checks": [],
-  "verify_checks": []
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "Windows 时间服务工具与设置官方参考（w32tm，微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-server/networking/windows-time-service/windows-time-service-tools-and-settings"
+    }
+  ]
 }

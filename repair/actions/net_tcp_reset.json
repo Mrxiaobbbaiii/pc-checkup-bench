@@ -9,17 +9,45 @@
   "restore_point": true,
   "prechecks": [],
   "backup_steps": [
-    { "exe": "reg.exe", "args": ["export", "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcp\\Parameters", "{BK}\\tcp-param.reg", "/y"], "desc": "备份 TCP 传输参数（注册表导出）" }
+    {
+      "exe": "reg.exe",
+      "args": [
+        "export",
+        "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcp\\Parameters",
+        "{BK}\\tcp-param.reg",
+        "/y"
+      ],
+      "desc": "备份 TCP 传输参数（注册表导出）"
+    }
   ],
   "undo_script": [
     "reg import \"{BK}\\tcp-param.reg\""
   ],
   "steps": [
-    { "exe": "netsh.exe", "args": ["int", "tcp", "reset"], "desc": "重置 TCP 传输参数（重启电脑后生效）" }
+    {
+      "exe": "netsh.exe",
+      "args": [
+        "int",
+        "tcp",
+        "reset"
+      ],
+      "desc": "重置 TCP 传输参数（重启电脑后生效）"
+    }
   ],
   "rollback": [],
   "rollback_note": "撤销=管理员运行回滚包里的 undo-net_tcp_reset.bat 后重启电脑",
   "timeout_sec": 30,
-  "match_checks": ["net_public_ping", "net_gateway_ping"],
-  "verify_checks": ["net_gateway_ping"]
+  "match_checks": [
+    "net_public_ping",
+    "net_gateway_ping"
+  ],
+  "verify_checks": [
+    "net_gateway_ping"
+  ],
+  "sources": [
+    {
+      "title": "netsh（含 int tcp reset）命令官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netsh"
+    }
+  ]
 }
