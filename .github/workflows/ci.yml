@@ -22,15 +22,45 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # NOTE: the step-level `shell:` field does not accept expressions (the
+      # matrix context is not available there), so each step is written once
+      # per leg with a literal shell keyword, selected by `if: matrix.shell`.
+
       - name: Trust PSGallery and install PSScriptAnalyzer
+        if: matrix.shell == 'powershell'
         shell: powershell
         run: |
           [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
           Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
           Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
 
+      - name: Trust PSGallery and install PSScriptAnalyzer
+        if: matrix.shell == 'pwsh'
+        shell: pwsh
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+
       - name: PSScriptAnalyzer (Error severity; baseline = zero findings)
-        shell: ${{ matrix.shell }}
+        if: matrix.shell == 'powershell'
+        shell: powershell
+        run: |
+          $targets = @('checks', 'engine', 'repair', 'server.ps1')
+          $findings = @(foreach ($t in $targets) { Invoke-ScriptAnalyzer -Path $t -Recurse -Severity Error })
+          "## PSScriptAnalyzer (Error severity) - shell: ${{ matrix.shell }}" | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          if ($findings.Count -eq 0) {
+            "0 findings. Baseline met." | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          } else {
+            "Baseline is zero; findings below are listed but intentionally NOT fixed this round (pending decision):" | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            foreach ($f in $findings) {
+              ("- {0} | {1}:{2} | {3}" -f $f.RuleName, $f.ScriptPath, $f.Line, $f.Message) | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            }
+          }
+
+      - name: PSScriptAnalyzer (Error severity; baseline = zero findings)
+        if: matrix.shell == 'pwsh'
+        shell: pwsh
         run: |
           $targets = @('checks', 'engine', 'repair', 'server.ps1')
           $findings = @(foreach ($t in $targets) { Invoke-ScriptAnalyzer -Path $t -Recurse -Severity Error })
@@ -45,5 +75,11 @@ jobs:
           }
 
       - name: Run test suite (exit code is the verdict)
-        shell: ${{ matrix.shell }}
-        run: ${{ matrix.shell }} -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1
+        if: matrix.shell == 'powershell'
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1
+
+      - name: Run test suite (exit code is the verdict)
+        if: matrix.shell == 'pwsh'
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1
