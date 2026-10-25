@@ -1,7 +1,7 @@
-# MSIX loose-layout builder (1024 round 1-B validated): staging payload + fresh 3 files + AppxManifest (dual virtualization-disabled props).
+﻿# MSIX loose-layout builder (1024 round 1-B validated): staging payload + fresh 3 files + AppxManifest (dual virtualization-disabled props).
 # Store packaging (makeappx/signing) still TODO - see CHANGELOG round 1. This script builds build/msix-try for Add-AppxPackage -Register validation.
 ﻿$ErrorActionPreference = 'Stop'
-$diagRoot = 'F:\Zcode genius\diag'
+$diagRoot = Split-Path $PSScriptRoot -Parent
 $try = Join-Path $diagRoot 'build\msix-try'
 if (Test-Path $try) { Remove-Item $try -Recurse -Force }
 New-Item -ItemType Directory -Path $try -Force | Out-Null

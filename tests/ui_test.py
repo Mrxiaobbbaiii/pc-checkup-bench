@@ -7,7 +7,7 @@ diag UI 自动测试套件（1024 轮3 固化）：CDP 驱动 headless Edge 的 
 """
 import json, os, shutil, subprocess, sys, time, urllib.request
 
-DIAG = r'F:\Zcode genius\diag'
+import os as _os; DIAG = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 sys.path.insert(0, '') if False else None
 try:
     import websocket  # websocket-client
