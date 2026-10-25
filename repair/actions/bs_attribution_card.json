@@ -34,7 +34,7 @@
         "at": "键盘按 Win+X → 点「终端(管理员)」→ 蓝色确认框点「是」",
         "click": "黑窗口空白处点一下鼠标右键 = 粘贴",
         "type": "powercfg /batteryreport",
-        "ok": "显示「已保存到 C:\\Users\\...\\battery-report.html」→ 按住 Ctrl 点这个路径直接打开 → 找「设计容量 DESIGN CAPACITY」和「完全充电容量 FULL CHARGE CAPACITY」两行：后者掉到前者七成以下 = 电池老化，随机掉电的常见根因",
+        "ok": "显示「已保存到 C:\\Users\\...\\battery-report.html」→ 按住 Ctrl 点这个路径直接打开 → 找「设计容量 DESIGN CAPACITY」和「完全充电容量 FULL CHARGE CAPACITY」两行：后者掉到前者七成以下 = 电池老化，随机掉电的常见原因",
         "fail": "报错或找不到电池 = 台式机正常现象，本步跳过：检查电源线插紧没有、插座松不松、电源功率够不够（换显卡后掉电优先怀疑电源）"
       }
     },

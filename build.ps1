@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 <#
 diag build.ps1 v1.4.0 —— 发群一键出包（v1.1.0 封装片 2026-10-23；白名单遍历 diag-lite/ 打 zip）
-规则：ui/bg.jpg 与 ui/bg-light.jpg（版权背景插画）不入包；reports/ 只带「报告在这里.txt」占位
+规则：ui/bg.jpg 与 ui/bg-light.jpg（1025 起为程序生成图，无版权限制）随包分发；reports/ 只带「报告在这里.txt」占位
      （真实报告 diag-*、repair-log.json、rollback/ 一律不入包）；其余全收（含 brand.png/favicon.png，1022 拍板随包）。
 用法：powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 产物：<仓库根>\diag-lite-v1.4.0.zip（.gitignore *.zip 已挡入库）；打完自印条目清单，字节抽验由验证脚本另行执行。
@@ -125,8 +125,7 @@ foreach ($b in @('一键安装.bat', '一键卸载.bat')) {
 $files = @()
 Get-ChildItem $src -Recurse -File | ForEach-Object {
     $rel = $_.FullName.Substring($src.Length + 1) -replace '\\', '/'
-    if ($rel -eq 'ui/bg.jpg' -or $rel -eq 'ui/bg-light.jpg') { return }        # 版权背景插画不入包
-    if ($rel -like 'reports/*' -and $rel -ne $placeholder) { return }          # reports 只带占位
+    if ($rel -like 'reports/*' -and $rel -ne $placeholder) { return }          # reports 只带占位（bg 双图 1025 起随包）
     $files += $_
 }
 

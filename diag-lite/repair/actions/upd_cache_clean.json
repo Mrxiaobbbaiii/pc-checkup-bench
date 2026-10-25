@@ -32,7 +32,7 @@
         "/c",
         "dir /s /b \"%systemroot%\\SoftwareDistribution\\Download\" > \"{BK}\\cache-list.txt\" 2>&1"
       ],
-      "desc": "把缓存文件清单存进回滚包备查"
+      "desc": "把缓存文件清单存进撤销包备查"
     }
   ],
   "undo_script": [
@@ -82,7 +82,7 @@
       "desc": "中止时重启 Windows 更新服务"
     }
   ],
-  "rollback_note": "无需还原：缓存由系统自动重新下载；重下前的缓存文件清单已存进回滚包（cache-list.txt）备查",
+  "rollback_note": "无需还原：缓存由系统自动重新下载；重下前的缓存文件清单已存进撤销包（cache-list.txt）备查",
   "timeout_sec": 120,
   "match_checks": [],
   "verify_checks": [],

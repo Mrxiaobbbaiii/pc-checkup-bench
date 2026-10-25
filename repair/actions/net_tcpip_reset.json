@@ -55,7 +55,7 @@
     }
   ],
   "rollback": [],
-  "rollback_note": "撤销=管理员运行回滚包里的 undo-net_tcpip_reset.bat 后重启电脑（固定 IP 需重新填写）",
+  "rollback_note": "撤销=管理员运行撤销包里的 undo-net_tcpip_reset.bat 后重启电脑（固定 IP 需重新填写）",
   "timeout_sec": 45,
   "match_checks": [
     "net_ip_dhcp",

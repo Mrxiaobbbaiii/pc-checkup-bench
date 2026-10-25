@@ -448,7 +448,7 @@ html[data-theme="dark"] .verdict-banner {
   flex: 0 0 92px; font-size: var(--fs-1); font-weight: 600; color: var(--accent);
   white-space: nowrap; text-align: right;
 }
-.bb-val { flex: 1 1 auto; min-width: 0; }
+.bb-val { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 
 /* 官方依据链接行（v1.4.0 轮3 权威溯源） */
 .src-row { border-top: 1px dashed var(--line); padding-top: 6px; margin-top: 2px; }
@@ -775,11 +775,14 @@ html[data-theme="dark"] .repair-item, html[data-theme="dark"] .action-card {
 .modal.guide-modal {
   width: min(640px, calc(100vw - 48px));
   border-color: color-mix(in srgb, var(--fail) 50%, var(--line-hi));
-  max-height: calc(100vh - 60px); overflow-y: auto;
+  max-height: calc(100vh - 60px);
+  display: flex; flex-direction: column; overflow: hidden;   /* 步骤区独立滚动、按钮条固定卡底（R 复验残段根修） */
 }
-#repair-modal .modal { width: min(560px, calc(100vw - 48px)); max-height: calc(100vh - 60px); overflow-y: auto; }
+#gd-rows { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+#repair-modal .modal { width: min(560px, calc(100vw - 48px)); max-height: calc(100vh - 60px); display: flex; flex-direction: column; overflow: hidden; }
+#rm-rows { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; }
 .guide-modal .modal-btns, #repair-modal .modal-btns {
-  position: sticky; bottom: 0; z-index: 2;
+  flex: none;
   margin: 14px -24px -22px; padding: 12px 24px 14px;
   background: var(--panel);
   border-top: 1px solid var(--line);
@@ -869,7 +872,6 @@ html[data-theme="dark"] .repair-item, html[data-theme="dark"] .action-card {
   .glossary dd { margin-bottom: 6px; }
 }
 @media (max-width: 560px) {
-  .steps-strip { grid-template-columns: 1fr; }
   .pc-tree { display: none; }
   .cta-row .btn-primary { width: 100%; }
   .modal-btns { justify-content: stretch; }

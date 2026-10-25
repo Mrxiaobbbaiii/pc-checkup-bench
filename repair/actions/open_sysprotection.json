@@ -1,6 +1,6 @@
 {
   "id": "open_sysprotection",
-  "name": "系统保护 / 创建还原点",
+  "name": "系统保护",
   "level": "green",
   "launcher": true,
   "common": true,

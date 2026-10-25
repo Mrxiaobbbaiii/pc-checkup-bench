@@ -279,7 +279,7 @@ def main():
             if sense_on:
                 fs_txt = str(cdp.eval("document.querySelector('#fix-sense-card').innerText"))
                 check('F3 感知对比渲染', '问题数' in fs_txt and '改善' in fs_txt, fs_txt[:250])
-                check('F4 再感知按钮在', '再感知一次' in fs_txt)
+                check('F4 再查一次按钮在', '再查一次' in fs_txt)
             # 自主迭代轮C：修复小史——修完切回修复中心，历史区在场且含本次动作
             cdp.eval("document.querySelector('[data-view=\"repair\"]').click()")
             time.sleep(1.2)

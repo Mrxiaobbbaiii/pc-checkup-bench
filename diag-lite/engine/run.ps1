@@ -227,7 +227,7 @@ function New-TextReport {
         [void]$sb.AppendLine("")
         [void]$sb.AppendLine("一句人话：$($BreakLayer.verdict_fail)")
         [void]$sb.AppendLine("")
-        [void]$sb.AppendLine("【修复方法】（绿色小修可在修复中心代跑；命令也可复制自己执行，附回滚法）")
+        [void]$sb.AppendLine("【修复方法】（绿色小修可在修复中心代跑；命令也可复制自己执行，附撤销方法）")
         $n = 1
         foreach ($f in $failedChecks) { if ($f.suggestion) { [void]$sb.AppendLine("$n. [$($f.name)]"); [void]$sb.AppendLine("   " + ($f.suggestion -replace "`n", "`n   ")); [void]$sb.AppendLine(""); $n++ } }
     } else {
@@ -347,7 +347,7 @@ function New-FixCardsHtml {
     $withSug = @($failedChecks | Where-Object { $_.suggestion })
     if ($withSug.Count -lt 1) { return '' }
     $h = New-Object System.Text.StringBuilder
-    [void]$h.AppendLine('<div class="card"><h2 class="sec">【修复方法】（绿色小修可在修复中心代跑；命令也可复制自己执行，附回滚法）</h2>')
+    [void]$h.AppendLine('<div class="card"><h2 class="sec">【修复方法】（绿色小修可在修复中心代跑；命令也可复制自己执行，附撤销方法）</h2>')
     $n = 1
     foreach ($f in $withSug) {
         [void]$h.AppendLine('<div class="fix-card"><div class="fix-title">' + $n + '. [' + (Escape-Html $f.name) + ']</div>')

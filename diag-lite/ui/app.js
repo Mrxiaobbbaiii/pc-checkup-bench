@@ -229,7 +229,7 @@ const CORR_RULES = [
     checks: ['hw_disk_health', 'hw_smart_predict', 'hw_disk_errors'],
     why: '磁盘健康和文件系统错误同时报警，硬盘多半在变坏。第一步永远是先把重要数据备份出来，再谈修。',
     gain: 5, risk: 1, conf: 0.9, target: { check: 'hw_disk_health' } },
-  { id: 'filter_driver', title: '一个根因：网络过滤驱动在捣乱', minHits: 2,
+  { id: 'filter_driver', title: '一个元凶：网络过滤驱动在捣乱', minHits: 2,
     checks: ['bs_suspect_drivers', 'dv_network_filters', 'bs_code_frequency'],
     why: '蓝屏嫌疑驱动和网络过滤层同时点名，多半是同一个加速器/安全软件捆绑的过滤驱动——按一张卡处理，蓝屏和断网一起收。',
     gain: 5, risk: 3, conf: 0.8, target: { action: 'dv_filter_handling' } },
@@ -1695,7 +1695,7 @@ function showGreenConfirmModal(a, onGo) {
 function showYellowConfirm(a, btn, card) {
   document.getElementById('rm-title').textContent = a.name || '修复动作';
   const sub = document.getElementById('rm-sub');
-  sub.textContent = '这是有中断的修复动作——三行都看懂、逐项打勾，才会出现「确认执行」。点了之后工具会先自动生成撤销脚本和备份（回滚包），然后才开始干活。';
+  sub.textContent = '这是有中断的修复动作——三行都看懂、逐项打勾，才会出现「确认执行」。点了之后工具会先自动生成撤销脚本和备份（撤销包），然后才开始干活。';
   const rows = document.getElementById('rm-rows');
   rows.innerHTML = '';
   const checks = [];
@@ -1867,7 +1867,7 @@ async function startRepairRun(a, btn, card, opts) {
   opts = opts || {};
   S.lastRepairCtx = { a, btn, card };  // 还原点中止等场景「跳过还原点直接修」重试要用
   setRepairBusy(true, btn);
-  setStatus('正在修复：' + a.name + (a.level === 'yellow' ? '（先生成回滚包，再执行）…' : '…'), '');
+  setStatus('正在修复：' + a.name + (a.level === 'yellow' ? '（先生成撤销包，再执行）…' : '…'), '');
   let slot = card.querySelector('.ac-result');
   if (!slot) { slot = document.createElement('div'); slot.className = 'ac-result'; card.appendChild(slot); }
   slot.innerHTML = '<div class="rr-big running">正在修复：' + esc(a.name) + '…</div>' +
@@ -2007,9 +2007,9 @@ function appendRepairDetailFold(slot, res) {
     l.className = 'stage-line ' + (pkg.ok ? 'st-pass' : 'st-fail');
     if (pkg.ok) {
       const uf = String(pkg.undo_file || '').split(/[\\/]/).pop();
-      l.textContent = '✓ ② 回滚包已生成（撤销脚本 ' + uf + rpTxt + '）';
+      l.textContent = '✓ ② 撤销包已生成（撤销脚本 ' + uf + rpTxt + '）';
     } else {
-      l.textContent = '✗ ② 回滚包：' + (pkg.note || '没生成') + rpTxt;
+      l.textContent = '✗ ② 撤销包：' + (pkg.note || '没生成') + rpTxt;
     }
     body.appendChild(l);
   }
@@ -2055,7 +2055,7 @@ function appendRepairDetailFold(slot, res) {
   if (lg) {
     const l = document.createElement('div');
     l.className = 'stage-line ' + (lg.ok ? 'st-dim' : 'st-fail');
-    l.textContent = lg.ok ? '✓ ⑤ 已记入修复台账（reports/repair-log.json）' : '✗ ⑤ 台账没写上：' + (lg.err || '');
+    l.textContent = lg.ok ? '✓ ⑤ 已记入修复记录（reports/repair-log.json）' : '✗ ⑤ 记录没写上：' + (lg.err || '');
     body.appendChild(l);
   }
   fold.appendChild(body);
@@ -2435,7 +2435,7 @@ function scheduleSense(action) {
   S.lastSenseAction = action;
   S.reportBeforeFix = S.reportPayload ? JSON.parse(JSON.stringify(S.reportPayload)) : null;
   S.pendingSense = true;
-  setStatus('修复完成，正在感知电脑当前状态…', '');
+  setStatus('修复完成，正在复查刚才修的地方…', '');
   setTimeout(() => { switchView('wizard'); startRun({ tree, fast: true }); }, 900);
 }
 function renderFixSense() {
@@ -2450,20 +2450,20 @@ function renderFixSense() {
   }
   const repOf = (p) => (p && p.report && p.report.trees) ? p.report : p;
   if (!before || !after) {
-    host.innerHTML = '<div class="card-title">修复后感知</div><div class="placeholder">还没有修复前后的对比数据——修复成功后会自动感知一次，或点下方按钮手动感知。</div>';
+    host.innerHTML = '<div class="card-title">修完复查</div><div class="placeholder">还没有修复前后的对比数据——修复成功后会自动复查一次，或点下方按钮手动再查。</div>';
     appendSenseBtn(host);
     return;
   }
   const om = histCheckMap(repOf(before)), nm = histCheckMap(repOf(after));
-  const title = '<div class="card-title">修复后感知 · 刚才那一下修完，电脑现在怎么样</div>';
-  host.innerHTML = title + buildCmpHtml(om, nm, histFailCount(om), histFailCount(nm), '两次感知结果一致，全部正常。');
+  const title = '<div class="card-title">修完复查 · 刚才那一下修完，现在好没好</div>';
+  host.innerHTML = title + buildCmpHtml(om, nm, histFailCount(om), histFailCount(nm), '两次复查结果一致，全部正常。');
   appendSenseBtn(host);
 }
 function appendSenseBtn(host) {
   const btn = document.createElement('button');
   btn.className = 'btn';
   btn.style.marginTop = '10px';
-  btn.textContent = '再感知一次';
+  btn.textContent = '再查一次';
   btn.onclick = () => {
     if (!S.lastSenseAction) return;
     scheduleSense(S.lastSenseAction);

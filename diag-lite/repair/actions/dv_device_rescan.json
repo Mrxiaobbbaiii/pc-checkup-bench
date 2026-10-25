@@ -34,7 +34,7 @@
     }
   ],
   "rollback": [],
-  "rollback_note": "无需回滚：扫描不改动设备配置；设备类注册表备份已存回滚包以防万一",
+  "rollback_note": "无需回滚：扫描不改动设备配置；设备类注册表备份已存撤销包以防万一",
   "timeout_sec": 60,
   "match_checks": [
     "dv_device_errors"

@@ -1,24 +1,19 @@
 # 真实体检报告（隐私+体积）
 reports/diag-*
 diag-lite/reports/
-# 版权背景图（不入库防将来误推公开库；登记表文字保留）
+# 发布工作区（扫描产物/草稿/旧版权图备份，一律不入库）
+.publish/
+# 旧版权背景图（assets 版给已退役 WPF 旧壳用；备份在 .publish/backup/，不进公开库）
 assets/bg.jpg
-# 版权背景图（网页壳；缺文件=自动回退纯色，零功能损失）
-ui/bg.jpg
-diag-lite/ui/bg.jpg
-assets/bg-candidates/*.png
-assets/bg-candidates/*.jpg
 # 历史归档与工作区
 archive/
 guicheck_tmp/
 *.zip
 # 真机回滚包（机器专属产物，同真实报告口径不入库）
 reports/rollback/
+# brand.png（柴犬头像，来源待核）与派生 favicon 暂不入库；bg 双图已换程序生成图随库（1025）
 ui/brand.png
 diag-lite/ui/brand.png
-ui/bg-light.jpg
-diag-lite/ui/bg-light.jpg
-# 版权 brand.png 派生的 favicon（同 brand 不入库待遇）
 ui/favicon.png
 diag-lite/ui/favicon.png
 

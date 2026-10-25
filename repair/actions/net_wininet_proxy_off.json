@@ -42,7 +42,7 @@
     }
   ],
   "rollback": [],
-  "rollback_note": "撤销=以管理员运行回滚包里的 undo-net_wininet_proxy_off.bat（把备份的代理设置原样导回）",
+  "rollback_note": "撤销=以管理员运行撤销包里的 undo-net_wininet_proxy_off.bat（把备份的代理设置原样导回）",
   "timeout_sec": 30,
   "match_checks": [
     "net_proxy_system",

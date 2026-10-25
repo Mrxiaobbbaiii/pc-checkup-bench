@@ -4,7 +4,7 @@
   "level": "yellow",
   "desc": "把 Windows 自带电源设置恢复出厂默认。适合：睡死/唤不醒、熄屏时间被改乱、装过「优化软件」后电源行为古怪。",
   "affect": "内置电源计划回到出厂值——你自己调过的睡眠时间、熄屏策略等会被抹掉；不碰文件。",
-  "undo": "重置不可逐项还原；工具先把当前激活方案名备份进回滚包，内置方案随时可再切换或重调。",
+  "undo": "重置不可逐项还原；工具先把当前激活方案名备份进撤销包，内置方案随时可再切换或重调。",
   "requires_admin": true,
   "restore_point": true,
   "common": true,
@@ -16,7 +16,7 @@
         "/c",
         "powercfg /getactivescheme > \"{BK}\\activescheme.txt\" 2>&1"
       ],
-      "desc": "把当前电源方案名存进回滚包"
+      "desc": "把当前电源方案名存进撤销包"
     }
   ],
   "undo_script": [
@@ -32,7 +32,7 @@
     }
   ],
   "rollback": [],
-  "rollback_note": "不可逐项还原（影响栏已说明）；重置前的电源方案名已存进回滚包（activescheme.txt），内置方案可随时在电源选项里重调",
+  "rollback_note": "不可逐项还原（影响栏已说明）；重置前的电源方案名已存进撤销包（activescheme.txt），内置方案可随时在电源选项里重调",
   "timeout_sec": 30,
   "match_checks": [],
   "verify_checks": [],
