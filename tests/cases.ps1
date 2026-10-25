@@ -1396,11 +1396,11 @@ C: | OperatingSystem | FullyEncrypted | Off | 100
     # ---------- sec_suspicious_tasks（规格第三节 #8 + 1 补充英文表头） ----------
     @{ check = 'sec_suspicious_tasks'; note = '1可疑(非系统盘脚本)+1正常+1微软(负例,实测样例)'
        expectStatus = 'FAIL'; expectEvidenceKeyword = '[可疑]'
-       expectExtraEvidenceKeywords = @('DSH-Mirror-Update-Check')
+       expectExtraEvidenceKeywords = @('MySync-Update-Check')
        expectSuggestionKeyword = '人工路径'
        mock = @'
 "主机名","任务名","下次运行时间","模式","登录状态","上次运行时间","上次结果","创建者","要运行的任务","起始于"
-"DESKTOP-X","\DSH-Mirror-Update-Check","2026/10/26 8:00","就绪","已登录","2026/10/25 8:00","0","","powershell -NoProfile -File ""F:\harness workplace\dsh-update-mirror.ps1""",""
+"DESKTOP-X","\MySync-Update-Check","2026/10/26 8:00","就绪","已登录","2026/10/25 8:00","0","","powershell -NoProfile -File ""D:\MySync\mysync-update.ps1""",""
 "DESKTOP-X","\MSIAfterburner","2026/10/26 9:00","就绪","已登录","2026/10/25 9:00","0","","C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe /s",""
 "DESKTOP-X","\Microsoft\Windows\Chkdsk\ProactiveScan","N/A","就绪","已登录","2026/10/20 3:00","0","","C:\Windows\System32\svchost.exe",""
 '@ },

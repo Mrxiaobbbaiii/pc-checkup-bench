@@ -1042,7 +1042,7 @@ window.I18N_EN = {
       steps: [
         { desc: 'Step 1: open Task Scheduler and find each task the report named',
           how: { at: 'Press Win+R on the keyboard → a small input box pops up at the lower left',
-                 click: 'Type taskschd.msc → press Enter → the "Task Scheduler" window opens → click "Task Scheduler Library" in the left tree → sort the middle list by the "Name" column and locate each task the report named (e.g. \\DSH-Mirror-Update-Check)',
+                 click: 'Type taskschd.msc → press Enter → the "Task Scheduler" window opens → click "Task Scheduler Library" in the left tree → sort the middle list by the "Name" column and locate each task the report named (e.g. \\MySync-Update-Check)',
                  type: 'taskschd.msc',
                  ok: 'Every task the report named is in the list = accounts match, go to step 2',
                  fail: 'A named task is not in the list = renamed or already handled: skip it and audit the rest' } },
