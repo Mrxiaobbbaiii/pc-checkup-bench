@@ -1,15 +1,15 @@
 @echo off
 rem diag-lite v1.5.0 all-in-one launcher (ASCII-only on purpose)
 rem A Chinese menu is rendered by engine\run.ps1 itself:
-rem   press Enter = run all five trees (one merged report),
-rem   or type 1-5 to run a single tree.
+rem   press Enter = run all six trees (one merged report),
+rem   or type 1-6 to run a single tree.
 cd /d "%~dp0"
 echo ==============================================================
 echo   diag Full Checkup v1.5.0
-echo   network / bluescreen / hardware / performance / drivers
+echo   network / bluescreen / hardware / performance / drivers / security
 echo   Read-only probing. Nothing on your PC will be changed.
-echo   A menu will appear next: press Enter to check ALL five
-echo   trees (several minutes, one merged report), or type 1-5
+echo   A menu will appear next: press Enter to check ALL six
+echo   trees (several minutes, one merged report), or type 1-6
 echo   to check just one tree.
 echo ==============================================================
 echo.

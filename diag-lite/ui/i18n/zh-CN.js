@@ -1,7 +1,7 @@
 'use strict';
 /* 电脑体检台 UI 语言包 · 简体中文（zh-CN）——界面文案中文真源（1025 i18n 轮）
    结构四段：chrome（页签/按钮/提示语/弹窗文案）、checks（检查项人话名+一句话解释）、
-   groups（问题族/根因规则/术语小抄/更新说明/五棵树的层标题与结论）、actions（占位）。
+   groups（问题族/根因规则/术语小抄/更新说明/各棵树的层标题与结论）、actions（占位）。
    actions 段中文真源 = repair/actions/*.json（数据文件不动，中文直接用原值）；
    英文映射全部在 en-US.js。词条 key 与 en-US.js 严格同构，缺 key 由 app.js t() 回退中文并 console.warn。 */
 window.I18N_ZH = {
@@ -37,7 +37,7 @@ window.I18N_ZH = {
     guide_ok: '知道了',
     select_title: '选择要查的项目',
     all_name: '全面体检（推荐，查得最全）',
-    all_tip: '网络、蓝屏、硬件、性能、驱动全部查一遍，出一份合并报告',
+    all_tip: '网络、蓝屏、硬件、性能、驱动、安全全部查一遍，出一份合并报告',
     fast_name: '快速模式（每类查到问题就跳过剩余细项，更快）',
     fast_tip: '不勾＝每类全部查完（证据最全）；勾上＝查到问题就跳过该类剩余细项',
     sel_hint: '选好后点下面的「开始体检」',
@@ -117,7 +117,7 @@ window.I18N_ZH = {
     sel_none: '至少勾一类再开始。',
     sel_none_status: '先勾选要查的项目',
     hint_tree: '将只查「{name}」这一类，共 {n} 项 · 只读，不改任何设置',
-    hint_all: '将查五类全部 · 预计 1–3 分钟 · 只读，不改任何设置',
+    hint_all: '将查六类全部 · 预计 1–3 分钟 · 只读，不改任何设置',
     hint_done: '上轮已结束。点「再跑一次」可以重新选、重新查。',
     running_status: '正在体检（共 {n} 项）…',
     running_status_resumed: '正在体检…（页面刷新过，接着显示）',
@@ -150,7 +150,7 @@ window.I18N_ZH = {
     /* 结果中心大结论 */
     vb_ok: '全部正常',
     vb_bad: '发现问题 · 共 {n} 项',
-    vb_ok_sub_all: '五类检查全部完成',
+    vb_ok_sub_all: '六类检查全部完成',
     vb_ok_sub_one: '本轮检查完成',
     vb_ok_skips: '，有 {n} 项没查成（不是有问题，原因见下）。',
     vb_ok_clean: '，没有发现隐患。',
@@ -357,6 +357,10 @@ window.I18N_ZH = {
       pf_disk_saturation: '磁盘繁忙度', pf_app_crashes: '应用崩溃 / 卡死',
       net_proxy_system: '系统级代理设置', net_tcp_port: '加密端口连通（443）', net_df_ping: '大包传输探测（MTU）',
       net_wlan_signal: 'Wi-Fi 信号强度', net_tcp_stall: '连接卡死统计', pf_uptime: '连续开机时长',
+      sec_defender_status: 'Defender 防护开关与病毒库新鲜度', sec_defender_exclusions: 'Defender 查杀排除项清单',
+      sec_defender_threats: '近 30 天病毒检出记录', sec_defender_service: 'Defender 防护服务状态',
+      sec_uac_level: '用户账户控制（UAC）档位', sec_firewall_profiles: '防火墙三个配置文件',
+      sec_bitlocker: '磁盘加密（BitLocker）状态', sec_suspicious_tasks: '可疑计划任务清单（非微软路径）',
     },
     info: {
       net_adapter_list: '电脑认不认得出网卡，网线/无线有没有连上。',
@@ -401,6 +405,14 @@ window.I18N_ZH = {
       net_wlan_signal: 'Wi-Fi 信号够不够强，太弱会网速慢、时断时续。',
       net_tcp_stall: '有没有一堆网络连接卡在「正在连接」不动（线路拥塞或软件占线的迹象）。',
       pf_uptime: '电脑连续开了多久，太久不停机会累积小毛病。',
+      sec_defender_status: 'Defender 实时保护开没开，病毒库几天没更新了。',
+      sec_defender_exclusions: '杀毒有没有「免检名单」——列进去的目录和文件，查杀时会跳过不看。',
+      sec_defender_threats: '最近 30 天 Defender 有没有查出病毒，查出的处理掉没有。',
+      sec_defender_service: 'Defender 的杀毒引擎和配套防护服务有没有在正常跑。',
+      sec_uac_level: '装软件、改设置时弹不弹确认窗——有没有被降到「从不通知」的最低档。',
+      sec_firewall_profiles: 'Windows 防火墙在域网络、专用网络、公用网络三种场景下是不是都开着。',
+      sec_bitlocker: '系统盘有没有开 BitLocker 加密——电脑丢了，别人也读不走里面的数据。',
+      sec_suspicious_tasks: '有没有指向用户可写目录的计划任务——自己加的工具是常态，恶意软件也爱把自启藏在这里。',
     },
     skip_tag: {
       hw_battery_wear: '机器没电池',
@@ -414,7 +426,7 @@ window.I18N_ZH = {
     },
   },
 
-  /* ---------- groups：问题族 / 根因规则 / 术语小抄 / 更新说明 / 五棵树 ---------- */
+  /* ---------- groups：问题族 / 根因规则 / 术语小抄 / 更新说明 / 体检树 ---------- */
   groups: {
     sev: {
       high: { word: '高', desc: '要尽快处理' },
@@ -426,6 +438,7 @@ window.I18N_ZH = {
       network: { title: '上网与网络', note: '按「网卡 → IP → 网关 → 公网 → DNS → 应用层（代理/hosts/VPN）」的顺序查，通常是链路上某一环断了。' },
       hardware: { title: '硬件健康', note: '硬盘、文件系统、内存、温度这些硬件项的体检结果；「没查成」多半是没权限或机器没有这个部件。' },
       driver: { title: '驱动', note: '驱动越老、越多、越没签名，系统越容易不稳；网络过滤层多了也可能拖慢上网。' },
+      sec: { title: '安全与防护', note: '防中毒的两道防线：Defender 杀毒防护（开关/服务/检出史/排除项）和系统加固（UAC/防火墙/磁盘加密/计划任务）。查出问题=防线有缺口，按修复中心给的路径逐项补上；「没查成」的多半是要管理员权限才看得到，不是没问题。' },
       app: { title: '应用崩溃与卡死', note: '同一个软件反复崩溃/卡死时看这里；多个不同软件都崩，也可能是内存/驱动问题。' },
       perf: { title: '开机与运行速度', note: '开机用时、自启项、服务超时、内存和磁盘压力——电脑慢往往不是单一原因。' },
       other: { title: '其他', note: '' },
@@ -458,7 +471,7 @@ window.I18N_ZH = {
         '界面支持中文 / English 切换：右上「外观」菜单里选语言，全页面即时生效',
       ],
     },
-    /* 五棵树：菜单名/树描述/报告名/层标题/层结论（真源=server.ps1 menuNames + trees/*.yaml） */
+    /* 六棵树：菜单名/树描述/报告名/层标题/层结论（真源=server.ps1 menuNames + trees/*.yaml） */
     trees: {
       network: {
         name: '网络体检', desc: '上不了网 / 网页打不开', report: '网络体检报告',
@@ -500,6 +513,13 @@ window.I18N_ZH = {
           integrity: { title: '签名与年代（来路正不正）', vfail: '签名与年代层有隐患：无签名/损坏签名或 Win7 时代古董驱动正在内核运行——驱动来路不正=蓝屏高发源。' },
           stack: { title: '叠加体量（第三方过滤链）', vfail: '叠加体量层过厚：第三方驱动或网络过滤链叠了太多层——全家桶/加速器各挂一层，断网与卡顿双隐患。' },
           suspect: { title: '点名证据（系统点名与嫌疑名单）', vfail: '点名证据层有实锤：设备黄三角、驱动加载失败史或已知嫌疑驱动在跑——系统自己点名的处理对象。' },
+        },
+      },
+      security: {
+        name: '安全体检', desc: '病毒防护 / 系统加固', report: '安全体检报告',
+        layers: {
+          defender: { title: '微软 Defender 防病毒（开关 / 服务 / 检出史 / 排除项）', vfail: 'Defender 防病毒层有缺口：防护开关被关、服务停摆、有未处置的检出，或存在查杀排除项盲区——恶意软件进门前少了一道闸。' },
+          system_hardening: { title: '系统加固（UAC / 防火墙 / 磁盘加密 / 计划任务）', vfail: '系统加固层有缺口：UAC 降到最低档、防火墙被关、系统盘未加密，或存在指向用户目录的可疑计划任务——中了招之后的拦截和止损能力被削弱。' },
         },
       },
     },

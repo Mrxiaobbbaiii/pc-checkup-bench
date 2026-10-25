@@ -1170,4 +1170,263 @@ QUERY-ERROR
        expectStatus = 'SKIP'; expectEvidenceKeyword = '查不到'
        mock = @'
 '@ }
+    # ---------- sec_defender_status（规格第三节 #1） ----------
+    @{ check = 'sec_defender_status'; note = '全开+病毒库当天更新(实测样例)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '实时保护: True'
+       expectExtraEvidenceKeywords = @('0 天')
+       mock = @'
+AMRunningMode=Normal
+AntivirusEnabled=True
+RealTimeProtectionEnabled=True
+AntivirusSignatureAge=0
+AntivirusSignatureLastUpdated=2026/10/25 0:31:48
+'@ },
+    @{ check = 'sec_defender_status'; note = '实时保护被关(负例)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '实时保护'
+       expectExtraEvidenceKeywords = @('结论：')
+       mock = @'
+AMRunningMode=Normal
+AntivirusEnabled=True
+RealTimeProtectionEnabled=False
+AntivirusSignatureAge=0
+AntivirusSignatureLastUpdated=2026/10/25 0:31:48
+'@ },
+    @{ check = 'sec_defender_status'; note = '病毒库9天未更新(负例,超7天工程线,结论行含超期天数)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '7 天'
+       expectExtraEvidenceKeywords = @('9')
+       mock = @'
+AMRunningMode=Normal
+AntivirusEnabled=True
+RealTimeProtectionEnabled=True
+AntivirusSignatureAge=9
+AntivirusSignatureLastUpdated=2026/10/16 0:31:48
+'@ },
+    @{ check = 'sec_defender_status'; note = '病毒库5天未更新(PASS附注建议尽快更新)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '已 5 天未更新'
+       mock = @'
+AMRunningMode=Normal
+AntivirusEnabled=True
+RealTimeProtectionEnabled=True
+AntivirusSignatureAge=5
+AntivirusSignatureLastUpdated=2026/10/20 0:31:48
+'@ },
+    @{ check = 'sec_defender_status'; note = '第三方杀软接管Passive Mode(SKIP)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = '第三方杀软'
+       mock = @'
+AMRunningMode=Passive Mode
+AntivirusEnabled=True
+RealTimeProtectionEnabled=True
+AntivirusSignatureAge=0
+AntivirusSignatureLastUpdated=2026/10/25 0:31:48
+'@ },
+
+    # ---------- sec_defender_exclusions（规格第三节 #2） ----------
+    @{ check = 'sec_defender_exclusions'; note = '占位文本(标准用户实测原文,SKIP admin-required)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = 'Must be an administrator'
+       expectSuggestionKeyword = '人工路径'
+       mock = @'
+ExclusionPath=N/A: Must be an administrator to view exclusions
+ExclusionExtension=N/A: Must be an administrator to view exclusions
+ExclusionProcess=N/A: Must be an administrator to view exclusions
+ExclusionIpAddress=N/A: Must be an administrator to view exclusions
+'@ },
+    @{ check = 'sec_defender_exclusions'; note = '四清单全空(无排除项)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '（无）'
+       expectExtraEvidenceKeywords = @('无排除项')
+       mock = @'
+ExclusionPath=
+ExclusionExtension=
+ExclusionProcess=
+ExclusionIpAddress=
+'@ },
+    @{ check = 'sec_defender_exclusions'; note = '有排除路径+排除进程(负例,查杀盲区)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '排除路径(1)'
+       expectExtraEvidenceKeywords = @('D:\dev\projects', '盲区')
+       mock = @'
+ExclusionPath=D:\dev\projects
+ExclusionExtension=
+ExclusionProcess=cpu_z.exe
+ExclusionIpAddress=
+'@ },
+
+    # ---------- sec_defender_threats（规格第三节 #3） ----------
+    @{ check = 'sec_defender_threats'; note = '空输入(0事件,近30天无检出)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '近 30 天无任何检出'
+       mock = @'
+'@ },
+    @{ check = 'sec_defender_threats'; note = '1116检出+1117隔离(实测样例,处置齐=PASS附清单)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '检出 1 次'
+       expectExtraEvidenceKeywords = @('Contebrew', '隔离')
+       mock = @'
+2026/10/25 15:06:03 | 1116 | Name=Program:Win32/Contebrew.A!ml | Severity=高 | Path=file:_D:\gost\gost.exe | Action=
+2026/10/25 15:06:12 | 1117 | Name=Program:Win32/Contebrew.A!ml | Severity=高 | Path=file:_D:\gost\gost.exe | Action=隔离
+'@ },
+    @{ check = 'sec_defender_threats'; note = '1116两条+1117一条(有检出无对应处置,负例)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '无对应处置'
+       mock = @'
+2026/10/25 15:06:03 | 1116 | Name=Program:Win32/Contebrew.A!ml | Severity=高 | Path=file:_D:\gost\gost.exe | Action=
+2026/10/25 15:07:00 | 1116 | Name=Trojan:Win32/Wacatac.B!ml | Severity=严重 | Path=file:_C:\Users\test\payload.exe | Action=
+2026/10/25 15:07:30 | 1117 | Name=Trojan:Win32/Wacatac.B!ml | Severity=严重 | Path=file:_C:\Users\test\payload.exe | Action=隔离
+'@ },
+    @{ check = 'sec_defender_threats'; note = '含1118处置失败(负例)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '处置失败'
+       mock = @'
+2026/10/25 15:06:03 | 1116 | Name=Program:Win32/Contebrew.A!ml | Severity=高 | Path=file:_D:\gost\gost.exe | Action=
+2026/10/25 15:06:12 | 1118 | Name=Program:Win32/Contebrew.A!ml | Severity=高 | Path=file:_D:\gost\gost.exe | Action=
+'@ },
+
+    # ---------- sec_defender_service（规格第三节 #4） ----------
+    @{ check = 'sec_defender_service'; note = '五服务全Running(实测样例)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = 'WinDefend): Running'
+       mock = @'
+WinDefend | Running | Automatic
+WdNisSvc | Running | Manual
+WdNisDrv | Running | Manual
+SecurityHealthService | Running | Manual
+wscsvc | Running | Automatic
+'@ },
+    @{ check = 'sec_defender_service'; note = 'WinDefend停止(核心服务停摆,负例)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '停摆'
+       expectExtraEvidenceKeywords = @('WinDefend')
+       expectSuggestionKeyword = '没有在跑'
+       mock = @'
+WinDefend | Stopped | Automatic
+WdNisSvc | Running | Manual
+WdNisDrv | Running | Manual
+SecurityHealthService | Running | Manual
+wscsvc | Running | Automatic
+'@ },
+    @{ check = 'sec_defender_service'; note = '仅安全中心界面服务停止(PASS附注)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '安全中心界面服务未运行'
+       mock = @'
+WinDefend | Running | Automatic
+WdNisSvc | Running | Manual
+WdNisDrv | Running | Manual
+SecurityHealthService | Stopped | Manual
+wscsvc | Running | Automatic
+'@ },
+    @{ check = 'sec_defender_service'; note = 'WinDefend不存在(非Defender环境,SKIP)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = '非 Defender 环境'
+       mock = @'
+WinDefend | MISSING |
+'@ },
+
+    # ---------- sec_uac_level（规格第三节 #5） ----------
+    @{ check = 'sec_uac_level'; note = '从不通知档(本机实测样例,负例:静默提权)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '从不通知'
+       expectExtraEvidenceKeywords = @('静默提权')
+       mock = @'
+EnableLUA=1
+ConsentPromptBehaviorAdmin=0
+PromptOnSecureDesktop=0
+'@ },
+    @{ check = 'sec_uac_level'; note = '官方默认档(CPBA=5+安全桌面开)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '默认'
+       mock = @'
+EnableLUA=1
+ConsentPromptBehaviorAdmin=5
+PromptOnSecureDesktop=1
+'@ },
+    @{ check = 'sec_uac_level'; note = 'EnableLUA=0(UAC整体禁用,负例)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '整体禁用'
+       mock = @'
+EnableLUA=0
+ConsentPromptBehaviorAdmin=5
+PromptOnSecureDesktop=1
+'@ },
+    @{ check = 'sec_uac_level'; note = '第四档+提词不经安全桌面(PASS附注)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '提词不经安全桌面'
+       mock = @'
+EnableLUA=1
+ConsentPromptBehaviorAdmin=4
+PromptOnSecureDesktop=0
+'@ },
+
+    # ---------- sec_firewall_profiles（规格第三节 #6） ----------
+    @{ check = 'sec_firewall_profiles'; note = '三配置文件全开(实测样例)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '公用网络(Public): 开'
+       mock = @'
+Domain | True | NotConfigured | NotConfigured
+Private | True | NotConfigured | NotConfigured
+Public | True | NotConfigured | NotConfigured
+'@ },
+    @{ check = 'sec_firewall_profiles'; note = 'Public被关(负例:公用网络不设防)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '公用网络(Public): 关'
+       expectExtraEvidenceKeywords = @('不设防')
+       mock = @'
+Domain | True | NotConfigured | NotConfigured
+Private | True | NotConfigured | NotConfigured
+Public | False | NotConfigured | NotConfigured
+'@ },
+    @{ check = 'sec_firewall_profiles'; note = '三开+出站默认拦截(PASS附注罕见加固态)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '出站默认拦截'
+       mock = @'
+Domain | True | NotConfigured | Block
+Private | True | NotConfigured | Block
+Public | True | NotConfigured | Block
+'@ },
+
+    # ---------- sec_bitlocker（规格第三节 #7 + 1 补充边界） ----------
+    @{ check = 'sec_bitlocker'; note = '拒绝访问(标准用户实测原文,SKIP admin-required)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = '管理员权限'
+       expectExtraEvidenceKeywords = @('看不到≠没加密')
+       expectSuggestionKeyword = '人工路径'
+       mock = @'
+ERROR: 拒绝访问
+'@ },
+    @{ check = 'sec_bitlocker'; note = '系统卷FullyDecrypted(负例:未加密裸奔)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '未加密'
+       expectExtraEvidenceKeywords = @('裸奔')
+       mock = @'
+C: | OperatingSystem | FullyDecrypted | Off | 0
+D: | Data | FullyEncrypted | On | 100
+'@ },
+    @{ check = 'sec_bitlocker'; note = '系统卷FullyEncrypted+保护On'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '保护: On'
+       mock = @'
+C: | OperatingSystem | FullyEncrypted | On | 100
+D: | Data | FullyEncrypted | On | 100
+'@ },
+    @{ check = 'sec_bitlocker'; note = '系统卷FullyEncrypted但保护Off(补充边界:挂起态PASS附注)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '挂起态'
+       mock = @'
+C: | OperatingSystem | FullyEncrypted | Off | 100
+'@ },
+
+    # ---------- sec_suspicious_tasks（规格第三节 #8 + 1 补充英文表头） ----------
+    @{ check = 'sec_suspicious_tasks'; note = '1可疑(非系统盘脚本)+1正常+1微软(负例,实测样例)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '[可疑]'
+       expectExtraEvidenceKeywords = @('DSH-Mirror-Update-Check')
+       expectSuggestionKeyword = '人工路径'
+       mock = @'
+"主机名","任务名","下次运行时间","模式","登录状态","上次运行时间","上次结果","创建者","要运行的任务","起始于"
+"DESKTOP-X","\DSH-Mirror-Update-Check","2026/10/26 8:00","就绪","已登录","2026/10/25 8:00","0","","powershell -NoProfile -File ""F:\harness workplace\dsh-update-mirror.ps1""",""
+"DESKTOP-X","\MSIAfterburner","2026/10/26 9:00","就绪","已登录","2026/10/25 9:00","0","","C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe /s",""
+"DESKTOP-X","\Microsoft\Windows\Chkdsk\ProactiveScan","N/A","就绪","已登录","2026/10/20 3:00","0","","C:\Windows\System32\svchost.exe",""
+'@ },
+    @{ check = 'sec_suspicious_tasks'; note = '仅Program Files第三方任务(全部系统只读目录)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '系统只读目录'
+       mock = @'
+"主机名","任务名","下次运行时间","模式","登录状态","上次运行时间","上次结果","创建者","要运行的任务","起始于"
+"DESKTOP-X","\MSIAfterburner","2026/10/26 9:00","就绪","已登录","2026/10/25 9:00","0","","C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe /s",""
+"DESKTOP-X","\Microsoft\Windows\Chkdsk\ProactiveScan","N/A","就绪","已登录","2026/10/20 3:00","0","","C:\Windows\System32\svchost.exe",""
+'@ },
+    @{ check = 'sec_suspicious_tasks'; note = '仅\Microsoft\任务(第三方0条)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '第三方任务 0 条'
+       mock = @'
+"主机名","任务名","下次运行时间","模式","登录状态","上次运行时间","上次结果","创建者","要运行的任务","起始于"
+"DESKTOP-X","\Microsoft\Windows\Chkdsk\ProactiveScan","N/A","就绪","已登录","2026/10/20 3:00","0","","C:\Windows\System32\svchost.exe",""
+'@ },
+    @{ check = 'sec_suspicious_tasks'; note = '乱表头(中英都定位不到,SKIP unknown-locale)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = 'unknown-locale'
+       mock = @'
+"Foo","Bar"
+"x","y"
+'@ },
+    @{ check = 'sec_suspicious_tasks'; note = '英文表头(补充边界:TaskName/Task To Run 动态定位)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = '系统只读目录'
+       mock = @'
+"HostName","TaskName","Next Run Time","Status","Logon Mode","Last Run Time","Last Result","Author","Task To Run","Start In"
+"DESKTOP-X","\MSIAfterburner","2026/10/26 9:00","Ready","LoggedIn","2026/10/25 9:00","0","","C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe /s",""
+'@ }
 )

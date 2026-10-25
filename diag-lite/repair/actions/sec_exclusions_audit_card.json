@@ -1,0 +1,64 @@
+{
+  "id": "sec_exclusions_audit_card",
+  "name": "Defender 排除项核对（红卡）",
+  "level": "red",
+  "desc": "把 Defender 查杀排除项逐条过目认领：每个排除项都是一个查杀盲区（微软官方口径），不认识的条目可能是恶意软件或破解工具自己加的免检通道。本卡只带路+教看，永不代改。",
+  "affect": "只查看不改动：核对本身零影响。删除不认识的排除项会让对应目录/进程重新纳入查杀——个别破解工具/性能敏感工具可能出现报毒或变慢，属预期。",
+  "undo": "删错的可重新添加（同界面「添加排除项」原样加回），无不可逆操作。",
+  "requires_admin": true,
+  "prechecks": [],
+  "steps": [
+    {
+      "exe": "cmd.exe",
+      "args": ["/c", "start windowsdefender:"],
+      "desc": "第 1 步：打开 Windows 安全中心，进到排除项列表",
+      "how": {
+        "at": "键盘按 Win+I → 点「隐私和安全性」（英文：Privacy & security）",
+        "click": "点「Windows 安全中心」→「病毒和威胁防护」→「\"病毒和威胁防护\"设置」区块下的「管理设置」→ 一路拉到最底部「排除项」→ 点「添加或删除排除项」→ 弹出的用户账户控制（UAC）确认窗点「是」",
+        "type": "（这一步不用输命令）",
+        "ok": "看到「排除项」列表页——列表是空的=没有盲区，直接收工；有条目=进第 2 步",
+        "fail": "找不到「管理设置」或列表灰着不可点=设置被组策略/第三方杀软接管：装了第三方杀软的在本页收工（它管杀毒）；没装的用管理员身份重开本工具看「防护开关」项"
+      }
+    },
+    {
+      "exe": "cmd.exe",
+      "args": ["/c", "start windowsdefender:"],
+      "desc": "第 2 步：逐条认领——认识的保留，不认识的删除",
+      "how": {
+        "at": "仍在「排除项」列表页",
+        "click": "逐条点开看「位置/进程名」：自己加过的（开发目录、虚拟机目录、游戏反作弊要求的那类）→ 保留不用动；不认识的 → 点该条目 → 点「删除」→ 确认删除",
+        "type": "（不用输入，认+删）",
+        "ok": "列表里剩下的每一条你都能说出它是什么——核对完成",
+        "fail": "拿不准某条是不是自己装的软件加的：先别删，把条目路径抄下来搜一下是哪个软件，或先删后观察——该软件报「文件被拦截」再加回来也来得及"
+      }
+    },
+    {
+      "exe": "cmd.exe",
+      "args": ["/c", "start windowsdefender:"],
+      "desc": "第 3 步（删除过条目才做）：快速扫描复扫一轮",
+      "how": {
+        "at": "Windows 安全中心 →「病毒和威胁防护」页",
+        "click": "点「快速扫描」按钮，等进度跑完（几分钟）",
+        "type": "（不用输入）",
+        "ok": "扫描结果「未发现任何威胁」或威胁已被自动处理——收工",
+        "fail": "扫出威胁且无法自动清除：记下威胁名，回「保护历史记录」逐条处理；仍清不掉=带着体检报告求助，别反复手删系统文件"
+      }
+    }
+  ],
+  "rollback": [],
+  "rollback_note": "删错的排除项在同界面「添加排除项」原样加回即恢复；无其他改动",
+  "timeout_sec": 30,
+  "caveat": "官方依据：微软 Defender 排除项总览（Every exclusion is a protection gap —— 每个排除项都是防护缺口，官方建议尽量少用并定期审计）。删除排除项属于安全设置变更，工具永不代跑。",
+  "match_checks": ["sec_defender_exclusions"],
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "Defender 排除项官方总览：类型/通配符/审计建议（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/defender-endpoint/microsoft-defender-antivirus-exclusions-overview"
+    },
+    {
+      "title": "Get-MpPreference 官方 cmdlet 参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/defender/get-mppreference"
+    }
+  ]
+}

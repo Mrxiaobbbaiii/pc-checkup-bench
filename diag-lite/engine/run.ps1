@@ -6,7 +6,7 @@ diag engine v1.5.0 —— 推进器（PowerShell 5.1+ / 7 双兼容，大众普�
   -Full      断点后继续跑完剩余层取证（默认断点即停，后续层 SKIP）
   -MockDir   模拟模式：目录内 <检查项名>.txt 作为该检查项的 MockRaw（模拟测试/演示用）
   -OpenReport 跑完自动用默认浏览器打开 HTML 报告（普及版双击场景用；v0.2.1 起替代记事本）
-  -NoMenu    -TreeName all 时跳过中文菜单直接连跑五树（自动化用；-MockDir 非空时同样自动跳过）
+  -NoMenu    -TreeName all 时跳过中文菜单直接连跑全部内置树（自动化用；-MockDir 非空时同样自动跳过）
   -ProgressFile GUI 数据通路（默认关）：每完成一检查项向该文件追加一行 JSON 事件
              （event=check/tree_done/break/done；树/层/项名/状态/耗时；done 带退出码与报告路径）。stdout 零新增。
   -JsonReport GUI 数据通路（默认关）：HTML 落盘同时多落一份 diag-<树>-<时间戳>.json
@@ -16,6 +16,8 @@ v0.5：-TreeName all=多树模式（依次跑 network/bluescreen/hardware/perfor
 v0.6：新增 -ProgressFile/-JsonReport 两默认关参数（图形界面片；判定/推进/既有输出逐字不动，GUI 壳消费）。
 v1.1.0：ext 扩展口子——ext	rees\*.yaml（单树补缺）与 ext\checks\*.ps1（检查补缺）自动加载；内置优先，同名冲突忽略+stderr 告警；all 模式仍=内置五树，扩展树在菜单/网页版单独选跑。
 铁律：探测只读（检查项全部只读命令）；证据必附（报告含原始输出摘录）；修复只给命令文本+回滚。
+安全树：内置第六棵树 security（安全体检，8 项只读检查：Defender 开关/服务/检出史/排除项+UAC/防火墙/BitLocker/计划任务）；
+      all 模式=内置六树连跑，总入口菜单扩为 1-6；单树执行路径零改动。
 退出码：0=全通；2=有断点（all 模式=任一树有 FAIL）；3=引擎自身错误。
 #>
 param(
@@ -46,31 +48,32 @@ $reportsDir = Join-Path $dataRoot 'reports'
 if (-not (Test-Path -LiteralPath $reportsDir)) { New-Item -ItemType Directory -Path $reportsDir -Force | Out-Null }
 
 # ---------- 总入口中文菜单（-TreeName all 且 MockDir 空且未带 -NoMenu 才显示，不卡自动化） ----------
-$menuNames = @{ network = '网络体检'; bluescreen = '蓝屏体检'; hardware = '硬件体检'; performance = '性能体检'; drivers = '驱动体检' }
+$menuNames = @{ network = '网络体检'; bluescreen = '蓝屏体检'; hardware = '硬件体检'; performance = '性能体检'; drivers = '驱动体检'; security = '安全体检' }
 if ($TreeName -eq 'all' -and $MockDir -eq '' -and -not $NoMenu) {
-    $menuMap = @{ '1' = 'network'; '2' = 'bluescreen'; '3' = 'hardware'; '4' = 'performance'; '5' = 'drivers' }
+    $menuMap = @{ '1' = 'network'; '2' = 'bluescreen'; '3' = 'hardware'; '4' = 'performance'; '5' = 'drivers'; '6' = 'security' }
     $picked = ''
     for ($i = 1; $i -le 3; $i++) {
         Write-Host ''
         Write-Host "================== 电脑体检台 全面体检 v$engVersion =================="
-        Write-Host '  回车 = 五类全查，出一份合并体检报告（推荐，约几分钟）'
+        Write-Host '  回车 = 六类全查，出一份合并体检报告（推荐，约几分钟）'
         Write-Host '    1 = 网络体检（上不了网 / 网页打不开）'
         Write-Host '    2 = 蓝屏体检（蓝屏过 / 莫名重启）'
         Write-Host '    3 = 硬件体检（磁盘 / 电池 / 温度年检）'
         Write-Host '    4 = 性能体检（开机慢 / 用着卡）'
         Write-Host '    5 = 驱动体检（驱动来路 / 设备黄三角）'
-        $ans = Read-Host '请输入数字（1-5）或直接回车跑全部'
+        Write-Host '    6 = 安全体检（病毒防护 / 系统加固）'
+        $ans = Read-Host '请输入数字（1-6）或直接回车跑全部'
         if ([string]::IsNullOrWhiteSpace($ans)) { $picked = 'all'; break }
         $k = $ans.Trim()
         if ($menuMap.ContainsKey($k)) { $picked = $menuMap[$k]; break }
-        Write-Host "没认出「$k」——请输入 1-5，或直接回车。"
+        Write-Host "没认出「$k」——请输入 1-6，或直接回车。"
     }
-    if ($picked -eq '') { $picked = 'all'; Write-Host '（连续 3 次未识别，按默认五类全查）' }
+    if ($picked -eq '') { $picked = 'all'; Write-Host '（连续 3 次未识别，按默认六类全查）' }
     if ($picked -ne 'all') {
         $TreeName = $picked
         Write-Host "→ 本轮单跑：$($menuNames[$picked])（出这一类的报告）"
     } else {
-        Write-Host '→ 本轮五类全查（合并报告）'
+        Write-Host '→ 本轮六类全查（合并报告）'
     }
 }
 
@@ -495,7 +498,7 @@ function Trim-Reports {
 
 # ---------- 多树模式（-TreeName all；单树执行路径零改动） ----------
 if ($TreeName -eq 'all') {
-    $treesOrder = @('network', 'bluescreen', 'hardware', 'performance', 'drivers')
+    $treesOrder = @('network', 'bluescreen', 'hardware', 'performance', 'drivers', 'security')
     $treeDatas = @{}
     foreach ($t in $treesOrder) {
         $tf = Join-Path $root "trees/$t.yaml"

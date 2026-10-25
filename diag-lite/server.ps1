@@ -71,9 +71,9 @@ function Write-CrashLog([string]$msg) {
 }
 
 # ---------- 树知识（启动时只读 trees/*.yaml；菜单文案与 engine/GUI 同源） ----------
-$menuOrder = @('network', 'bluescreen', 'hardware', 'performance', 'drivers')
-$menuNames = @{ network = '网络体检'; bluescreen = '蓝屏体检'; hardware = '硬件体检'; performance = '性能体检'; drivers = '驱动体检' }
-$menuDesc  = @{ network = '上不了网 / 网页打不开'; bluescreen = '蓝屏过 / 莫名重启'; hardware = '磁盘 / 电池 / 温度'; performance = '开机慢 / 用着卡'; drivers = '驱动来路 / 设备黄三角' }
+$menuOrder = @('network', 'bluescreen', 'hardware', 'performance', 'drivers', 'security')
+$menuNames = @{ network = '网络体检'; bluescreen = '蓝屏体检'; hardware = '硬件体检'; performance = '性能体检'; drivers = '驱动体检'; security = '安全体检' }
+$menuDesc  = @{ network = '上不了网 / 网页打不开'; bluescreen = '蓝屏过 / 莫名重启'; hardware = '磁盘 / 电池 / 温度'; performance = '开机慢 / 用着卡'; drivers = '驱动来路 / 设备黄三角'; security = '病毒防护 / 系统加固' }
 $treeDefs = @()
 foreach ($t in $menuOrder) {
     $tf = Join-Path $root "trees\$t.yaml"

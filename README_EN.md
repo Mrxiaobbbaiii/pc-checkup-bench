@@ -2,7 +2,7 @@
 
 English | **[中文](README.md)**
 
-> A free Windows checkup tool: **It only looks. It never touches your settings.** 44 read-only checks cover five categories — Network / Blue Screen / Hardware / Performance / Driver — and for every item it tells you: where the problem is, what the evidence is, how to fix it, and which official Microsoft document the fix is based on.
+> A free Windows checkup tool: **It only looks. It never touches your settings.** 52 read-only checks cover six categories — Network / Blue Screen / Hardware / Performance / Driver / Security — and for every item it tells you: where the problem is, what the evidence is, how to fix it, and which official Microsoft document the fix is based on.
 
 ![GitHub License](https://img.shields.io/badge/license-MIT-green) ![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![Version](https://img.shields.io/badge/version-v1.5.0-orange)
 
@@ -35,8 +35,11 @@ English | **[中文](README.md)**
 | Hardware Checkup | disk health / SMART warnings / file system errors / battery wear / temperature / memory diagnostic history | 7 |
 | Performance Checkup | boot time / startup items / service timeouts / disk space and busyness / memory pressure / app crashes | 9 |
 | Driver Checkup | driver signature / ancient drivers / network filter drivers / devices with a yellow warning triangle / driver load failures | 7 |
+| Security Checkup | Microsoft Defender antivirus (switches / services / detection history / exclusions) / UAC / firewall / BitLocker / scheduled tasks | 8 |
 
-- 23 repair actions: Green 6 (run for you) / Yellow 9 (run for you after your confirmation) / Red 8 (step-by-step guide only)
+The Security Checkup looks at the two lines of defense against malware: Microsoft Defender antivirus protection (protection switches / services / detections in the last 30 days / scan exclusions) and system hardening (UAC level / firewall / disk encryption / scheduled tasks) — all 8 checks are read-only, and for security settings the tool only shows you the manual path, never changes anything itself.
+
+- 25 repair actions: Green 6 (run for you) / Yellow 9 (run for you after your confirmation) / Red 10 (step-by-step guide only)
 - Every fix comes with its **official Microsoft documentation source**, which you can open and check
 - Custom checks are supported: put your own check scripts, checkup trees, and repair guides into the `ext/` folder and they take effect — no repackaging needed
 
@@ -55,7 +58,7 @@ English | **[中文](README.md)**
 ### Option 2: Portable Version (No Install Needed)
 
 1. Download `diag-lite-v1.5.0.zip` and extract it anywhere (the desktop is fine)
-2. Double-click `全面体检（网页版）.bat` to get the windowed interface; or double-click any one of the five checkup `.bat` files to run the console version directly
+2. Double-click `全面体检（网页版）.bat` to get the windowed interface; or double-click any one of the six checkup `.bat` files to run the console version directly
 3. Requires Windows 10/11 (the built-in Edge browser is enough)
 
 ## Quick Start
@@ -82,7 +85,7 @@ This tool is provided "as is". Checkup results and repair suggestions are for re
 
 ## About How This Project Was Built
 
-This project was built with AI-assisted development (vibe coding with [ZCode](https://zcode.ai) / GLM): from sorting out requirements, solution design, and code implementation to test regression, everything was done in human-machine collaboration, with humans making the final calls and accepting the results. All check logic and test cases (210 assertions × PowerShell 5.1 / 7 dual versions, 35 UI automation tests) are public with the source code. Review is welcome.
+This project was built with AI-assisted development (vibe coding with [ZCode](https://zcode.ai) / GLM): from sorting out requirements, solution design, and code implementation to test regression, everything was done in human-machine collaboration, with humans making the final calls and accepting the results. All check logic and test cases (242 assertions × PowerShell 5.1 / 7 dual versions, 35 UI automation tests) are public with the source code. Review is welcome.
 
 ## Run from Source
 
@@ -101,11 +104,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Setup
 ## Directory Structure
 
 ```
-├─ engine/ checks/ trees/   # check engine, 44 check scripts, definitions of the five checkup trees
+├─ engine/ checks/ trees/   # check engine, 52 check scripts, definitions of the six checkup trees
 ├─ repair/                  # repair actions (green/yellow/red tiers, with official documentation sources)
 ├─ ui/                      # UI (HTML/CSS/JS, zero dependencies, zero CDN, works offline)
 ├─ server.ps1               # local server (starts the UI and dispatches the engine)
 ├─ host/                    # native window shell (C#, WebView2)
 ├─ ext/                     # extensions: custom checks/trees/repair guides
-└─ tests/                   # 210 assertions + UI automation regression
+└─ tests/                   # 242 assertions + UI automation regression
 ```

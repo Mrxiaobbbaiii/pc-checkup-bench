@@ -1,0 +1,22 @@
+{
+  "_comment": "diag 安全体检树 v1.0（第六棵）。JSON 语法=合法 YAML 1.2 子集（零依赖断网可用，同 network/bluescreen）。安全树=两层聚合取证型：Defender 防病毒层（开关/服务/检出史/排除项）+ 系统加固层（UAC/防火墙/BitLocker/计划任务）。全部命令只读；判定只依赖程序级字段（数字枚举/事件 ID/布尔值/注册表值），不依赖本地化文本。SKIP≠PASS：标准用户读不到的项（排除项内容/BitLocker 状态）=看不到≠没问题，建议给人工核对入口。安全设置变更一律人工：下文只走 advice（建议即处置）与 card（红级处置卡），无绿/黄代跑动作。",
+  "tree": "security",
+  "version": "1.0",
+  "report_name": "安全体检报告",
+  "verdict_title": "安全结论",
+  "layers": [
+    {
+      "name": "defender",
+      "title": "微软 Defender 防病毒（开关 / 服务 / 检出史 / 排除项）",
+      "checks": ["sec_defender_status", "sec_defender_service", "sec_defender_threats", "sec_defender_exclusions"],
+      "verdict_fail": "Defender 防病毒层有缺口：防护开关被关、服务停摆、有未处置的检出，或存在查杀排除项盲区——恶意软件进门前少了一道闸。"
+    },
+    {
+      "name": "system_hardening",
+      "title": "系统加固（UAC / 防火墙 / 磁盘加密 / 计划任务）",
+      "checks": ["sec_uac_level", "sec_firewall_profiles", "sec_bitlocker", "sec_suspicious_tasks"],
+      "verdict_fail": "系统加固层有缺口：UAC 降到最低档、防火墙被关、系统盘未加密，或存在指向用户目录的可疑计划任务——中了招之后的拦截和止损能力被削弱。"
+    }
+  ],
+  "verdict_all_pass": "Defender 防护与系统加固两层未见安全缺口（SKIP 项=本机未暴露该项数据或需管理员权限，非无问题）"
+}

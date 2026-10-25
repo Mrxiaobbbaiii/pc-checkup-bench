@@ -338,6 +338,14 @@ USB\VID_1234&PID_5678\0001
 ROOT\XXSYS\0000
 '@
 
+
+# 安全树 all 模式 full-clean 集：CSV mock（第三方任务全在 Program Files=正常软件自启）
+$secTasksCleanCsv = @'
+"主机名","任务名","下次运行时间","模式","登录状态","上次运行时间","上次结果","创建者","要运行的任务","起始于"
+"DESKTOP-X","\MSIAfterburner","2026/10/26 9:00","就绪","已登录","2026/10/25 9:00","0","","C:\Program Files (x86)\MSI Afterburner\MSIAfterburner.exe /s",""
+"DESKTOP-X","\Microsoft\Windows\Chkdsk\ProactiveScan","N/A","就绪","已登录","2026/10/20 3:00","0","","C:\Windows\System32\svchost.exe",""
+'@
+
 $global:DiagScenarios += @(
     @{ name = 'dv_full_clean'; tree = 'drivers'; expectExit = 0
        keywords = @('驱动体检报告', '三层全通', '未发现驱动域隐患')
@@ -362,7 +370,7 @@ $global:DiagScenarios += @(
            bs_suspect_drivers      = $bsDriversHit
        } }
     @{ name = 'all_trees_merge'; tree = 'all'; expectExit = 0
-       keywords = @('全面体检报告', '网络体检报告', '蓝屏体检报告', '硬件体检报告', '性能体检报告', '驱动体检报告')
+       keywords = @('全面体检报告', '网络体检报告', '蓝屏体检报告', '硬件体检报告', '性能体检报告', '驱动体检报告', '安全体检报告', '安全结论')
        mocks    = @{
            # 网络（full-clean 集）
            net_adapter_list      = $mockAdapterPass
@@ -405,5 +413,16 @@ $global:DiagScenarios += @(
            dv_network_filters      = $dvFiltersClean
            dv_device_errors        = $dvPnpClean
            dv_driver_load_failures = ''
+           # 安全（full-clean 集：全 PASS 实例，取自安全树规格第三节正例）
+           sec_defender_status     = "AMRunningMode=Normal`nAntivirusEnabled=True`nRealTimeProtectionEnabled=True`nAntivirusSignatureAge=0`nAntivirusSignatureLastUpdated=2026/10/25 0:31:48"
+           sec_defender_service    = "WinDefend | Running | Automatic`nWdNisSvc | Running | Manual`nWdNisDrv | Running | Manual`nSecurityHealthService | Running | Manual`nwscsvc | Running | Automatic"
+           sec_defender_threats    = ''
+           sec_defender_exclusions = "ExclusionPath=`nExclusionExtension=`nExclusionProcess=`nExclusionIpAddress="
+           sec_uac_level           = "EnableLUA=1`nConsentPromptBehaviorAdmin=5`nPromptOnSecureDesktop=1"
+           sec_firewall_profiles   = "Domain | True | NotConfigured | NotConfigured`nPrivate | True | NotConfigured | NotConfigured`nPublic | True | NotConfigured | NotConfigured"
+           sec_bitlocker           = "C: | OperatingSystem | FullyEncrypted | On | 100"
+           sec_suspicious_tasks    = $secTasksCleanCsv
        } }
 )
+
+

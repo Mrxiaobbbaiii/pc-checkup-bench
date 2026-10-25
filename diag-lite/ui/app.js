@@ -160,7 +160,7 @@ function initLang() {
 initLang(); // 立即执行：checkUpdateNotes 等加载期 IIFE 也要按记忆语言取词（defer 脚本时 DOM 已就绪）
 
 const S = {
-  meta: null,            // /api/meta：五棵树定义（层/检查项/文案）
+  meta: null,            // /api/meta：体检树定义（层/检查项/文案）
   expectSeq: [],         // 本轮预期检查序列 [{tree, layer, layerTitle, check}]
   seqPos: 0,
   fast: false,
@@ -276,6 +276,9 @@ const CHECK_SEVERITY = {
   hw_disk_errors: 'high', net_proxy_vpn: 'medium',
   net_proxy_system: 'medium', net_tcp_port: 'medium', net_df_ping: 'medium',
   net_wlan_signal: 'medium', net_tcp_stall: 'medium', pf_uptime: 'low',
+  sec_defender_status: 'high', sec_defender_service: 'high', sec_defender_threats: 'high',
+  sec_defender_exclusions: 'medium', sec_uac_level: 'medium', sec_firewall_profiles: 'medium',
+  sec_bitlocker: 'low', sec_suspicious_tasks: 'medium',
 };
 /* 严重度词与说明：真源=语言包 groups.sev（word/desc） */
 const SEV_META = {
@@ -293,6 +296,7 @@ const PROBLEM_GROUPS = [
   { id: 'network', prefix: 'net_' },
   { id: 'hardware', prefix: 'hw_' },
   { id: 'driver', prefix: 'dv_' },
+  { id: 'sec', prefix: 'sec_' },
   { id: 'app', prefix: 'pf_app_' },
   { id: 'perf', prefix: 'pf_' },
 ];
@@ -532,11 +536,11 @@ setInterval(() => {
   fetch('/api/heartbeat', { method: 'POST', cache: 'no-store' }).catch(() => {});
 }, 1000);
 
-/* ---------- 勾选逻辑（勾全面=五树联动勾选并禁用单改） ---------- */
+/* ---------- 勾选逻辑（勾全面=全部内置树联动勾选并禁用单改） ---------- */
 function buildChecks() {
   const grid = $('#check-grid');
   S.meta.trees.forEach((tr) => {
-    const isExt = !!tr.ext;   // v1.1.0：ext 扩展树不属于「全面体检」（engine all=内置五树），默认不勾、联动不带上
+    const isExt = !!tr.ext;   // v1.1.0：ext 扩展树不属于「全面体检」（engine all=内置树全集），默认不勾、联动不带上
     const label = document.createElement('label');
     label.className = 'check-item tree-item' + (isExt ? ' ext-item' : '');
     label.dataset.tree = tr.id;
@@ -565,7 +569,7 @@ function buildChecks() {
   $('#chk-fast').addEventListener('change', updateSelUi);
 }
 function getSelectionForm() {
-  // v1.1.0：all=内置五树全勾且 ext 树没勾；ext 树只能单独选一棵跑
+  // v1.1.0：all=内置树全集全勾且 ext 树没勾；ext 树只能单独选一棵跑
   const builtinTotal = $$('.tree-item:not(.ext-item)').length;
   const builtinChecked = $$('.tree-item:not(.ext-item) input:checked').length;
   const extChecked = $$('.tree-item.ext-item input:checked').length;

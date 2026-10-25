@@ -254,6 +254,72 @@
     },
     "dv_driver_load_failures": {
       "how": "card"
+    },
+    "sec_defender_status": {
+      "how": "advice",
+      "reason": "重开实时保护需管理员权限，且可能被组策略/第三方杀软接管，属 Windows 安全中心人工核对",
+      "source": [
+        {
+          "title": "Get-MpComputerStatus 官方 cmdlet 参考（微软 Learn）",
+          "url": "https://learn.microsoft.com/en-us/powershell/module/defender/get-mpcomputerstatus"
+        }
+      ]
+    },
+    "sec_defender_exclusions": {
+      "how": "card"
+    },
+    "sec_defender_threats": {
+      "how": "advice",
+      "reason": "处置走「保护历史记录」逐条人工核对（每条威胁的上下文不同），无普适可代跑命令",
+      "source": [
+        {
+          "title": "Defender 事件 ID 官方总表：故障排查指南（微软 Learn）",
+          "url": "https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus"
+        }
+      ]
+    },
+    "sec_defender_service": {
+      "how": "advice",
+      "reason": "服务重启需管理员权限，且第三方杀软环境下停摆是正常态，需人工判断",
+      "source": [
+        {
+          "title": "Get-Service 官方 cmdlet 参考（微软 Learn）",
+          "url": "https://learn.microsoft.com/en-us/powershell/microsoft.powershell.management/get-service"
+        }
+      ]
+    },
+    "sec_uac_level": {
+      "how": "advice",
+      "reason": "UAC 档位是用户安全与便利的取舍，官方无强制值，人工调整",
+      "source": [
+        {
+          "title": "UAC 注册表键值官方总表：settings and configuration（微软 Learn）",
+          "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/settings-and-configuration"
+        }
+      ]
+    },
+    "sec_firewall_profiles": {
+      "how": "advice",
+      "reason": "防火墙开关属网络策略变更（可能影响用户在用的联机/共享场景），需人工确认",
+      "source": [
+        {
+          "title": "Get-NetFirewallProfile 官方 cmdlet 参考（微软 Learn）",
+          "url": "https://learn.microsoft.com/en-us/powershell/module/netsecurity/get-netfirewallprofile"
+        }
+      ]
+    },
+    "sec_bitlocker": {
+      "how": "advice",
+      "reason": "开启 BitLocker 是长时高风险动作（丢恢复密钥=丢数据），只指路不代跑",
+      "source": [
+        {
+          "title": "Get-BitLockerVolume 官方 cmdlet 参考（微软 Learn）",
+          "url": "https://learn.microsoft.com/en-us/powershell/module/bitlocker/get-bitlockervolume"
+        }
+      ]
+    },
+    "sec_suspicious_tasks": {
+      "how": "card"
     }
   }
 }

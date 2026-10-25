@@ -106,7 +106,7 @@ $global:DiagBCases = @(
            return $bad
        } },
 
-    # 3. all 多树：JSON trees=5 按序 + 事件全量 36 check/5 tree_done/1 done
+    # 3. all 多树：JSON trees=6 按序（内置六树）+ 事件全量 44 check/6 tree_done/1 done
     @{ name = 'b_json_all_clean'; tree = 'all'; json = $true; full = $true; expectExit = 0; mocks = $allCleanMocks
        verify = {
            param($ctx)
@@ -114,9 +114,9 @@ $global:DiagBCases = @(
            $jfiles = Get-LatestJson $ctx.Root
            if ($jfiles.Count -ne 1) { $bad += "json files expect 1 got $($jfiles.Count)"; return $bad }
            $j = Get-Content $jfiles[0].FullName -Raw -Encoding UTF8 | ConvertFrom-Json
-           $order = @('network', 'bluescreen', 'hardware', 'performance', 'drivers')
-           if (@($j.trees).Count -ne 5) { $bad += "trees expect 5 got $(@($j.trees).Count)"; return $bad }
-           for ($i = 0; $i -lt 5; $i++) {
+           $order = @('network', 'bluescreen', 'hardware', 'performance', 'drivers', 'security')
+           if (@($j.trees).Count -ne 6) { $bad += "trees expect 6 got $(@($j.trees).Count)"; return $bad }
+           for ($i = 0; $i -lt 6; $i++) {
                if ($j.trees[$i].tree -ne $order[$i]) { $bad += "tree order at $($i): $($j.trees[$i].tree)" }
                if ($null -ne $j.trees[$i].break_layer) { $bad += "tree $($j.trees[$i].tree) break_layer not null" }
            }
@@ -128,7 +128,7 @@ $global:DiagBCases = @(
                $got = "$($checks[$k].tree)/$($checks[$k].layer)/$($checks[$k].check)"
                if ($got -ne $expect[$k]) { $bad += "event order at $($k): $got"; break }
            }
-           if (@($evs | Where-Object { $_.event -eq 'tree_done' }).Count -ne 5) { $bad += 'tree_done events expect 5' }
+           if (@($evs | Where-Object { $_.event -eq 'tree_done' }).Count -ne 6) { $bad += 'tree_done events expect 6' }
            $done = $evs | Where-Object { $_.event -eq 'done' }
            if (-not $done -or $done.exit -ne 0) { $bad += 'done exit != 0' }
            return $bad
