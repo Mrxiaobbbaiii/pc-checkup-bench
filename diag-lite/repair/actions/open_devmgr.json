@@ -1,0 +1,40 @@
+{
+  "id": "open_devmgr",
+  "name": "帮你打开：设备管理器",
+  "level": "green",
+  "launcher": true,
+  "common": true,
+  "desc": "打开「设备管理器」——看设备黄三角、卸载残留设备、更新驱动都用它。只开窗，不改任何设置。",
+  "affect": "只打开窗口，不改任何设置、不点任何按钮。",
+  "undo": "关掉打开的窗口即恢复原状，无需回滚。",
+  "requires_admin": false,
+  "prechecks": [],
+  "steps": [
+    {
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start",
+        "devmgmt.msc"
+      ],
+      "desc": "打开「设备管理器」窗口",
+      "display": "start devmgmt.msc"
+    }
+  ],
+  "rollback": [],
+  "rollback_note": "只开窗，无需回滚",
+  "timeout_sec": 15,
+  "caveat": "",
+  "match_checks": [],
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "微软官方指南：通过设备管理器更新/卸载驱动（Microsoft Support）",
+      "url": "https://support.microsoft.com/en-us/windows/update-drivers-through-device-manager-in-windows-ec62f46c-ff14-c91d-eead-d7126dc1f7b6"
+    },
+    {
+      "title": "使用设备管理器卸载设备和驱动程序包（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/using-device-manager-to-uninstall-devices-and-driver-packages"
+    }
+  ]
+}

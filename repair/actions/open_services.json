@@ -1,0 +1,36 @@
+{
+  "id": "open_services",
+  "name": "帮你打开：服务（服务管理器）",
+  "level": "green",
+  "launcher": true,
+  "common": true,
+  "desc": "打开「服务」——看服务描述、改启动类型、右键启动验证都在这里。只开窗，不改任何设置。",
+  "affect": "只打开窗口，不改任何设置、不点任何按钮。",
+  "undo": "关掉打开的窗口即恢复原状，无需回滚。",
+  "requires_admin": false,
+  "prechecks": [],
+  "steps": [
+    {
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start",
+        "services.msc"
+      ],
+      "desc": "打开「服务（服务管理器）」窗口",
+      "display": "start services.msc"
+    }
+  ],
+  "rollback": [],
+  "rollback_note": "只开窗，无需回滚",
+  "timeout_sec": 15,
+  "caveat": "",
+  "match_checks": [],
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "微软官方排障文：服务超时 7000/7011 与服务管理器场景（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/troubleshoot/windows-server/system-management-components/service-not-start-events-7000-7011-time-out-error"
+    }
+  ]
+}

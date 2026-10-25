@@ -1,0 +1,36 @@
+{
+  "id": "open_apps_features",
+  "name": "帮你打开：应用与功能（安装的应用）",
+  "level": "green",
+  "launcher": true,
+  "common": true,
+  "desc": "打开「设置 → 应用 → 安装的应用」——卸载软件、查明崩溃王应用在这里。只开窗，不改任何设置。",
+  "affect": "只打开窗口，不改任何设置、不点任何按钮。",
+  "undo": "关掉打开的窗口即恢复原状，无需回滚。",
+  "requires_admin": false,
+  "prechecks": [],
+  "steps": [
+    {
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start",
+        "ms-settings:appsfeatures"
+      ],
+      "desc": "打开「应用与功能（安装的应用）」窗口",
+      "display": "start ms-settings:appsfeatures"
+    }
+  ],
+  "rollback": [],
+  "rollback_note": "只开窗，无需回滚",
+  "timeout_sec": 15,
+  "caveat": "",
+  "match_checks": [],
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "ms-settings URI 官方参考（启动任意设置页，微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows/apps/develop/launch/launch-settings"
+    }
+  ]
+}

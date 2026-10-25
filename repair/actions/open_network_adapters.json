@@ -1,0 +1,40 @@
+{
+  "id": "open_network_adapters",
+  "name": "帮你打开：网络适配器（网络连接）",
+  "level": "green",
+  "launcher": true,
+  "common": true,
+  "desc": "打开「网络连接」——看网卡状态、诊断适配器在这里。只开窗，不改任何设置。",
+  "affect": "只打开窗口，不改任何设置、不点任何按钮。",
+  "undo": "关掉打开的窗口即恢复原状，无需回滚。",
+  "requires_admin": false,
+  "prechecks": [],
+  "steps": [
+    {
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start",
+        "ncpa.cpl"
+      ],
+      "desc": "打开「网络适配器（网络连接）」窗口",
+      "display": "start ncpa.cpl"
+    }
+  ],
+  "rollback": [],
+  "rollback_note": "只开窗，无需回滚",
+  "timeout_sec": 15,
+  "caveat": "",
+  "match_checks": [],
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "Get-NetAdapter 官方 cmdlet 参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/netadapter/get-netadapter"
+    },
+    {
+      "title": "netsh 命令官方参考（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netsh"
+    }
+  ]
+}

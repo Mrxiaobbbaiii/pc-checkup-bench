@@ -1,0 +1,36 @@
+{
+  "id": "open_optional_updates",
+  "name": "帮你打开：可选更新（含驱动更新）",
+  "level": "green",
+  "launcher": true,
+  "common": true,
+  "desc": "打开「设置 → Windows 更新 → 可选更新」——驱动更新藏在这一页。只开窗，不改任何设置。",
+  "affect": "只打开窗口，不改任何设置、不点任何按钮。",
+  "undo": "关掉打开的窗口即恢复原状，无需回滚。",
+  "requires_admin": false,
+  "prechecks": [],
+  "steps": [
+    {
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start",
+        "ms-settings:windowsupdate-optionalupdates"
+      ],
+      "desc": "打开「可选更新（含驱动更新）」窗口",
+      "display": "start ms-settings:windowsupdate-optionalupdates"
+    }
+  ],
+  "rollback": [],
+  "rollback_note": "只开窗，无需回滚",
+  "timeout_sec": 15,
+  "caveat": "",
+  "match_checks": [],
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "ms-settings URI 官方参考（启动任意设置页，微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows/apps/develop/launch/launch-settings"
+    }
+  ]
+}

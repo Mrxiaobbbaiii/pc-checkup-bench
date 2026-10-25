@@ -972,6 +972,45 @@ $global:DiagRepairCases += @{
     }
 }
 
+# ---- v1.4.0 轮4 launcher 静态契约：launcher=true 的动作=绿级免提权只开窗——
+#      level=green/requires_admin=false/common=true/match_checks 空/steps 全部 cmd /c start 且目标在允许集合
+#      （「零修改只开窗」进测试=机器拦，禁 launcher 夹带改设置命令） ----
+$global:DiagRepairCases += @{
+    name = 'rep_launcher'
+    kind = 'schema'
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        $actionsDir = Join-Path $ctx.Root 'repair\actions'
+        $allowTargets = @('ms-settings:', 'devmgmt.msc', 'ncpa.cpl', 'services.msc', 'SystemPropertiesProtection.exe', 'taskmgr.exe')
+        $nLauncher = 0
+        foreach ($jf in (Get-ChildItem -LiteralPath $actionsDir -File -Filter '*.json')) {
+            $a = $null
+            try { $a = Get-Content -LiteralPath $jf.FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch { continue }
+            if ($a.PSObject.Properties['launcher'] -and $a.launcher -eq $true) {
+                $nLauncher++
+                if ([string]$a.level -ne 'green') { $bad += "launcher not green: $($jf.Name)" }
+                if ($a.requires_admin -ne $false) { $bad += "launcher must be admin-free: $($jf.Name)" }
+                if ($a.common -ne $true) { $bad += "launcher requires common=true: $($jf.Name)" }
+                if (@($a.match_checks).Count) { $bad += "launcher must not match checks: $($jf.Name)" }
+                foreach ($st in @($a.steps)) {
+                    if ([string]$st.exe -ne 'cmd.exe') { $bad += "launcher step exe must be cmd.exe: $($jf.Name)" }
+                    $argList = @($st.args)
+                    if ($argList.Count -lt 3 -or $argList[0] -ne '/c' -or $argList[1] -ne 'start') { $bad += "launcher step must be cmd /c start: $($jf.Name)" }
+                    else {
+                        $target = ($argList | Select-Object -Skip 2) -join ' '
+                        $okT = $false
+                        foreach ($t in $allowTargets) { if ($target -like ($t + '*')) { $okT = $true } }
+                        if (-not $okT) { $bad += "launcher target not in allowlist: $target ($($jf.Name))" }
+                    }
+                }
+            }
+        }
+        if ($nLauncher -lt 5) { $bad += "launcher count $nLauncher < 5 (v1.4.0 shipped 8)" }
+        return $bad
+    }
+}
+
 # ---- v1.4.0 轮3 两张缺口卡用例：红卡必须在加载段拒绝执行（零副作用验证，出厂闸） ----
 foreach ($redAct in @('pf_app_crashes_card', 'dv_display_residue_card')) {
     $global:DiagRepairCases += @{

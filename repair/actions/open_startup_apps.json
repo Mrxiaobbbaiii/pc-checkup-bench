@@ -1,0 +1,40 @@
+{
+  "id": "open_startup_apps",
+  "name": "帮你打开：启动应用（开机自启）",
+  "level": "green",
+  "launcher": true,
+  "common": true,
+  "desc": "打开「设置 → 应用 → 启动」——开关自启项在这里。只开窗，不改任何设置。",
+  "affect": "只打开窗口，不改任何设置、不点任何按钮。",
+  "undo": "关掉打开的窗口即恢复原状，无需回滚。",
+  "requires_admin": false,
+  "prechecks": [],
+  "steps": [
+    {
+      "exe": "cmd.exe",
+      "args": [
+        "/c",
+        "start",
+        "ms-settings:startupapps"
+      ],
+      "desc": "打开「启动应用（开机自启）」窗口",
+      "display": "start ms-settings:startupapps"
+    }
+  ],
+  "rollback": [],
+  "rollback_note": "只开窗，无需回滚",
+  "timeout_sec": 15,
+  "caveat": "",
+  "match_checks": [],
+  "verify_checks": [],
+  "sources": [
+    {
+      "title": "ms-settings URI 官方参考（启动任意设置页，微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows/apps/develop/launch/launch-settings"
+    },
+    {
+      "title": "Win32_StartupCommand 官方类文档（微软 Learn）",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-startupcommand"
+    }
+  ]
+}

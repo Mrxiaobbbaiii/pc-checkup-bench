@@ -220,6 +220,10 @@ def main():
         # v1.4.0 轮3 权威溯源：动作卡渲染「官方依据」链接（微软官方域 href）
         src_link = cdp.eval("(document.querySelector('.action-card .src-row a') || {}).href || ''")
         check('D2 官方依据链接在场', 'microsoft.com' in str(src_link), str(src_link))
+        # v1.4.0 轮4 launcher 组：修复中心「帮你打开正确的窗口」区常驻（不依赖体检结果）
+        la_txt = str(cdp.eval("document.querySelector('#view-repair').innerText"))
+        la_cnt = cdp.eval("document.querySelectorAll('.launcher-grid .action-card').length")
+        check('D3 launcher 帮开窗区渲染', '帮你打开正确的窗口' in la_txt and la_cnt >= 5, 'cards=' + str(la_cnt))
 
         # ---- E 历史对比（预塞两份+本轮跑批一份） ----
         cdp.eval("document.querySelector('[data-view=\"history\"]').click()")
