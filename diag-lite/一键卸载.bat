@@ -1,5 +1,5 @@
 @echo off
-rem diag-lite v1.4.0 uninstaller (no admin needed)
+rem diag-lite v1.5.0 uninstaller (no admin needed)
 rem Chinese prompts are GBK-encoded on purpose; keep CRLF when editing.
 rem NOTE 1: cmd built-ins (if exist / move) mis-parse paths with a Chinese
 rem         directory segment PLUS a deeper sub-directory on some machines,
@@ -12,7 +12,7 @@ set "TARGET=%LOCALAPPDATA%\电脑体检台"
 set "EXTBK=%LOCALAPPDATA%\电脑体检台-ext备份"
 set "REPBK=%LOCALAPPDATA%\电脑体检台-reports备份"
 echo ==============================================
-echo   电脑体检台 v1.4.0 一键卸载
+echo   电脑体检台 v1.5.0 一键卸载
 echo ==============================================
 echo.
 if not exist "%TARGET%" (

@@ -158,7 +158,7 @@ def main():
         check('A1 五棵单树卡', cdp.eval("document.querySelectorAll('.check-item').length") >= 5,
               str(cdp.eval("document.querySelectorAll('.check-item').length")))
         check('A2 开始体检按钮在', cdp.eval("!!document.querySelector('#btn-run')"))
-        check('A3 版本串 v1.4.0', 'v1.4.0' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
+        check('A3 版本串 v1.5.0', 'v1.5.0' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
         check('A4 只读承诺文案', '只看、不动你电脑的任何设置' in str(cdp.eval('document.body.innerText')))
         # 轮7 首次启动引导：全新 profile（localStorage 空）→三步引导卡可见
         check('A5 首次启动引导卡在', cdp.eval("!!document.querySelector('#first-guide') && !document.querySelector('#first-guide').classList.contains('hidden')"))

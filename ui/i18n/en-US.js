@@ -454,11 +454,8 @@ window.I18N_EN = {
     },
     notes: {
       um_title: 'PC Checkup Bench updated to {v}',
-      v1_4_0: [
-        'Results page adds "Fix This First": similar problems merge into one direction, sorted by how worthwhile they are to fix first',
-        'Every hands-on step is now taught one step at a time: Where, Click, Type, Success looks like, If this step fails',
-        'Repair Center adds "One-click System Windows" — the window opens for you first, then follow the steps',
-        'Every fix lists its official Microsoft documentation source, so you can open and check it',
+      v1_5_0: [
+        'The interface now supports Chinese / English: pick a language in the "Appearance" menu (top right), applies everywhere instantly',
       ],
     },
     /* Five trees: menu names / descriptions / report names / layer titles / layer verdicts (sources: server.ps1 menuNames + trees/*.yaml) */
