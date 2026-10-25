@@ -44,7 +44,7 @@ English | **[中文](README.md)**
 
 ### Option 1: Installer (Recommended)
 
-1. Go to [Releases](../../releases) and download the latest installer `PC-CheckupBench-setup-v1.4.0.exe`
+1. Go to [Releases](../../releases) and download the latest installer `PC-CheckupBench-setup-v1.5.0.exe`
 2. Double-click to run it. The first time, Windows shows a blue prompt saying "Windows protected your PC" — this tool has no paid code-signing certificate, so this is the generic warning for unsigned programs. Click **More info → Run anyway**
 3. Installing needs no administrator rights. It installs into your user folder, and a "PC Checkup Bench" icon appears on the desktop and in the Start menu
 4. What opens is a native window (not a browser page). Closing the window exits completely — no background processes left behind
@@ -54,7 +54,7 @@ English | **[中文](README.md)**
 
 ### Option 2: Portable Version (No Install Needed)
 
-1. Download `diag-lite-v1.4.0.zip` and extract it anywhere (the desktop is fine)
+1. Download `diag-lite-v1.5.0.zip` and extract it anywhere (the desktop is fine)
 2. Double-click `全面体检（网页版）.bat` to get the windowed interface; or double-click any one of the five checkup `.bat` files to run the console version directly
 3. Requires Windows 10/11 (the built-in Edge browser is enough)
 
