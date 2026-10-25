@@ -1,10 +1,10 @@
 @echo off
-rem diag-lite v1.3.0 installer (no admin needed)
+rem diag-lite v1.4.0 installer (no admin needed)
 rem Chinese prompts are GBK-encoded on purpose; keep CRLF when editing.
 setlocal
 set "TARGET=%LOCALAPPDATA%\电脑体检台"
 echo ==============================================
-echo   电脑体检台 v1.3.0 一键安装
+echo   电脑体检台 v1.4.0 一键安装
 echo ==============================================
 echo.
 echo  安装位置：%TARGET%
