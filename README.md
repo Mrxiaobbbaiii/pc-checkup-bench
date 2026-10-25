@@ -4,7 +4,7 @@
 
 > 一个免费的 Windows 体检工具：**只看、不动你电脑的任何设置**。52 项只读检查把「网络 / 蓝屏 / 硬件 / 性能 / 驱动 / 安全」六类问题查清楚，每一项都给出：问题在哪、证据是什么、怎么修、修的依据是微软哪篇官方文档。
 
-![GitHub License](https://img.shields.io/badge/license-MIT-green) ![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![版本](https://img.shields.io/badge/version-v1.5.0-orange)
+[![CI](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml) ![GitHub License](https://img.shields.io/badge/license-MIT-green) ![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![版本](https://img.shields.io/badge/version-v1.5.0-orange)
 
 | 体检向导 | 跑批中 |
 |---|---|

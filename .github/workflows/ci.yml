@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'ci-*']
+  workflow_dispatch:
+
+# tests/ui_test.py is NOT part of CI: it requires a desktop Edge browser and a
+# real interactive display session (only:test:local).
+
+jobs:
+  test:
+    name: test (${{ matrix.shell }})
+    runs-on: windows-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        # powershell = Windows PowerShell 5.1, pwsh = PowerShell 7
+        shell: [powershell, pwsh]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Trust PSGallery and install PSScriptAnalyzer
+        shell: powershell
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: PSScriptAnalyzer (Error severity; baseline = zero findings)
+        shell: ${{ matrix.shell }}
+        run: |
+          $targets = @('checks', 'engine', 'repair', 'server.ps1')
+          $findings = @(foreach ($t in $targets) { Invoke-ScriptAnalyzer -Path $t -Recurse -Severity Error })
+          "## PSScriptAnalyzer (Error severity) - shell: ${{ matrix.shell }}" | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          if ($findings.Count -eq 0) {
+            "0 findings. Baseline met." | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          } else {
+            "Baseline is zero; findings below are listed but intentionally NOT fixed this round (pending decision):" | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            foreach ($f in $findings) {
+              ("- {0} | {1}:{2} | {3}" -f $f.RuleName, $f.ScriptPath, $f.Line, $f.Message) | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            }
+          }
+
+      - name: Run test suite (exit code is the verdict)
+        shell: ${{ matrix.shell }}
+        run: ${{ matrix.shell }} -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1
