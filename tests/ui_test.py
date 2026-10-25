@@ -158,7 +158,7 @@ def main():
         check('A1 五棵单树卡', cdp.eval("document.querySelectorAll('.check-item').length") >= 5,
               str(cdp.eval("document.querySelectorAll('.check-item').length")))
         check('A2 开始体检按钮在', cdp.eval("!!document.querySelector('#btn-run')"))
-        check('A3 版本串 v1.6.0', 'v1.6.0' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
+        check('A3 版本串 v1.6.1', 'v1.6.1' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
         check('A4 只读承诺文案', '只看、不动你电脑的任何设置' in str(cdp.eval('document.body.innerText')))
         # 首次启动引导：全新 profile（localStorage 空）→三步引导卡可见
         check('A5 首次启动引导卡在', cdp.eval("!!document.querySelector('#first-guide') && !document.querySelector('#first-guide').classList.contains('hidden')"))
@@ -167,6 +167,21 @@ def main():
         a6_ok = cdp.eval("document.querySelector('#first-guide').classList.contains('hidden')") is True             and cdp.eval("!!localStorage.getItem('diag-guided')") is True
         check('A6 引导卡知道了按钮', a6_ok)
         cdp.eval("localStorage.removeItem('diag-guided')")
+
+        # ---- A7-A9 v1.6.1 多选组合（勾选交互；跑批仍走 C 段 API 直发不受影响） ----
+        # 先取消「全面体检」联动（勾着时单树被禁改），再勾两棵 → 组合可跑
+        cdp.eval("document.querySelector('#chk-all').click()")
+        cdp.eval("[...document.querySelectorAll('.tree-item')].filter(el => ['network','bluescreen'].includes(el.dataset.tree)).forEach(el => el.querySelector('input').click())")
+        a7_hint = str(cdp.eval("document.querySelector('#sel-hint')?.textContent || ''"))
+        check('A7 两类组合可跑+组合提示', cdp.eval("!document.querySelector('#btn-run').disabled") is True and '组合' in a7_hint, a7_hint)
+        # 只留一棵 → 单树语义不受多选改动影响
+        cdp.eval("[...document.querySelectorAll('.tree-item input')].forEach(i => { if (i.checked) i.click() })")
+        cdp.eval("[...document.querySelectorAll('.tree-item')].filter(el => el.dataset.tree==='network').forEach(el => el.querySelector('input').click())")
+        a8_hint = str(cdp.eval("document.querySelector('#sel-hint')?.textContent || ''"))
+        check('A8 单树提示不劣化', cdp.eval("!document.querySelector('#btn-run').disabled") is True and '这一类' in a8_hint, a8_hint)
+        # 恢复「全面体检」默认态
+        cdp.eval("document.querySelector('#chk-all').click()")
+        check('A9 恢复全面体检默认态', cdp.eval("document.querySelector('#chk-all').checked") is True)
 
         # ---- B 页签交互 ----
         cdp.eval("document.querySelector('[data-view=\"repair\"]')?.click() || document.querySelectorAll('.tab')[2].click()")

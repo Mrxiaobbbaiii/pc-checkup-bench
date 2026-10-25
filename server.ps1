@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag web server v1.6.0 —— Edge 壳本地服务（判定零改动，engine 数据通路沿用；
+diag web server v1.6.1 —— Edge 壳本地服务（判定零改动，engine 数据通路沿用；
       v1.1.0 起加载 ext	rees 与 ext
 epairctions：只新增不覆盖，同名冲突忽略+crash log 告警）
 用法（bat 启动器代跑）：powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File server.ps1
@@ -42,7 +42,7 @@ elseif ($root -like '*\WindowsApps\*') {
 $engineScript = Join-Path $root 'engine\run.ps1'
 $uiDir = Join-Path $root 'ui'
 $reportsDir = Join-Path $dataRoot 'reports'
-$webVersion = 'v1.6.0'
+$webVersion = 'v1.6.1'
 $diagPs = (Get-Process -Id $PID).Path
 
 # ---------- 子进程 stdout 排水器（C# 空回调：scriptblock delegate 无 runspace 回调线程会炸进程；v0.6 已验机制照搬）
@@ -228,7 +228,9 @@ $script:gotBeat = $false
 $script:startAt = Get-Date
 $script:beatGraceMs = 25000   # 浏览器首次加载宽限（Edge 冷启动慢）
 $script:byeGraceMs = 2000     # beacon 宽限：F5 重载会在 2 秒内回连，真关窗不会
-$script:beatTimeoutMs = 60000 # 心跳兜底线（页面后台节流容忍 1 次/分钟；仅非跑批态生效）
+$script:beatTimeoutMs = 60000 # 心跳兜底线·页面可见（仅非跑批态生效）
+$script:beatTimeoutHiddenMs = 330000 # 心跳兜底线·页面隐藏（浏览器强节流约 1 次/分钟，放宽到 5.5 分钟防误杀）
+$script:pageHidden = $false   # 页面可见性（心跳 body.hidden 上报；静态/meta 加载复位=可见）
 $script:repairProc = $null    # v0.8.1 修复子进程（repair/repair.ps1；跑批/修复互斥）
 $script:repairOutFile = ''
 $script:repairResult = $null
@@ -243,7 +245,9 @@ function Test-ShouldStop {
     }
     if ($script:state -eq 'running') { return $null }
     if ($script:gotBeat) {
-        if (((Get-Date) - $script:lastBeat).TotalMilliseconds -gt $script:beatTimeoutMs) { return 'beat' }
+        # 兜底线动态：页面 hidden 时浏览器节流心跳（约 1 次/分钟），放宽到 5.5 分钟；可见=60 秒照旧
+        $beatLimit = if ($script:pageHidden) { $script:beatTimeoutHiddenMs } else { $script:beatTimeoutMs }
+        if (((Get-Date) - $script:lastBeat).TotalMilliseconds -gt $beatLimit) { return 'beat' }
     } elseif (((Get-Date) - $script:startAt).TotalMilliseconds -gt $script:beatGraceMs) { return 'grace' }
     return $null
 }
@@ -400,7 +404,8 @@ function Invoke-Route($ctx) {
     if ($path -ne '/api/bye') {
         # 只有「新页面加载」信号（静态资源/meta）才撤销 bye 判定——F5 重载会先拉静态文件；
         # 心跳/事件轮询不清 bye（pagehide beacon 与在途心跳赛跑时，后者后到会把 bye 冲掉退化为 60 秒兜底，Edge 复测实锤）
-        if ($staticMap.ContainsKey($path) -or $path -eq '/api/meta') { $script:byeAt = $null }
+        # 静态/meta 同时把页面视为可见（冗余保险；可见态的准确复位靠下一个心跳 body.hidden=false）
+        if ($staticMap.ContainsKey($path) -or $path -eq '/api/meta') { $script:byeAt = $null; $script:pageHidden = $false }
         $script:lastBeat = Get-Date
         $script:gotBeat = $true
     }
@@ -414,6 +419,12 @@ function Invoke-Route($ctx) {
             return
         }
         if ($path -eq '/api/heartbeat') {
+            # 心跳 body 带 {hidden: document.hidden}：页面隐藏时浏览器把定时器节流到约 1 次/分钟，
+            # 据此切换兜底线（可见 60 秒 / 隐藏 5.5 分钟）。body 缺失或解析失败（旧页面）按可见处理=严格兜底不放宽
+            $hb = Read-Body $req
+            $hbj = $null
+            try { $hbj = $hb | ConvertFrom-Json } catch { }
+            $script:pageHidden = ($null -ne $hbj -and $hbj.hidden -eq $true)
             Send-Json $res @{ ok = $true }
             return
         }
@@ -437,7 +448,16 @@ function Invoke-Route($ctx) {
             try { $j = $body | ConvertFrom-Json } catch { }
             $treeArg = [string]$j.tree
             $full = ($j.full -eq $true)
-            $valid = ($treeArg -eq 'all') -or (@($menuOrder) -contains $treeArg)
+            # v1.6.1：all / 单树（含 ext 单跑）/ 逗号分隔多树组合（仅内置树，2-6 棵；ext 不参与组合）
+            if ($treeArg -eq 'all') {
+                $valid = $true
+            } elseif ($treeArg -match ',') {
+                $parts = @($treeArg -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } | Select-Object -Unique)
+                $valid = ($parts.Count -ge 2)
+                foreach ($p in $parts) { if (-not (@($menuOrder) -contains $p)) { $valid = $false } }
+            } else {
+                $valid = (@($menuOrder) -contains $treeArg)
+            }
             if (-not $valid) { Send-Json $res @{ ok = $false; error = '没认出这个体检项目' } 400; return }
             if ($script:state -eq 'running') { Send-Json $res @{ ok = $false; error = '正在检查中，请等这轮结束' } 409; return }
             if ($script:repairState -eq 'running') { Send-Json $res @{ ok = $false; error = '正在修复中，请等它结束再体检' } 409; return }
@@ -602,7 +622,7 @@ function Invoke-Route($ctx) {
     }
 }
 
-# ---------- 主循环（BeginGetContext + 250ms 看门狗：关窗 beacon→2 秒宽限→杀引擎自杀；心跳 60 秒兜底） ----------
+# ---------- 主循环（BeginGetContext + 250ms 看门狗：关窗 beacon→2 秒宽限→杀引擎自杀；心跳兜底=可见 60 秒/隐藏 5.5 分钟） ----------
 try {
     while (-not $script:stopRequested) {
         $ar = $listener.BeginGetContext($null, $null)

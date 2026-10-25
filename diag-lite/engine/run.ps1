@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag engine v1.6.0 —— 推进器（PowerShell 5.1+ / 7 双兼容，大众普及版；用户可见自称=「电脑体检台」，版本走 $engVersion 常量）
+diag engine v1.6.1 —— 推进器（PowerShell 5.1+ / 7 双兼容，大众普及版；用户可见自称=「电脑体检台」，版本走 $engVersion 常量）
 用法：powershell -NoProfile -ExecutionPolicy Bypass -File engine\run.ps1 [-TreeName <树名|all>] [-Full] [-MockDir <dir>] [-OpenReport] [-NoMenu] [-ProgressFile <file>] [-JsonReport]
 树可选字段：verdict_title=报告结论标题（缺省"断点结论"）；report_name=报告大标题树名（缺省保持网络树文案，非网络树证据链副标转聚合取证）
   -Full      断点后继续跑完剩余层取证（默认断点即停，后续层 SKIP）
@@ -30,7 +30,7 @@ param(
     [string]$ProgressFile = '',
     [switch]$JsonReport
 )
-$engVersion = '1.6.0'
+$engVersion = '1.6.1'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -427,20 +427,20 @@ function New-HtmlReport {
     return $h.ToString()
 }
 
-# ---------- 多树合并 HTML（all 专用：banner 硬编码「全面体检报告」+五树总览表+每树 verdict 卡与证据链） ----------
+# ---------- 多树合并 HTML（all/多选共用：banner 标题随路径=全面体检报告/合并体检报告；总览表+每树 verdict 卡与证据链） ----------
 function New-MergedHtmlReport {
-    param($Overview, [string[]]$SectionHtmls, [string]$HostName, [string]$TimeStamp)
+    param($Overview, [string[]]$SectionHtmls, [string]$HostName, [string]$TimeStamp, [string]$ReportTitle = '全面体检报告')
     $h = New-Object System.Text.StringBuilder
     [void]$h.AppendLine('<!DOCTYPE html>')
     [void]$h.AppendLine('<html lang="zh-CN">')
     [void]$h.AppendLine('<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">')
-    [void]$h.AppendLine('<title>全面体检报告 ' + (Escape-Html $TimeStamp) + '</title>')
+    [void]$h.AppendLine('<title>' + $ReportTitle + ' ' + (Escape-Html $TimeStamp) + '</title>')
     [void]$h.AppendLine('<style>' + $css + "`n" + $cssMerge + '</style></head>')
     [void]$h.AppendLine('<body><div class="wrap">')
-    [void]$h.AppendLine('<div class="banner"><h1>全面体检报告</h1>')
+    [void]$h.AppendLine('<div class="banner"><h1>' + $ReportTitle + '</h1>')
     [void]$h.AppendLine('<div class="meta">主机: ' + (Escape-Html $HostName) + ' &middot; ' + (Escape-Html $TimeStamp) + ' &middot; 电脑体检台 v' + $engVersion + '</div>')
     [void]$h.AppendLine('<div class="meta">体检全程只读 | 证据必附 | 修法见报告与修复中心（绿色可代跑，红色只给步骤）</div></div>')
-    [void]$h.AppendLine('<div class="card"><h2 class="sec">五树总览</h2>')
+    [void]$h.AppendLine('<div class="card"><h2 class="sec">体检总览</h2>')
     [void]$h.AppendLine('<table class="ov"><tr><th>体检树</th><th>结论</th><th>FAIL 项</th></tr>')
     foreach ($o in $Overview) {
         $conclCls = if ($o.FailCnt -gt 0) { 'm-fail' } else { 'm-pass' }
@@ -496,9 +496,20 @@ function Trim-Reports {
     }
 }
 
-# ---------- 多树模式（-TreeName all；单树执行路径零改动） ----------
-if ($TreeName -eq 'all') {
-    $treesOrder = @('network', 'bluescreen', 'hardware', 'performance', 'drivers', 'security')
+# ---------- 多树模式（-TreeName all=内置六树全集；或逗号分隔多树如 network,security；单树执行路径零改动） ----------
+if ($TreeName -eq 'all' -or $TreeName -match ',') {
+    if ($TreeName -eq 'all') {
+        $treesOrder = @('network', 'bluescreen', 'hardware', 'performance', 'drivers', 'security')
+        $mergedTitle = '全面体检报告'
+    } else {
+        $treesOrder = @($TreeName -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } | Select-Object -Unique)
+        if ($treesOrder.Count -lt 2) { Write-Error "multi-tree mode needs 2+ trees, got: $TreeName"; exit 3 }
+        foreach ($t in $treesOrder) {
+            $tf = Join-Path $root "trees/$t.yaml"
+            if (-not (Test-Path $tf)) { Write-Error "tree not found: $tf"; exit 3 }
+        }
+        $mergedTitle = '合并体检报告'
+    }
     $treeDatas = @{}
     foreach ($t in $treesOrder) {
         $tf = Join-Path $root "trees/$t.yaml"
@@ -508,7 +519,7 @@ if ($TreeName -eq 'all') {
     $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $hostName = $env:COMPUTERNAME
 
-    Write-Output "电脑体检台 · 全面体检报告 v$engVersion"
+    Write-Output "电脑体检台 · $mergedTitle v$engVersion"
     Write-Output ""
 
     $anyFailAll = $false
@@ -548,7 +559,7 @@ if ($TreeName -eq 'all') {
     if (-not $NoSaveReport) {
         $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
         $repFile = Join-Path $reportsDir ("diag-all-$stamp.html")
-        $html = New-MergedHtmlReport -Overview $overview -SectionHtmls $sectionsHtml -HostName $hostName -TimeStamp $ts
+        $html = New-MergedHtmlReport -Overview $overview -SectionHtmls $sectionsHtml -HostName $hostName -TimeStamp $ts -ReportTitle $mergedTitle
         Set-Content -Path $repFile -Value $html -Encoding UTF8
         Write-Output "[报告已保存] $repFile"
         $htmlFile = $repFile

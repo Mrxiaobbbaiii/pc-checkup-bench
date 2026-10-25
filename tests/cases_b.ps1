@@ -46,7 +46,7 @@ $global:DiagBCases = @(
            $jfiles = Get-LatestJson $ctx.Root
            if ($jfiles.Count -ne 1) { $bad += "json files expect 1 got $($jfiles.Count)"; return $bad }
            $j = Get-Content $jfiles[0].FullName -Raw -Encoding UTF8 | ConvertFrom-Json
-           if ($j.engine -ne '电脑体检台 v1.6.0') { $bad += "engine field: $($j.engine)" }
+           if ($j.engine -ne '电脑体检台 v1.6.1') { $bad += "engine field: $($j.engine)" }
            if (@($j.trees).Count -ne 1) { $bad += "trees expect 1 got $(@($j.trees).Count)" }
            $t0 = $j.trees[0]
            if ($t0.tree -ne 'network') { $bad += "tree name: $($t0.tree)" }
@@ -167,6 +167,36 @@ $global:DiagBCases = @(
            if ($jfiles.Count -ne 0) { $bad += "default-off produced $($jfiles.Count) json file(s)" }
            if (Test-Path $ctx.Prog) { $bad += 'progress file should not exist (param not given)' }
            if ($ctx.Out -notmatch [regex]::Escape('五层全通')) { $bad += 'stdout baseline keyword missing' }
+           return $bad
+       } },
+
+    # 6. v1.6.1 多选组合：network,security 两树合并（stdout 合并标题、JSON trees=2 按勾选序、事件全序、done=0）
+    @{ name = 'b_json_multi_merge'; tree = 'network,security'; json = $true; full = $true; expectExit = 0; mocks = $allCleanMocks
+       verify = {
+           param($ctx)
+           $bad = @()
+           if ($ctx.Out -notmatch [regex]::Escape('合并体检报告')) { $bad += 'stdout missing merged title' }
+           if ($ctx.Out -match [regex]::Escape('全面体检报告')) { $bad += 'stdout must not claim full-scope title for a partial combo' }
+           $jfiles = Get-LatestJson $ctx.Root
+           if ($jfiles.Count -ne 1) { $bad += "json files expect 1 got $($jfiles.Count)"; return $bad }
+           $j = Get-Content $jfiles[0].FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+           $order = @('network', 'security')
+           if (@($j.trees).Count -ne 2) { $bad += "trees expect 2 got $(@($j.trees).Count)"; return $bad }
+           for ($i = 0; $i -lt 2; $i++) {
+               if ($j.trees[$i].tree -ne $order[$i]) { $bad += "tree order at $($i): $($j.trees[$i].tree)" }
+               if ($null -ne $j.trees[$i].break_layer) { $bad += "tree $($j.trees[$i].tree) break_layer not null" }
+           }
+           $evs = @(Read-ProgressLines $ctx.Prog | ForEach-Object { $_ | ConvertFrom-Json })
+           $checks = @($evs | Where-Object { $_.event -eq 'check' })
+           $expect = Get-TreeCheckSeq (Join-Path $ctx.Root 'trees') $order
+           if ($checks.Count -ne $expect.Count) { $bad += "check events expect $($expect.Count) got $($checks.Count)" }
+           for ($k = 0; $k -lt [Math]::Min($checks.Count, $expect.Count); $k++) {
+               $got = "$($checks[$k].tree)/$($checks[$k].layer)/$($checks[$k].check)"
+               if ($got -ne $expect[$k]) { $bad += "event order at $($k): $got"; break }
+           }
+           if (@($evs | Where-Object { $_.event -eq 'tree_done' }).Count -ne 2) { $bad += 'tree_done events expect 2' }
+           $done = $evs | Where-Object { $_.event -eq 'done' }
+           if (-not $done -or $done.exit -ne 0) { $bad += 'done exit != 0' }
            return $bad
        } }
 )

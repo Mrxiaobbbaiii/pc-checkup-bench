@@ -506,12 +506,13 @@ html[data-theme="dark"] .verdict-banner {
   -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
 }
 
-/* 结果页贴一屏：页眉/工具条固定，左清单与右详情各自滚动，不被状态栏盖住 */
-#view-results.active { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 12px; }
-#view-results > .verdict-banner, #view-results > .empty-state { flex: none; }
+/* 结果页贴一屏：页眉/工具条固定，左清单与右详情各自滚动，不被状态栏盖住；
+   内容真超一屏时（如先修卡+长问题清单）允许本页滚动兜底，不裁掉底部 */
+#view-results.active { display: flex; flex-direction: column; overflow: auto; padding-bottom: 12px; }
+#view-results > .verdict-banner, #view-results > .empty-state, #view-results > .first-fix, #view-results > .delta-bar { flex: none; }
 #results-body { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
 #results-body > .results-bar { flex: none; }
-#results-body > .split { flex: 1; min-height: 0; align-items: stretch; }
+#results-body > .split { flex: 1; min-height: 340px; align-items: stretch; }
 #results-body > .split > .tree-card { max-height: none; }
 #results-body > .split > .detail { min-height: 0; overflow-y: auto; }
 #results-body > .glossary { flex: none; margin: 10px 0 0; }

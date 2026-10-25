@@ -9,7 +9,7 @@
    —— 页眉合并为「外观」菜单；字号四档；键盘焦点可见；红级指南可整段复制。
    只读承诺、绿/黄/红三级语义、五段修复结果、server/engine 接口全部保持 v1.0.1 原样。 */
 
-const APP_VERSION = 'v1.6.0';
+const APP_VERSION = 'v1.6.1';
 
 /* v1.1.0 ext 口子：ui/custom.css 存在则加载（免重打包换肤）；不存在=404 静默跳过，控制台零报错 */
 fetch('custom.css', { cache: 'no-store' })
@@ -525,15 +525,22 @@ function switchView(name) {
   if (name === 'repair') { buildRepairList(); loadRepairHistory(); }
   if (name === 'results') updateResultsShell();
   if (name === 'history') loadHistory();
+  // 跑完/取消/出错后从结果、历史页切回向导时，勾选表单要跟着解锁（跑动中仍保持锁定：
+  // enterRunningUi 调本函数时 appState 已='running'，守卫不会误解锁）
+  if (name === 'wizard' && S.appState !== 'running') unlockSelection();
 }
 $('#tabs').addEventListener('click', (e) => {
   const t = e.target.closest('.tab');
   if (t) switchView(t.dataset.view);
 });
 
-/* 心跳：页面存活=server 存活；窗关=心跳断→server 杀引擎自杀 */
+/* 心跳：页面存活=server 存活；窗关=心跳断→server 杀引擎自杀。
+   body 带 {hidden}：页面隐藏时浏览器把定时器强节流到约 1 次/分钟，
+   server 见 hidden=true 就把兜底线放宽（见 server.ps1 Test-ShouldStop），隐藏页不再被 60 秒线误杀 */
 setInterval(() => {
-  fetch('/api/heartbeat', { method: 'POST', cache: 'no-store' }).catch(() => {});
+  fetch('/api/heartbeat', { method: 'POST', cache: 'no-store',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hidden: document.hidden === true }) }).catch(() => {});
 }, 1000);
 
 /* ---------- 勾选逻辑（勾全面=全部内置树联动勾选并禁用单改） ---------- */
@@ -569,7 +576,7 @@ function buildChecks() {
   $('#chk-fast').addEventListener('change', updateSelUi);
 }
 function getSelectionForm() {
-  // v1.1.0：all=内置树全集全勾且 ext 树没勾；ext 树只能单独选一棵跑
+  // v1.1.0：all=内置树全集全勾且 ext 树没勾；v1.6.1：2-5 棵内置树组合放行（逗号串），ext 树仍只单独选跑
   const builtinTotal = $$('.tree-item:not(.ext-item)').length;
   const builtinChecked = $$('.tree-item:not(.ext-item) input:checked').length;
   const extChecked = $$('.tree-item.ext-item input:checked').length;
@@ -577,7 +584,9 @@ function getSelectionForm() {
   const picked = $$('.tree-item input').filter((i) => i.checked).map((i) => i.closest('.tree-item').dataset.tree);
   if (picked.length === 1) return picked[0];
   if (picked.length === 0) return 'none';
-  return 'invalid-2-4';
+  const hasExt = picked.some((id) => { const el = document.querySelector('.tree-item[data-tree="' + id + '"]'); return el && el.classList.contains('ext-item'); });
+  if (hasExt) return 'invalid-mixed';
+  return picked.join(',');
 }
 function treeCheckCount(t) {
   return (t.layers || []).reduce((n, l) => n + (l.checks || []).length, 0);
@@ -589,7 +598,7 @@ function updateSelUi() {
   const sel = getSelectionForm();
   const hint = $('#sel-hint');
   if (S.appState === 'idle') {
-    if (sel === 'invalid-2-4') {
+    if (sel === 'invalid-mixed') {
       btn.disabled = true;
       hint.textContent = t('chrome.sel_invalid');
       hint.className = 'hint warn';
@@ -599,6 +608,16 @@ function updateSelUi() {
       hint.textContent = t('chrome.sel_none');
       hint.className = 'hint warn';
       setStatus(t('chrome.sel_none_status'), '');
+    } else if (sel.indexOf(',') >= 0) {
+      btn.disabled = false;
+      const ids = sel.split(',');
+      const total = ids.reduce((n, id) => {
+        const tr = S.meta.trees.find((x) => x.id === id);
+        return n + (tr ? treeCheckCount(tr) : 0);
+      }, 0);
+      hint.textContent = tf('chrome.hint_multi', { n: ids.length, m: total });
+      hint.className = 'hint';
+      setStatus(t('chrome.status_ready'), '');
     } else {
       btn.disabled = false;
       const tree = sel === 'all' ? null : S.meta.trees.find((x) => x.id === sel);
@@ -617,6 +636,15 @@ function updateSelUi() {
     hint.className = 'hint';
   }
 }
+/* 解锁勾选表单（跑完/取消/出错后调用；锁只在跑动场景加，结束后必须还）。
+   注意「勾全面→禁单改」联动是另一码事：全选勾着时单树项仍要锁回去（与 resetToIdle 同款语义）。 */
+function unlockSelection() {
+  $('#select-card').classList.remove('disabled');
+  $$('#select-card input').forEach((i) => (i.disabled = false));
+  const all = $('#chk-all');
+  if (all.checked) $$('.tree-item').forEach((it) => { it.querySelector('input').disabled = true; it.classList.add('disabled'); });
+  updateSelUi();
+}
 
 /* ---------- 跑批启动 / 取消 ---------- */
 $('#btn-run').addEventListener('click', () => {
@@ -628,12 +656,13 @@ $('#btn-run').addEventListener('click', () => {
 async function startRun(opts) {
   opts = opts || {};
   const sel = getSelectionForm();
-  if (!opts.tree && (sel === 'none' || sel === 'invalid-2-4')) return;
+  if (!opts.tree && (sel === 'none' || sel === 'invalid-mixed')) return;
   const treeArg = opts.tree || sel;
   S.fast = opts.fast !== undefined ? !!opts.fast : $('#chk-fast').checked;
   S.expectSeq = [];
+  const treeSet = treeArg === 'all' ? null : new Set(String(treeArg).split(','));
   S.meta.trees.forEach((t) => {
-    if (treeArg !== 'all' && t.id !== treeArg) return;
+    if (treeSet && !treeSet.has(t.id)) return;
     t.layers.forEach((l) => {
       l.checks.forEach((c) => {
         S.expectSeq.push({ tree: t.id, layer: l.name, layerTitle: l.title, check: c });
@@ -664,8 +693,10 @@ async function startRun(opts) {
 }
 
 function enterRunningUi(treeArg) {
-  const treeDef = treeArg === 'all' ? null : S.meta.trees.find((x) => x.id === treeArg);
-  const name = treeArg === 'all' ? t('chrome.all_name').replace(/（.*/, '') : treeName(treeDef);
+  const defs = treeArg === 'all' ? [] : String(treeArg).split(',').map((id) => S.meta.trees.find((x) => x.id === id)).filter(Boolean);
+  const name = treeArg === 'all'
+    ? t('chrome.all_name').replace(/（.*/, '')
+    : (defs.length > 1 ? defs.map((d) => treeName(d)).join('+') : (defs.length === 1 ? treeName(defs[0]) : treeArg));
   $('#log-box').innerHTML = '';
   $('#progress-fill').style.width = '0%';
   $('#pct-label').textContent = tf('chrome.pct_items', { a: 0, b: S.expectSeq.length });
@@ -808,19 +839,19 @@ function finalize(payload) {
     setStatus(tf('chrome.finish_status', { n: secHuman, verdict: exitHuman(payload.exit) }), payload.exit === 0 ? '' : 'err');
     loadReport().then(() => {
       switchView('results');
-      updateSelUi();
+      unlockSelection();
       saveLastRun(secHuman);
     });
   } else if (payload.state === 'cancelled') {
     addLog(t('chrome.cancelled_log'), 'st-skip');
     setCurrent(t('chrome.cancelled_cur'));
     setStatus(tf('chrome.cancelled_status', { n: secHuman }), '');
-    updateSelUi();
+    unlockSelection();
   } else {
     addLog(tf('chrome.error_log', { n: payload.exit }), 'st-fail');
     setCurrent(t('chrome.error_cur'));
     setStatus(tf('chrome.error_status', { n: payload.exit }), 'err');
-    updateSelUi();
+    unlockSelection();
   }
 }
 
@@ -2332,8 +2363,9 @@ if (/[?&]probe/.test(location.search)) {
       const treeArg = p.runTree || 'all';
       S.fast = p.runFull === false;
       S.expectSeq = [];
+      const recTreeSet = treeArg === 'all' ? null : new Set(String(treeArg).split(','));
       S.meta.trees.forEach((t) => {
-        if (treeArg !== 'all' && t.id !== treeArg) return;
+        if (recTreeSet && !recTreeSet.has(t.id)) return;
         t.layers.forEach((l) => l.checks.forEach((c) => S.expectSeq.push({ tree: t.id, layer: l.name, layerTitle: l.title, check: c })));
       });
       S.appState = 'running'; setTitleProgress(0);
@@ -2461,12 +2493,15 @@ async function loadHistory(force) {
     '<span class="trend-val">' + r.fails + '</span></div>'
   ).join('');
 
-  // 对比卡（≥2 份才开）
+  // 对比卡（≥2 份才开）：两个下拉候选都放开到全量历史，任意两份可互比（同选一份走 cmp_same_default 占位）
   if (HIST.reports.length >= 2) {
     $('#hist-compare-card').hidden = false;
     const opt = (sel, arr) => sel.innerHTML = arr.map((r) => '<option value="' + esc(r.file) + '">' + esc(r.fails === 1 ? tf('chrome.opt_line_1', { time: r.mtime, trees: r.trees }) : tf('chrome.opt_line', { time: r.mtime, trees: r.trees, n: r.fails })) + '</option>').join('');
-    opt($('#cmp-old'), HIST.reports.slice(1));
-    opt($('#cmp-new'), HIST.reports.slice(0, 1));
+    opt($('#cmp-old'), HIST.reports);
+    opt($('#cmp-new'), HIST.reports);
+    // 默认选中=最新 vs 次新，与放开前视觉等价（列表按新到旧排序）
+    $('#cmp-new').selectedIndex = 0;
+    $('#cmp-old').selectedIndex = 1;
   }
 }
 
