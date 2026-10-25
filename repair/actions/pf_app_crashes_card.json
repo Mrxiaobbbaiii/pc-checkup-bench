@@ -12,7 +12,7 @@
       "exe": "cmd.exe", "args": ["/c", "start ms-settings:appsfeatures"],
       "desc": "第 1 步：找到报告点名的崩溃王应用",
       "how": {
-        "at": "键盘按 Win+I 打开「设置」（修复中心底部也有「帮你打开 应用与功能」按钮，点了直接到）",
+        "at": "键盘按 Win+I 打开「设置」（修复中心「一键直达系统窗口」区有应用与功能按钮）",
         "click": "左侧点「应用」→ 点「安装的应用」。英文界面：Apps → Installed apps",
         "type": "在顶部搜索框输入报告点名的应用名（如：SystemOptimizer.exe 就搜 SystemOptimizer）",
         "ok": "列表里出现这个应用",

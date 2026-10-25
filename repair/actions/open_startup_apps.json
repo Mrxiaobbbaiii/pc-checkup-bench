@@ -1,10 +1,10 @@
 {
   "id": "open_startup_apps",
-  "name": "帮你打开：启动应用（开机自启）",
+  "name": "启动应用",
   "level": "green",
   "launcher": true,
   "common": true,
-  "desc": "打开「设置 → 应用 → 启动」——开关自启项在这里。只开窗，不改任何设置。",
+  "desc": "开机自启的开与关都在这里。",
   "affect": "只打开窗口，不改任何设置、不点任何按钮。",
   "undo": "关掉打开的窗口即恢复原状，无需回滚。",
   "requires_admin": false,

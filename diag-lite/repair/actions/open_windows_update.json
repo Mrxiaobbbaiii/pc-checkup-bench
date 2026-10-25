@@ -1,10 +1,10 @@
 {
   "id": "open_windows_update",
-  "name": "帮你打开：Windows 更新",
+  "name": "Windows 更新",
   "level": "green",
   "launcher": true,
   "common": true,
-  "desc": "打开「设置 → Windows 更新」——检查更新、看更新历史在这里。只开窗，不改任何设置。",
+  "desc": "检查更新、看更新历史。",
   "affect": "只打开窗口，不改任何设置、不点任何按钮。",
   "undo": "关掉打开的窗口即恢复原状，无需回滚。",
   "requires_admin": false,

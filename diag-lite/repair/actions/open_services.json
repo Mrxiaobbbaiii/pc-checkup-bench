@@ -1,10 +1,10 @@
 {
   "id": "open_services",
-  "name": "帮你打开：服务（服务管理器）",
+  "name": "服务",
   "level": "green",
   "launcher": true,
   "common": true,
-  "desc": "打开「服务」——看服务描述、改启动类型、右键启动验证都在这里。只开窗，不改任何设置。",
+  "desc": "看服务是谁家的、改启动类型、右键启动做验证。",
   "affect": "只打开窗口，不改任何设置、不点任何按钮。",
   "undo": "关掉打开的窗口即恢复原状，无需回滚。",
   "requires_admin": false,

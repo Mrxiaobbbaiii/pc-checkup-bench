@@ -97,7 +97,7 @@ const RELEASE_NOTES = {
   'v1.4.0': [
     '结果页新增「先修这个」：同类问题合并成一个方向，按值得先修的程度排序',
     '要自己动手的步骤全部改成一步一步教学：在哪、点什么、输什么、怎么算成功、失败了先干什么',
-    '修复中心新增「帮你打开正确的窗口」，先把窗口替你打开，再照步骤点',
+    '修复中心新增「一键直达系统窗口」，先把窗口替你打开，再照步骤点',
     '每个修复办法都标了微软官方文档出处，可以点开核对',
   ],
 };
@@ -1377,22 +1377,70 @@ function stepCmdText(st) {
 }
 
 /* 问题修复置顶（绿/黄 → 红 → 自己动手），常用修复折叠到最后。同一动作只渲染一次。 */
-/* launcher 组（v1.4.0 轮4）：「帮你打开正确的窗口」绿级零修改动作——只拉起系统窗口并指路，
-   不改任何设置；单列一节常驻（不依赖体检结果），给红卡手动步骤配套「在哪」这一步减负。 */
-function appendLauncherFold(box, launcherActs) {
-  if (!launcherActs.length) return;
+/* launcher 组（v1.4.0 轮4）：「一键直达系统窗口」绿级零修改动作——只拉起系统窗口并指路，
+   不改任何设置；单列一节常驻（不依赖体检结果），给红卡手动步骤配套「在哪」这一步减负。
+   文案口径（1025 用户吐槽「帮你打开设备管理器都说安全可修」→业界调研定稿）：按钮=动词本身
+   「打开」（微软 WAC/Win32 文案指南：按钮名=用户动作的动词）、开窗类零安全声明零撤销说明
+   （微软 support/CCleaner/Geek/微软电脑管家等开窗文案均无「安全/可撤销」字样）、说明只留一句
+   （微软指南「能一句说清就不写补充段」）、中文业界惯用词「一键直达」（微软电脑管家/360/联想）。 */
+function appendLauncherFold(box, launchers) {
+  if (!launchers.length) return;
   const sec = document.createElement('div');
   sec.className = 'rep-sec';
-  sec.textContent = '帮你打开正确的窗口（只开窗，不改任何设置）';
+  sec.textContent = '一键直达系统窗口（只开窗，不改任何设置）';
   box.appendChild(sec);
   const note = document.createElement('div');
   note.className = 'rep-sec-note';
-  note.textContent = '红色指南卡里说「去设置 / 设备管理器 / 服务」的，先点这里的按钮帮你把窗口打开，再照步骤点。';
+  note.textContent = '红色指南卡里说「去设置 / 设备管理器 / 服务」的，先点这里的按钮直达，再照步骤点。';
   box.appendChild(note);
   const wrap = document.createElement('div');
   wrap.className = 'launcher-grid';
-  launcherActs.forEach((a) => wrap.appendChild(buildActionCard(a, [])));
+  launchers.forEach((a) => wrap.appendChild(buildLauncherCard(a)));
   box.appendChild(wrap);
+}
+/* launcher 专用精简卡：窗口名+一句用途+「打开」按钮+官方文档链接——不渲染等级徽章/
+   三行说明/步骤折叠（业界惯例：开窗类辅助动作不配安全声明；等级语义属修复动作） */
+function buildLauncherCard(a) {
+  const card = document.createElement('div');
+  card.className = 'action-card lv-green launcher-card';
+  card.dataset.actionId = a.id;
+  const badge = document.createElement('div');
+  badge.className = 'ac-badge';
+  badge.innerHTML = '<b>' + esc(a.name) + '</b>';
+  card.appendChild(badge);
+  if (a.desc) {
+    const d = document.createElement('div');
+    d.className = 'lc-desc';
+    d.textContent = a.desc;
+    card.appendChild(d);
+  }
+  if (a.sources && a.sources.length) {
+    const src = document.createElement('div');
+    src.className = 'lc-src';
+    const link = document.createElement('a');
+    link.href = a.sources[0].url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = '官方文档 ↗';
+    src.appendChild(link);
+    card.appendChild(src);
+  }
+  const btnRow = document.createElement('div');
+  btnRow.className = 'ac-btns';
+  const btn = document.createElement('button');
+  btn.className = 'btn act-run';
+  btn.dataset.actionId = a.id;
+  btn.textContent = '打开';
+  btn.addEventListener('click', () => onGreenRun(a, btn, card, true));
+  btnRow.appendChild(btn);
+  card.appendChild(btnRow);
+  if (S.repairDoneIds[a.id]) {
+    const done = document.createElement('div');
+    done.className = 'ac-result';
+    renderRepairResult(done, S.repairDoneIds[a.id], true);
+    card.appendChild(done);
+  }
+  return card;
 }
 function buildRepairList() {
   const box = $('#repair-list');
@@ -1623,13 +1671,13 @@ function buildActionCard(a, hits) {
 }
 
 /* 绿级执行流：需管理员→先弹预告确认；POST run →轮询 status→渲染五段结果 */
-function onGreenRun(a, btn, card) {
+function onGreenRun(a, btn, card, launcherMode) {
   if (S.repairBusy || S.appState === 'running') {
     setStatus(S.appState === 'running' ? '正在体检中，请等这轮结束再修复' : '正在修复中，请等它结束', 'err');
     return;
   }
   if (a.requires_admin) showGreenConfirmModal(a, () => startRepairRun(a, btn, card));
-  else startRepairRun(a, btn, card);
+  else startRepairRun(a, btn, card, launcherMode ? { okWord: '✓ 已打开 · 没看到窗口就再点一次「打开」' } : undefined);
 }
 function showGreenConfirmModal(a, onGo) {
   document.getElementById('rm-title').textContent = a.name || '修复动作';
@@ -1837,7 +1885,7 @@ async function startRepairRun(a, btn, card, opts) {
       let st;
       try { st = await (await fetch('/api/repair/status', { cache: 'no-store' })).json(); }
       catch (e) { continue; }
-      if (st.state === 'done' && st.result) { S.repairDoneIds[a.id] = st.result; renderRepairResult(slot, st.result); if (st.result.ok) scheduleSense(a); return; }
+      if (st.state === 'done' && st.result) { S.repairDoneIds[a.id] = st.result; renderRepairResult(slot, st.result, opts.okWord); if (st.result.ok) scheduleSense(a); return; }
       if (st.state === 'idle') { renderRepairResult(slot, { ok: false, human: '修复状态丢失，请重试' }); return; }
     }
     renderRepairResult(slot, { ok: false, human: '修复等太久了（超时），请重试' });
@@ -1878,14 +1926,14 @@ async function loadRepairHistory(force) {
   wrap.classList.remove('hidden');
 }
 /* 修复结果：大结论 + 复查提炼 + 下一步；五段明细折叠，失败默认展开 */
-function renderRepairResult(slot, res) {
+function renderRepairResult(slot, res, okWord) {
   slot.innerHTML = '';
   if (!res || !res.stages) {
     slot.appendChild(rrBig('bad', '✗ ' + ((res && res.human) || '没有拿到修复结果')));
     return;
   }
   const ok = !!res.ok;
-  slot.appendChild(rrBig(ok ? 'ok' : 'bad', (ok ? '✓ 修好了' : '✗ 没修好') + ' · ' + (res.human || '')));
+  slot.appendChild(rrBig(ok ? 'ok' : 'bad', okWord || ((ok ? '✓ 修好了' : '✗ 没修好') + ' · ' + (res.human || ''))));
   const vf = res.stages.verify;
   if (vf && (vf.checks || []).length) {
     vf.checks.forEach((c) => {

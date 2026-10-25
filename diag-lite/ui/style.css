@@ -456,10 +456,14 @@ html[data-theme="dark"] .verdict-banner {
 .src-row a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .src-row a:hover { text-decoration: none; }
 
-/* launcher 帮你开窗组（v1.4.0 轮4）：小卡网格，一眼扫完 */
+/* launcher 一键直达组（v1.4.0 轮4）：小卡网格；卡内=窗口名+一句用途+「打开」按钮（文案业界口径） */
 .launcher-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
 .launcher-grid .action-card { padding: 10px 12px; }
-.launcher-grid .steps-fold { display: none; }
+.launcher-grid .ac-badge b { font-size: var(--fs-3); }
+.lc-desc { font-size: var(--fs-2); color: var(--dim); line-height: 1.5; margin: 2px 0 6px; }
+.lc-src { font-size: var(--fs-1); margin-bottom: 6px; }
+.lc-src a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.launcher-grid .ac-btns .btn { padding: 6px 22px; }
 
 
 

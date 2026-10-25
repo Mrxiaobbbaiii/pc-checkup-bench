@@ -1,10 +1,10 @@
 {
   "id": "open_devmgr",
-  "name": "帮你打开：设备管理器",
+  "name": "设备管理器",
   "level": "green",
   "launcher": true,
   "common": true,
-  "desc": "打开「设备管理器」——看设备黄三角、卸载残留设备、更新驱动都用它。只开窗，不改任何设置。",
+  "desc": "看设备黄三角、卸载残留设备、更新驱动。",
   "affect": "只打开窗口，不改任何设置、不点任何按钮。",
   "undo": "关掉打开的窗口即恢复原状，无需回滚。",
   "requires_admin": false,

@@ -1,10 +1,10 @@
 {
   "id": "open_network_adapters",
-  "name": "帮你打开：网络适配器（网络连接）",
+  "name": "网络适配器",
   "level": "green",
   "launcher": true,
   "common": true,
-  "desc": "打开「网络连接」——看网卡状态、诊断适配器在这里。只开窗，不改任何设置。",
+  "desc": "看网卡状态、诊断网络适配器。",
   "affect": "只打开窗口，不改任何设置、不点任何按钮。",
   "undo": "关掉打开的窗口即恢复原状，无需回滚。",
   "requires_admin": false,

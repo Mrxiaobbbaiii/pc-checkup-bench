@@ -1,10 +1,10 @@
 {
   "id": "open_apps_features",
-  "name": "帮你打开：应用与功能（安装的应用）",
+  "name": "应用与功能",
   "level": "green",
   "launcher": true,
   "common": true,
-  "desc": "打开「设置 → 应用 → 安装的应用」——卸载软件、查明崩溃王应用在这里。只开窗，不改任何设置。",
+  "desc": "卸载软件、找报告点名的崩溃王应用。",
   "affect": "只打开窗口，不改任何设置、不点任何按钮。",
   "undo": "关掉打开的窗口即恢复原状，无需回滚。",
   "requires_admin": false,
