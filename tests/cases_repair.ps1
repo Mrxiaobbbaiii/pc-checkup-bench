@@ -28,6 +28,7 @@ v0.9.8 扩库 5 动作（库 8→13，全部 common=true=常用修复）：
                             解锁步天然无 {BK}，原每步须含 {BK} 断言对扩库动作不可达，放宽为汇总断言）
 黄级 fixture 走 requires_admin=true 的提权内层路径（requireSilent：不可静默提权的机器自动转 NeverElevate，双语境确定性）。
 真实动作跑在临时仓副本（checks/ 拷贝、reports/ 独立），主仓 reports/ 零污染。
+已提权宿主（CI/管理员壳）：skipOnElevated=$true 的用例转 SKIP——repair.ps1 对已提权进程预检不构成阻断，「绝不真跑」断言前提失效（1025 拍板）。
 #>
 
 function Test-CurElevated {
@@ -711,6 +712,8 @@ $global:DiagRepairCases = @(
         actionId = 'zz_test_y_rpfail'
         fixtures = @{ 'zz_test_y_rpfail.json' = $fixtureYRpFail }
         clean = @('diag-rep-yrp.txt')
+        # 提权分支假设机器支持系统还原（CI VM 不支持，实测还原点建成失败）→ 已提权宿主转 SKIP
+        skipOnElevated = $true
         extraArgs = @('-AllowYellow', '-WithRestorePoint')
         assert = {
             param($res, $ctx)
@@ -742,6 +745,7 @@ foreach ($yAct in @(@('rep_y_winsock', 'net_winsock_reset'), @('rep_y_tcpip', 'n
         kind = 'real'
         actionId = $yAct[1]
         forceNever = $true
+        skipOnElevated = $true
         extraArgs = @('-AllowYellow')
         assert = {
             param($res, $ctx)
@@ -771,6 +775,7 @@ foreach ($xAct in @(
         kind = 'real'
         actionId = $xAct[1]
         forceNever = $true
+        skipOnElevated = $true
         extraArgs = $(if ($xAct[2]) { @('-AllowYellow') } else { @() })
         assert = {
             param($res, $ctx)
@@ -815,6 +820,7 @@ foreach ($s4Act in @(@('rep_g_winhttp_reset', 'net_winhttp_reset', @()),
         kind = 'real'
         actionId = $s4Act[1]
         forceNever = $true
+        skipOnElevated = $true
         extraArgs = $s4Act[2]
         assert = {
             param($res, $ctx)

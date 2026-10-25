@@ -158,7 +158,13 @@ foreach ($bc in $global:DiagBCases) {
 
 # ---------- ④ 修复动作用例（v0.8.1：四断言+每绿级动作实测；临时仓跑 repair.ps1，主仓 reports/ 零污染） ----------
 $silentElev = Test-SilentElevatable
+# 已提权宿主（CI/管理员壳）：repair.ps1 对已提权进程预检不构成阻断，skipOnElevated 用例断言前提失效 → 转 SKIP（1025 拍板）
+$curElevated = Test-CurElevated
 foreach ($rc in $global:DiagRepairCases) {
+    if ($curElevated -and $rc.skipOnElevated) {
+        Add-Result 'repair' $rc.name 'SKIP: 已提权宿主，真动作用例不真跑' $true
+        continue
+    }
     if ($rc.kind -eq 'schema') {
         $ctx = @{ Root = $root; TmpRoot = ''; SilentElev = $silentElev }
         $bad = & $rc.assert $null $ctx
