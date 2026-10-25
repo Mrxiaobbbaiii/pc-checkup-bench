@@ -1,10 +1,10 @@
 ﻿#Requires -Version 5.1
 <#
-diag build.ps1 v1.6.0 —— 发群一键出包（v1.1.0 封装片 2026-10-23；白名单遍历 diag-lite/ 打 zip）
+diag build.ps1 v1.6.1 —— 发群一键出包（v1.1.0 封装片 2026-10-23；白名单遍历 diag-lite/ 打 zip）
 规则：ui/bg.jpg 与 ui/bg-light.jpg（1025 起为程序生成图，无版权限制）随包分发；reports/ 只带「报告在这里.txt」占位
      （真实报告 diag-*、repair-log.json、rollback/ 一律不入包）；其余全收（含 brand.png/favicon.png）。
 用法：powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
-产物：<仓库根>\diag-lite-v1.6.0.zip（.gitignore *.zip 已挡入库）；打完自印条目清单，字节抽验由验证脚本另行执行。
+产物：<仓库根>\diag-lite-v1.6.1.zip（.gitignore *.zip 已挡入库）；打完自印条目清单，字节抽验由验证脚本另行执行。
 #>
 param([switch]$Setup)
 
@@ -103,7 +103,7 @@ if ($Setup) {
 
 $root = $PSScriptRoot
 $src = Join-Path $root 'diag-lite'
-$outZip = Join-Path $root 'diag-lite-v1.6.0.zip'
+$outZip = Join-Path $root 'diag-lite-v1.6.1.zip'
 $placeholder = 'reports/报告在这里.txt'
 
 # ---- 守卫：打包面关键件在位，残缺即停 ----
@@ -144,7 +144,7 @@ try {
 $check = [System.IO.Compression.ZipFile]::OpenRead($outZip)
 try {
     $total = ($check.Entries | Measure-Object -Property Length -Sum).Sum
-    Write-Host "=== diag-lite-v1.6.0.zip: $($check.Entries.Count) entries, $total bytes uncompressed ==="
+    Write-Host "=== diag-lite-v1.6.1.zip: $($check.Entries.Count) entries, $total bytes uncompressed ==="
     foreach ($e in $check.Entries) { Write-Host ("  {0}  ({1} bytes)" -f $e.FullName, $e.Length) }
 } finally {
     $check.Dispose()
