@@ -3,53 +3,63 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>电脑体检台</title>
+<title data-i18n="chrome.app_title">电脑体检台</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="stylesheet" href="style.css">
+<!-- 语言包直载（零依赖断网红线：<script> 直载不用 fetch）；先于 app.js 执行 -->
+<script src="i18n/zh-CN.js" charset="utf-8" defer></script>
+<script src="i18n/en-US.js" charset="utf-8" defer></script>
 <script src="app.js" defer></script>
 </head>
 <body>
-<a class="skip-link" href="#main">跳到主内容</a>
+<a class="skip-link" href="#main" data-i18n="chrome.skip_link">跳到主内容</a>
 
 <header class="topbar">
   <div class="brand">
     <!-- logo 快改后门：替换 ui/brand.png 即换图（server 需带对应静态映射），勿写死进样式 -->
     <span class="brand-mark"><img src="brand.png" alt=""></span>
-    <div class="brand-text"><b>电脑体检台</b></div>
+    <div class="brand-text"><b data-i18n="chrome.app_title">电脑体检台</b></div>
   </div>
-  <nav class="tabs" id="tabs" aria-label="主导航">
-    <button class="tab active" data-view="wizard"><span class="tab-full">体检向导</span><span class="tab-short">向导</span></button>
-    <button class="tab" data-view="results"><span class="tab-full">结果中心</span><span class="tab-short">结果</span></button>
-    <button class="tab" data-view="repair"><span class="tab-full">修复中心</span><span class="tab-short">修复</span></button>
-    <button class="tab" data-view="history"><span class="tab-full">历史对比</span><span class="tab-short">历史</span></button>
+  <nav class="tabs" id="tabs" aria-label="主导航" data-i18n-aria="chrome.nav_aria">
+    <button class="tab active" data-view="wizard"><span class="tab-full" data-i18n="chrome.tab_wizard">体检向导</span><span class="tab-short" data-i18n="chrome.tab_wizard_s">向导</span></button>
+    <button class="tab" data-view="results"><span class="tab-full" data-i18n="chrome.tab_results">结果中心</span><span class="tab-short" data-i18n="chrome.tab_results_s">结果</span></button>
+    <button class="tab" data-view="repair"><span class="tab-full" data-i18n="chrome.tab_repair">修复中心</span><span class="tab-short" data-i18n="chrome.tab_repair_s">修复</span></button>
+    <button class="tab" data-view="history"><span class="tab-full" data-i18n="chrome.tab_history">历史对比</span><span class="tab-short" data-i18n="chrome.tab_history_s">历史</span></button>
   </nav>
   <div class="top-actions">
-    <button class="icon-btn" id="btn-appearance" aria-haspopup="menu" aria-expanded="false" aria-controls="appearance-menu" title="外观：明暗、强调色、背景原画">
+    <button class="icon-btn" id="btn-appearance" aria-haspopup="menu" aria-expanded="false" aria-controls="appearance-menu" title="外观：明暗、强调色、背景原画" data-i18n-title="chrome.appearance_title">
       <svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.9 A6.1 6.1 0 0 1 8 14.1 Z" fill="currentColor"/></svg>
-      <span class="ic-label">外观</span>
+      <span class="ic-label" data-i18n="chrome.appearance">外观</span>
     </button>
-    <button class="icon-btn danger icon-only" id="btn-close" aria-label="关闭电脑体检台" title="关闭">
+    <button class="icon-btn danger icon-only" id="btn-close" aria-label="关闭电脑体检台" title="关闭" data-i18n-aria="chrome.close_aria" data-i18n-title="chrome.close_title">
       <svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.2 4.2 L11.8 11.8 M11.8 4.2 L4.2 11.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
     </button>
   </div>
-  <!-- 外观菜单（v1.1.0 A 段：主题/强调色/背景三个入口合并，窄窗只留图标） -->
+  <!-- 外观菜单（v1.1.0 A 段：主题/强调色/背景三个入口合并，窄窗只留图标；1025 i18n 加语言行） -->
   <div class="menu hidden" id="appearance-menu" role="menu" aria-labelledby="btn-appearance">
-    <div class="menu-title">外观</div>
+    <div class="menu-title" data-i18n="chrome.appearance">外观</div>
     <div class="menu-row">
-      <span class="menu-label">明暗</span>
+      <span class="menu-label" data-i18n="chrome.menu_theme">明暗</span>
       <div class="seg" id="theme-seg">
-        <button class="seg-btn" role="menuitemradio" data-theme-opt="auto">自动</button>
-        <button class="seg-btn" role="menuitemradio" data-theme-opt="dark">深色</button>
-        <button class="seg-btn" role="menuitemradio" data-theme-opt="light">浅色</button>
+        <button class="seg-btn" role="menuitemradio" data-theme-opt="auto" data-i18n="chrome.theme_auto">自动</button>
+        <button class="seg-btn" role="menuitemradio" data-theme-opt="dark" data-i18n="chrome.theme_dark">深色</button>
+        <button class="seg-btn" role="menuitemradio" data-theme-opt="light" data-i18n="chrome.theme_light">浅色</button>
       </div>
     </div>
     <div class="menu-row">
-      <span class="menu-label">强调色</span>
+      <span class="menu-label" data-i18n="chrome.menu_lang">语言</span>
+      <div class="seg" id="lang-seg">
+        <button class="seg-btn" role="menuitemradio" data-lang-opt="zh-CN">中文</button>
+        <button class="seg-btn" role="menuitemradio" data-lang-opt="en-US">English</button>
+      </div>
+    </div>
+    <div class="menu-row">
+      <span class="menu-label" data-i18n="chrome.menu_accent">强调色</span>
       <div class="swatches" id="accent-row"></div>
     </div>
     <div class="menu-sep"></div>
-    <button class="menu-item" id="btn-bg" role="menuitem">看背景大图</button>
-    <button class="menu-item" id="appearance-reset" role="menuitem">恢复默认外观</button>
+    <button class="menu-item" id="btn-bg" role="menuitem" data-i18n="chrome.btn_bg">看背景大图</button>
+    <button class="menu-item" id="appearance-reset" role="menuitem" data-i18n="chrome.appearance_reset">恢复默认外观</button>
   </div>
 </header>
 
@@ -57,44 +67,44 @@
   <!-- 视图一：体检向导（单列纵向流：说明→三步→选择→开始→进度） -->
   <section class="view active" id="view-wizard">
     <div class="hero">
-      <h1>给电脑做个全面体检</h1>
-      <p>只看、不动你电脑的任何设置。</p>
+      <h1 data-i18n="chrome.hero_title">给电脑做个全面体检</h1>
+      <p data-i18n="chrome.slogan">只看、不动你电脑的任何设置。</p>
       <p class="last-run hidden" id="last-run"></p>
     </div>
     <!-- 首次启动三步引导（轮7）：没跑过体检才显示；点「知道了」或跑完一轮=永久收起（localStorage 记忆） -->
     <div class="card first-guide hidden" id="first-guide">
-      <div class="card-title">第一次用？跟着这三步走</div>
+      <div class="card-title" data-i18n="chrome.guide_title">第一次用？跟着这三步走</div>
       <ol class="fg-steps">
-        <li><b>1</b><span>点「开始体检」<small>默认全面体检，不用改</small></span></li>
-        <li><b>2</b><span>等几分钟出报告</span></li>
-        <li><b>3</b><span>去「修复中心」照提示修</span></li>
+        <li><b>1</b><span data-i18n-html="chrome.guide_s1_html">点「开始体检」<small>默认全面体检，不用改</small></span></li>
+        <li><b>2</b><span data-i18n="chrome.guide_s2">等几分钟出报告</span></li>
+        <li><b>3</b><span data-i18n="chrome.guide_s3">去「修复中心」照提示修</span></li>
       </ol>
-      <div class="fg-btn-row"><button class="btn" id="fg-got-it">知道了</button></div>
+      <div class="fg-btn-row"><button class="btn" id="fg-got-it" data-i18n="chrome.guide_ok">知道了</button></div>
     </div>
     <div class="card" id="select-card">
-      <div class="card-title">选择要查的项目</div>
+      <div class="card-title" data-i18n="chrome.select_title">选择要查的项目</div>
       <div class="check-grid" id="check-grid">
         <label class="check-item all" id="chk-all-item">
           <input type="checkbox" id="chk-all" checked>
           <span class="box"></span>
-          <span class="txt"><b>全面体检（推荐，查得最全）</b><small id="chk-all-tip">网络、蓝屏、硬件、性能、驱动全部查一遍，出一份合并报告</small></span>
+          <span class="txt"><b data-i18n="chrome.all_name">全面体检（推荐，查得最全）</b><small id="chk-all-tip" data-i18n="chrome.all_tip">网络、蓝屏、硬件、性能、驱动全部查一遍，出一份合并报告</small></span>
         </label>
         <!-- 五棵单树由 app.js 按 /api/meta 注入 -->
       </div>
       <label class="check-item fast" id="chk-fast-item">
         <input type="checkbox" id="chk-fast">
         <span class="box"></span>
-        <span class="txt"><b>快速模式（每类查到问题就跳过剩余细项，更快）</b><small>不勾＝每类全部查完（证据最全）；勾上＝查到问题就跳过该类剩余细项</small></span>
+        <span class="txt"><b data-i18n="chrome.fast_name">快速模式（每类查到问题就跳过剩余细项，更快）</b><small data-i18n="chrome.fast_tip">不勾＝每类全部查完（证据最全）；勾上＝查到问题就跳过该类剩余细项</small></span>
       </label>
-      <div class="hint" id="sel-hint">选好后点下面的「开始体检」</div>
+      <div class="hint" id="sel-hint" data-i18n="chrome.sel_hint">选好后点下面的「开始体检」</div>
     </div>
     <div class="cta-row">
-      <button class="btn-primary" id="btn-run">开始体检</button>
-      <span class="cta-note">只读、不装东西、不改设置</span>
+      <button class="btn-primary" id="btn-run" data-i18n="chrome.run">开始体检</button>
+      <span class="cta-note" data-i18n="chrome.cta_note">只读、不装东西、不改设置</span>
     </div>
     <div class="card hidden" id="run-card">
       <div class="run-head">
-        <div class="current" id="current-label">正在准备…</div>
+        <div class="current" id="current-label" data-i18n="chrome.preparing">正在准备…</div>
         <div class="pct" id="pct-label">0 / 0 项</div>
       </div>
       <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
@@ -113,22 +123,22 @@
 
     <div class="card empty-state hidden" id="result-empty">
       <div class="empty-glyph" aria-hidden="true">✦</div>
-      <h3>还没有体检结果</h3>
-      <p>跑完一轮体检，这里会按「高 / 中 / 低」把问题列出来，每一项都能直接跳到修复方式。</p>
-      <button class="btn-primary" id="btn-empty-run">去跑体检</button>
+      <h3 data-i18n="chrome.empty_results_title">还没有体检结果</h3>
+      <p data-i18n="chrome.empty_results_body">跑完一轮体检，这里会按「高 / 中 / 低」把问题列出来，每一项都能直接跳到修复方式。</p>
+      <button class="btn-primary" id="btn-empty-run" data-i18n="chrome.empty_run">去跑体检</button>
     </div>
 
     <div id="results-body" class="hidden">
       <div class="results-bar">
         <div class="seg" id="result-filter" role="tablist" aria-label="结果视图">
-          <button class="seg-btn active" id="filter-problems" data-filter="problems" role="tab" aria-selected="true">只看问题<span class="seg-count" id="cnt-problems"></span></button>
-          <button class="seg-btn" id="filter-all" data-filter="all" role="tab" aria-selected="false">全部检查项<span class="seg-count" id="cnt-all"></span></button>
+          <button class="seg-btn active" id="filter-problems" data-filter="problems" role="tab" aria-selected="true"><span data-i18n="chrome.filter_problems">只看问题</span><span class="seg-count" id="cnt-problems"></span></button>
+          <button class="seg-btn" id="filter-all" data-filter="all" role="tab" aria-selected="false"><span data-i18n="chrome.filter_all">全部检查项</span><span class="seg-count" id="cnt-all"></span></button>
         </div>
         <div class="results-actions">
-          <button class="btn" id="btn-browser" disabled>完整报告</button>
-          <button class="btn" id="btn-copylist" disabled>复制问题清单</button>
-          <button class="btn" id="btn-folder">报告文件夹</button>
-          <button class="btn" id="btn-again">再跑一次</button>
+          <button class="btn" id="btn-browser" disabled data-i18n="chrome.full_report">完整报告</button>
+          <button class="btn" id="btn-copylist" disabled data-i18n="chrome.copy_list">复制问题清单</button>
+          <button class="btn" id="btn-folder" data-i18n="chrome.report_folder">报告文件夹</button>
+          <button class="btn" id="btn-again" data-i18n="chrome.run_again">再跑一次</button>
         </div>
       </div>
       <div class="split">
@@ -138,21 +148,21 @@
         </div>
         <div class="detail">
           <div class="detail-head">
-            <h2 id="sel-title">选择一个检查项</h2>
-            <button class="btn" id="btn-goto-repair" hidden>去修复</button>
+            <h2 id="sel-title" data-i18n="chrome.pick_check">选择一个检查项</h2>
+            <button class="btn" id="btn-goto-repair" hidden data-i18n="chrome.goto_repair">去修复</button>
           </div>
           <div class="detail-hint hidden" id="detail-hint"></div>
           <details class="ev-fold" id="ev-fold">
-            <summary id="ev-label">看原始记录（这一项查了什么）</summary>
+            <summary id="ev-label" data-i18n="chrome.ev_label">看原始记录（这一项查了什么）</summary>
             <pre class="ev" id="ev-box"></pre>
           </details>
-          <div class="detail-label" id="detail-label">怎么修</div>
+          <div class="detail-label" id="detail-label" data-i18n="chrome.how_fix">怎么修</div>
           <pre class="sug" id="sug-box"></pre>
-          <button class="btn" id="btn-copy" disabled>复制修复方法</button>
+          <button class="btn" id="btn-copy" disabled data-i18n="chrome.copy_fix">复制修复方法</button>
         </div>
       </div>
       <details class="glossary" id="glossary">
-        <summary>术语小抄（SKIP / WHEA / 驱动过滤层 / 还原点…）</summary>
+        <summary data-i18n="chrome.glossary_summary">术语小抄（SKIP / WHEA / 驱动过滤层 / 还原点…）</summary>
         <dl id="glossary-list"></dl>
       </details>
     </div>
@@ -161,16 +171,16 @@
   <!-- 视图三：修复中心（绿=可代跑，黄=确认后代跑，红=只给步骤；常用修复折叠到最后） -->
   <section class="view" id="view-repair">
     <div class="hero small">
-      <h1>修复中心</h1>
-      <p>先看问题，再决定修不修。<span class="lv-inline green">绿色</span>可以直接代跑，<span class="lv-inline yellow">黄色</span>逐项确认后才会动，<span class="lv-inline red">红色</span>只给步骤、工具永远不动手。红色动作弄错可能开不了机，一定先看完「怎么撤销」。</p>
+      <h1 data-i18n="chrome.tab_repair">修复中心</h1>
+      <p data-i18n-html="chrome.repair_hero_html">先看问题，再决定修不修。<span class="lv-inline green">绿色</span>可以直接代跑，<span class="lv-inline yellow">黄色</span>逐项确认后才会动，<span class="lv-inline red">红色</span>只给步骤、工具永远不动手。红色动作弄错可能开不了机，一定先看完「怎么撤销」。</p>
     </div>
     <div class="card">
-      <div class="card-title repair-count-title">这轮查出来的问题<span class="ri-count" id="ri-count"></span></div>
-      <div id="repair-list"><div class="placeholder">还没有检查结果——先去「体检向导」跑一轮；下面的常用修复不用体检也能用。</div></div>
+      <div class="card-title repair-count-title"><span data-i18n="chrome.repair_round_title">这轮查出来的问题</span><span class="ri-count" id="ri-count"></span></div>
+      <div id="repair-list"><div class="placeholder" data-i18n="chrome.repair_placeholder">还没有检查结果——先去「体检向导」跑一轮；下面的常用修复不用体检也能用。</div></div>
     </div>
     <!-- 修复小史（自主迭代轮C）：最近修过什么、成没成；没修过就不显示 -->
     <details class="card rep-hist hidden" id="repair-hist">
-      <summary>修复小史（最近 20 次）</summary>
+      <summary data-i18n="chrome.repair_hist_title">修复小史（最近 20 次）</summary>
       <div id="rep-hist-body"></div>
     </details>
   </section>
@@ -178,43 +188,43 @@
   <!-- 视图四：历史对比（1024 轮4/5：报告列表+两次对比+问题数趋势；只读展示层） -->
   <section class="view" id="view-history">
     <div class="hero small">
-      <h1>历史对比</h1>
-      <p>每次体检的记录都留在这里。选两份报告对比，能看到哪些问题修好了、哪些是新出现的。</p>
+      <h1 data-i18n="chrome.hist_hero_title">历史对比</h1>
+      <p data-i18n="chrome.hist_hero_body">每次体检的记录都留在这里。选两份报告对比，能看到哪些问题修好了、哪些是新出现的。</p>
     </div>
     <div class="card">
-      <div class="card-title">体检记录</div>
-      <div id="hist-list" class="hist-list"><div class="placeholder">还没有历史报告——跑完一轮体检，这里会记住每次的结果。</div></div>
+      <div class="card-title" data-i18n="chrome.hist_list_title">体检记录</div>
+      <div id="hist-list" class="hist-list"><div class="placeholder" data-i18n="chrome.hist_placeholder">还没有历史报告——跑完一轮体检，这里会记住每次的结果。</div></div>
     </div>
     <div class="card" id="hist-compare-card" hidden>
-      <div class="card-title">两次对比</div>
+      <div class="card-title" data-i18n="chrome.cmp_title">两次对比</div>
       <div class="cmp-pick">
-        <label class="cmp-lab">较早一次<select id="cmp-old"></select></label>
-        <label class="cmp-lab">较近一次<select id="cmp-new"></select></label>
-        <button class="btn" id="btn-compare">对比</button>
+        <label class="cmp-lab"><span data-i18n="chrome.cmp_old">较早一次</span><select id="cmp-old"></select></label>
+        <label class="cmp-lab"><span data-i18n="chrome.cmp_new">较近一次</span><select id="cmp-new"></select></label>
+        <button class="btn" id="btn-compare" data-i18n="chrome.cmp_btn">对比</button>
       </div>
       <div id="cmp-out" class="cmp-out"></div>
     </div>
     <div class="card" id="hist-trend-card" hidden>
-      <div class="card-title">问题数趋势</div>
-      <p class="hint">每份报告发现的问题数，越低越好。改善还是恶化，一眼可看。</p>
+      <div class="card-title" data-i18n="chrome.trend_title">问题数趋势</div>
+      <p class="hint" data-i18n="chrome.trend_hint">每份报告发现的问题数，越低越好。改善还是恶化，一眼可看。</p>
       <div id="trend-list" class="trend-list"></div>
     </div>
   </section>
 </main>
 
 <footer class="statusbar">
-  <span id="status-left" data-state="idle">就绪</span>
+  <span id="status-left" data-state="idle" data-i18n="chrome.status_ready">就绪</span>
   <span id="status-right"><span class="ver-chip">电脑体检台 v1.4.0</span></span>
 </footer>
 
 <!-- 关闭确认弹层（网页内弹层，不用同步模态框） -->
 <div class="overlay hidden" id="overlay" role="dialog" aria-modal="true" aria-labelledby="ov-title">
   <div class="modal">
-    <div class="modal-title" id="ov-title">体检没跑完，确定退出？</div>
-    <div class="modal-sub">退出会停掉正在跑的检查，这一轮不会出报告。</div>
+    <div class="modal-title" id="ov-title" data-i18n="chrome.quit_title">体检没跑完，确定退出？</div>
+    <div class="modal-sub" data-i18n="chrome.quit_body">退出会停掉正在跑的检查，这一轮不会出报告。</div>
     <div class="modal-btns">
-      <button class="btn-primary" id="modal-stay">继续检查</button>
-      <button class="btn danger" id="modal-exit">退出</button>
+      <button class="btn-primary" id="modal-stay" data-i18n="chrome.quit_stay">继续检查</button>
+      <button class="btn danger" id="modal-exit" data-i18n="chrome.quit_exit">退出</button>
     </div>
   </div>
 </div>
@@ -222,10 +232,10 @@
 <!-- 复制兜底弹层（自动复制失败的极端环境：文字已选好，按 Ctrl+C 即可） -->
 <div class="overlay hidden" id="copy-overlay" role="dialog" aria-modal="true" aria-labelledby="copy-title">
   <div class="modal">
-    <div class="modal-title" id="copy-title">复制修复方法</div>
-    <div class="modal-sub">自动复制没成功。下面的文字已经替你选好了——按 Ctrl+C 复制，再点「好了」。</div>
+    <div class="modal-title" id="copy-title" data-i18n="chrome.copy_fix">复制修复方法</div>
+    <div class="modal-sub" data-i18n="chrome.copy_fallback_body">自动复制没成功。下面的文字已经替你选好了——按 Ctrl+C 复制，再点「好了」。</div>
     <textarea id="copy-ta" readonly rows="9"></textarea>
-    <div class="modal-btns"><button class="btn-primary" id="copy-ok">好了</button></div>
+    <div class="modal-btns"><button class="btn-primary" id="copy-ok" data-i18n="chrome.copy_ok">好了</button></div>
   </div>
 </div>
 
@@ -234,24 +244,24 @@
   <figure class="bg-figure">
     <div class="bg-pair">
       <div class="bg-item">
-        <img src="bg.jpg" alt="深色主题背景图">
-        <span>深色主题背景</span>
+        <img src="bg.jpg" alt="深色主题背景图" data-i18n-aria="chrome.bg_dark">
+        <span data-i18n="chrome.bg_dark">深色主题背景</span>
       </div>
       <div class="bg-item">
-        <img src="bg-light.jpg" alt="浅色主题背景图">
-        <span>浅色主题背景</span>
+        <img src="bg-light.jpg" alt="浅色主题背景图" data-i18n-aria="chrome.bg_light">
+        <span data-i18n="chrome.bg_light">浅色主题背景</span>
       </div>
     </div>
-    <figcaption>程序生成的抽象背景图 · 无版权限制 · 点任意处关闭</figcaption>
+    <figcaption data-i18n="chrome.bg_caption">程序生成的抽象背景图 · 无版权限制 · 点任意处关闭</figcaption>
   </figure>
 </div>
 
 <!-- 收尾告别层（服务已停、窗口待关时兜底显示） -->
 <div class="overlay hidden" id="bye-overlay" role="dialog" aria-modal="true" aria-labelledby="bye-title">
   <div class="modal">
-    <div class="modal-title" id="bye-title">已退出</div>
-    <div class="modal-sub">体检服务已停止，后台没有留下任何进程。这个窗口现在可以关掉了。</div>
-    <div class="modal-btns"><button class="btn-primary" id="bye-ok">好的</button></div>
+    <div class="modal-title" id="bye-title" data-i18n="chrome.bye_title">已退出</div>
+    <div class="modal-sub" data-i18n="chrome.bye_body">体检服务已停止，后台没有留下任何进程。这个窗口现在可以关掉了。</div>
+    <div class="modal-btns"><button class="btn-primary" id="bye-ok" data-i18n="chrome.bye_ok">好的</button></div>
   </div>
 </div>
 
@@ -261,7 +271,7 @@
     <div class="modal-title" id="um-title"></div>
     <ul id="um-list" class="um-list"></ul>
     <div class="modal-btns">
-      <button class="btn-primary" id="um-ok">知道了</button>
+      <button class="btn-primary" id="um-ok" data-i18n="chrome.um_ok">知道了</button>
     </div>
   </div>
 </div>
@@ -269,12 +279,12 @@
 <!-- 修复执行前确认弹层（绿色需管理员预告 / 黄色逐项确认三行+回滚包先行+可选还原点） -->
 <div class="overlay hidden" id="repair-modal" role="dialog" aria-modal="true" aria-labelledby="rm-title">
   <div class="modal">
-    <div class="modal-title" id="rm-title">修复确认</div>
+    <div class="modal-title" id="rm-title" data-i18n="chrome.rm_title">修复确认</div>
     <div class="modal-sub" id="rm-sub"></div>
     <div id="rm-rows"></div>
     <div class="modal-btns">
-      <button class="btn" id="rm-cancel">取消</button>
-      <button class="btn-primary" id="rm-go">执行</button>
+      <button class="btn" id="rm-cancel" data-i18n="chrome.rm_cancel">取消</button>
+      <button class="btn-primary" id="rm-go" data-i18n="chrome.rm_go">执行</button>
     </div>
   </div>
 </div>
@@ -282,12 +292,12 @@
 <!-- 红级分步指南弹层（警示色；工具永不代跑；整段可复制） -->
 <div class="overlay hidden" id="guide-overlay" role="dialog" aria-modal="true" aria-labelledby="gd-title">
   <div class="modal guide-modal">
-    <div class="modal-title warn-title" id="gd-title">⚠ 高风险操作 · 只给步骤，工具不会代跑</div>
+    <div class="modal-title warn-title" id="gd-title" data-i18n="chrome.gd_title_default">⚠ 高风险操作 · 只给步骤，工具不会代跑</div>
     <div class="modal-sub" id="gd-sub"></div>
     <div id="gd-rows"></div>
     <div class="modal-btns">
-      <button class="btn" id="gd-copy">复制全部步骤</button>
-      <button class="btn-primary" id="gd-ok">我看明白了</button>
+      <button class="btn" id="gd-copy" data-i18n="chrome.gd_copy">复制全部步骤</button>
+      <button class="btn-primary" id="gd-ok" data-i18n="chrome.gd_ok">我看明白了</button>
     </div>
   </div>
 </div>

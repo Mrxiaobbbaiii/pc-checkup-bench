@@ -298,6 +298,35 @@ def main():
         g3 = cdp.eval("document.querySelector('#update-modal').classList.contains('hidden')") is True
         check('G2 知道了后收起且不再弹', g2 and g3)
 
+        # ---- H 语言切换（1025 i18n 轮：外观菜单→语言行；localStorage diag-lang 记忆；默认 zh-CN 行为不变） ----
+        # 切英文：点外观按钮开菜单 → 点 English seg → applyLang 写 localStorage 并 reload → 页签/按钮变英文
+        cdp.eval("document.getElementById('btn-appearance').click()")
+        time.sleep(0.4)
+        lang_btn = cdp.eval("!!document.querySelector('#lang-seg [data-lang-opt=\"en-US\"]')")
+        cdp.eval("document.querySelector('#lang-seg [data-lang-opt=\"en-US\"]').click()")
+        cdp.wait_ready(); time.sleep(2.5)  # reload + init
+        h1 = 'Checkup Wizard' in str(cdp.eval("document.querySelector('.tab[data-view=\"wizard\"] .tab-full')?.textContent || ''"))
+        check('H1 切英文页签变 Checkup Wizard', lang_btn and h1, 'lang_btn=' + str(lang_btn))
+        # 前面 C/F 段跑完一轮后按钮处于「Run Again」态——点结果页「Run Again」回 idle，开始按钮才回到 Start Checkup
+        cdp.eval("document.getElementById('btn-again')?.click()")
+        time.sleep(1)
+        check('H2 开始按钮变 Start Checkup', cdp.eval("document.querySelector('#btn-run')?.textContent") == 'Start Checkup',
+              str(cdp.eval("document.querySelector('#btn-run')?.textContent")))
+        # 切回中文：同一路径点中文 seg
+        cdp.eval("document.getElementById('btn-appearance').click()")
+        time.sleep(0.4)
+        cdp.eval("document.querySelector('#lang-seg [data-lang-opt=\"zh-CN\"]').click()")
+        cdp.wait_ready(); time.sleep(2.5)
+        cdp.eval("document.getElementById('btn-again')?.click()")
+        time.sleep(1)
+        h3 = cdp.eval("document.querySelector('.tab[data-view=\"wizard\"] .tab-full')?.textContent") == '体检向导'             and cdp.eval("document.querySelector('#btn-run')?.textContent") == '开始体检'
+        check('H3 切回中文恢复', h3, str(cdp.eval("document.querySelector('#btn-run')?.textContent")))
+        # 重启记忆：再 reload 一次，语言保持中文（localStorage diag-lang=zh-CN）
+        cdp.eval('location.reload()')
+        cdp.wait_ready(); time.sleep(2)
+        h4 = cdp.eval("document.querySelector('.tab[data-view=\"wizard\"] .tab-full')?.textContent") == '体检向导'             and str(cdp.eval("localStorage.getItem('diag-lang') || ''")) == 'zh-CN'
+        check('H4 localStorage 语言记忆保持', h4, str(cdp.eval("localStorage.getItem('diag-lang')")))
+
         passing = sum(1 for _, ok in RESULTS if ok)
         print('\n================ UI-TESTS: %d/%d PASS ================' % (passing, len(RESULTS)))
         rc = 0 if passing == len(RESULTS) else 1

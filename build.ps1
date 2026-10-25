@@ -34,7 +34,7 @@ if ($Setup) {
     if (-not $iscc) { throw 'Inno Setup (6 or 7) not found. Install it from jrsoftware.org (default options) first, then rerun: powershell -File build.ps1 -Setup' }
 
     # 守卫 2：diag-lite staging 新鲜（keyfile 与源逐字节同，防把旧引擎打进安装器）
-    foreach ($rel in @('server.ps1', 'engine/run.ps1', 'ui/index.html', 'ui/app.js', 'ui/style.css')) {
+    foreach ($rel in @('server.ps1', 'engine/run.ps1', 'ui/index.html', 'ui/app.js', 'ui/style.css', 'ui/i18n/zh-CN.js', 'ui/i18n/en-US.js')) {
         $srcHash = (Get-FileHash -LiteralPath (Join-Path $sroot ($rel -replace '/', '\')) -Algorithm SHA256).Hash
         $liteHash = (Get-FileHash -LiteralPath (Join-Path $sroot (('diag-lite/' + $rel) -replace '/', '\')) -Algorithm SHA256).Hash
         if ($srcHash -ne $liteHash) { throw "diag-lite staging is stale: $rel differs from source. Sync diag-lite first, then rerun -Setup." }

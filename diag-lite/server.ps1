@@ -392,7 +392,7 @@ function Read-Body($req) {
 }
 
 # ---------- 路由（任意请求=心跳；单线程事件循环无并发竞态） ----------
-$staticMap = @{ '/' = @('index.html', 'text/html; charset=utf-8'); '/index.html' = @('index.html', 'text/html; charset=utf-8'); '/app.js' = @('app.js', 'text/javascript; charset=utf-8'); '/style.css' = @('style.css', 'text/css; charset=utf-8'); '/custom.css' = @('custom.css', 'text/css; charset=utf-8'); '/bg.jpg' = @('bg.jpg', 'image/jpeg'); '/brand.png' = @('brand.png', 'image/png'); '/bg-light.jpg' = @('bg-light.jpg', 'image/jpeg'); '/favicon.png' = @('favicon.png', 'image/png') }
+$staticMap = @{ '/' = @('index.html', 'text/html; charset=utf-8'); '/index.html' = @('index.html', 'text/html; charset=utf-8'); '/app.js' = @('app.js', 'text/javascript; charset=utf-8'); '/style.css' = @('style.css', 'text/css; charset=utf-8'); '/custom.css' = @('custom.css', 'text/css; charset=utf-8'); '/i18n/zh-CN.js' = @('i18n/zh-CN.js', 'text/javascript; charset=utf-8'); '/i18n/en-US.js' = @('i18n/en-US.js', 'text/javascript; charset=utf-8'); '/bg.jpg' = @('bg.jpg', 'image/jpeg'); '/brand.png' = @('brand.png', 'image/png'); '/bg-light.jpg' = @('bg-light.jpg', 'image/jpeg'); '/favicon.png' = @('favicon.png', 'image/png') }
 
 function Invoke-Route($ctx) {
     $req = $ctx.Request; $res = $ctx.Response
