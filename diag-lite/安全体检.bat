@@ -1,8 +1,8 @@
 @echo off
-rem diag-lite v1.5.0 security check launcher (ASCII-only on purpose)
+rem diag-lite v1.6.0 security check launcher (ASCII-only on purpose)
 cd /d "%~dp0"
 echo ==============================================================
-echo   diag Security Check v1.5.0
+echo   diag Security Check v1.6.0
 echo   Read-only probing. Nothing on your PC will be changed.
 echo   Takes 1-3 minutes. Please wait...
 echo ==============================================================

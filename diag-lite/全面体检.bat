@@ -1,11 +1,11 @@
 @echo off
-rem diag-lite v1.5.0 all-in-one launcher (ASCII-only on purpose)
+rem diag-lite v1.6.0 all-in-one launcher (ASCII-only on purpose)
 rem A Chinese menu is rendered by engine\run.ps1 itself:
 rem   press Enter = run all six trees (one merged report),
 rem   or type 1-6 to run a single tree.
 cd /d "%~dp0"
 echo ==============================================================
-echo   diag Full Checkup v1.5.0
+echo   diag Full Checkup v1.6.0
 echo   network / bluescreen / hardware / performance / drivers / security
 echo   Read-only probing. Nothing on your PC will be changed.
 echo   A menu will appear next: press Enter to check ALL six

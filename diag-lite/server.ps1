@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag web server v1.5.0 —— Edge 壳本地服务（判定零改动，engine 数据通路沿用；
+diag web server v1.6.0 —— Edge 壳本地服务（判定零改动，engine 数据通路沿用；
       v1.1.0 起加载 ext	rees 与 ext
 epairctions：只新增不覆盖，同名冲突忽略+crash log 告警）
 用法（bat 启动器代跑）：powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File server.ps1
@@ -42,7 +42,7 @@ elseif ($root -like '*\WindowsApps\*') {
 $engineScript = Join-Path $root 'engine\run.ps1'
 $uiDir = Join-Path $root 'ui'
 $reportsDir = Join-Path $dataRoot 'reports'
-$webVersion = 'v1.5.0'
+$webVersion = 'v1.6.0'
 $diagPs = (Get-Process -Id $PID).Path
 
 # ---------- 子进程 stdout 排水器（C# 空回调：scriptblock delegate 无 runspace 回调线程会炸进程；v0.6 已验机制照搬）
