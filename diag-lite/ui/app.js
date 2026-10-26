@@ -9,7 +9,7 @@
    —— 页眉合并为「外观」菜单；字号四档；键盘焦点可见；红级指南可整段复制。
    只读承诺、绿/黄/红三级语义、五段修复结果、server/engine 接口全部保持 v1.0.1 原样。 */
 
-const APP_VERSION = 'v1.6.1';
+const APP_VERSION = 'v1.7.0';
 
 /* v1.1.0 ext 口子：ui/custom.css 存在则加载（免重打包换肤）；不存在=404 静默跳过，控制台零报错 */
 fetch('custom.css', { cache: 'no-store' })
@@ -56,6 +56,7 @@ function enAction(a) {
 function actField(a, field) {
   const raw = a[field];
   if (LANG === 'zh-CN') return raw;
+  if (raw === undefined || raw === null || raw === '') return raw; // 原文为空=没有可翻内容（如 caveat 空串），不算缺失
   const en = enAction(a);
   const v = en ? en[field] : undefined;
   if (typeof v === 'string' && v) return v;
@@ -77,6 +78,9 @@ function actSource(a, s, i) {
   console.warn('[i18n] missing action source: ' + a.id + '#' + i);
   return s.title;
 }
+/* 修复卡行内标点按语言适配：zh 全角（原样零变化），en 半角（步骤命令括号/行标签冒号/五要素缩进） */
+function parenText(cmd) { return LANG === 'zh-CN' ? '（' + cmd + '）' : ' (' + cmd + ')'; }
+function colonText() { return LANG === 'zh-CN' ? '：' : ': '; }
 /* 建议正文英译（1026 方案 B M1）：engine suggestion 恒中文，en 模式按 check_id 查 en-US.suggestions
    模板并用 detail 回填 {占位符}；缺模板/缺变量/zh 语言=回退中文原文（渐进覆盖，翻多少亮多少）。
    占位符来源=engine JSON 的 detail 字段：直通字段同名直取；派生变量（deadList=死地址去重列表、
@@ -1925,7 +1929,7 @@ function buildActionCard(a, hits) {
   steps.className = 'ac-steps';
   actSteps(a).forEach((st) => {
     const line = document.createElement('div');
-    line.textContent = '· ' + (st.desc || '') + '（' + stepCmdText(st) + '）';
+    line.textContent = '· ' + (st.desc || '') + parenText(stepCmdText(st));
     steps.appendChild(line);
   });
   fold.appendChild(steps);
@@ -1994,7 +1998,7 @@ function showYellowConfirm(a, btn, card) {
     ck.type = 'checkbox';
     ck.className = 'rm-ck';
     const sp = document.createElement('span');
-    sp.innerHTML = '<b>' + esc(k) + '：</b>' + esc(v || '');
+    sp.innerHTML = '<b>' + esc(k) + colonText() + '</b>' + esc(v || '');
     lab.appendChild(ck); lab.appendChild(sp);
     rows.appendChild(lab);
     ck.addEventListener('change', updGo);
@@ -2004,7 +2008,7 @@ function showYellowConfirm(a, btn, card) {
   steps.className = 'ac-steps';
   actSteps(a).forEach((st) => {
     const line = document.createElement('div');
-    line.textContent = '· ' + (st.desc || '') + '（' + stepCmdText(st) + '）';
+    line.textContent = '· ' + (st.desc || '') + parenText(stepCmdText(st));
     steps.appendChild(line);
   });
   rows.appendChild(steps);
@@ -2047,7 +2051,7 @@ function fillModalRows(a) {
   steps.className = 'ac-steps';
   actSteps(a).forEach((st) => {
     const line = document.createElement('div');
-    line.textContent = '· ' + (st.desc || '') + '（' + stepCmdText(st) + '）';
+    line.textContent = '· ' + (st.desc || '') + parenText(stepCmdText(st));
     steps.appendChild(line);
   });
   const rbNote = actField(a, 'rollback_note');
@@ -2079,7 +2083,7 @@ function howHtml(st) {
     '<div class="bb-line"><span class="bb-key">' + esc(t(w)) + '</span><span class="bb-val">' + esc(st.how[k]) + '</span></div>').join('') + '</div>';
 }
 function howText(st) {
-  return BB_KEYS.filter(([k]) => st.how[k]).map(([k, w]) => '　' + t(w) + '：' + st.how[k]).join('\n');
+  return BB_KEYS.filter(([k]) => st.how[k]).map(([k, w]) => (LANG === 'zh-CN' ? '　' : '  ') + t(w) + colonText() + st.how[k]).join('\n');
 }
 function guideTextFor(a) {
   const lines = [];
@@ -2095,7 +2099,7 @@ function guideTextFor(a) {
   lines.push('');
   lines.push(t('chrome.guide_steps'));
   actSteps(a).forEach((st, i) => {
-    lines.push((i + 1) + '. ' + (st.how ? (st.desc || '') : (st.desc || '') + '（' + stepCmdText(st) + '）'));
+    lines.push((i + 1) + '. ' + (st.how ? (st.desc || '') : (st.desc || '') + parenText(stepCmdText(st))));
     if (st.how) lines.push(howText(st));
   });
   lines.push('');
@@ -2139,7 +2143,7 @@ function showRedGuide(a) {
       steps.appendChild(line);
     } else {
       const line = document.createElement('div');
-      line.textContent = (i + 1) + '. ' + (st.desc || '') + '（' + stepCmdText(st) + '）';
+      line.textContent = (i + 1) + '. ' + (st.desc || '') + parenText(stepCmdText(st));
       steps.appendChild(line);
     }
   });

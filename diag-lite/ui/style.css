@@ -179,7 +179,7 @@ body {
 }
 .menu-title { font-size: var(--fs-1); color: var(--dim); letter-spacing: 1px; margin-bottom: 10px; }
 .menu-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.menu-label { font-size: var(--fs-1); color: var(--dim); width: 52px; flex: none; }
+.menu-label { font-size: var(--fs-1); color: var(--dim); min-width: 52px; flex: none; } /* 定宽改 min-width：中文两字不变形，英文单词（Language 等）自适应不裁字 */
 .menu-sep { height: 1px; background: var(--line); margin: 6px 0 8px; }
 .menu-item {
   appearance: none; display: block; width: 100%; text-align: left;
