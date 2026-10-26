@@ -58,15 +58,18 @@ html[data-theme="light"] {
 }
 
 html[data-accent="cyan"]   { --accent: #2dd4bf; --accent-soft: rgba(45, 212, 191, .14); --accent-ink: #03211c; }
+html[data-accent="blue"]   { --accent: #4cc2ff; --accent-soft: rgba(76, 194, 255, .14); --accent-ink: #04121f; }
 html[data-accent="green"]  { --accent: #3fd68f; --accent-soft: rgba(63, 214, 143, .14); --accent-ink: #04241a; }
 html[data-accent="violet"] { --accent: #a78bfa; --accent-soft: rgba(167, 139, 250, .16); --accent-ink: #170a2e; }
 html[data-accent="orange"] { --accent: #ffb35c; --accent-soft: rgba(255, 179, 92, .16); --accent-ink: #241202; }
 html[data-accent="pink"]   { --accent: #ff7b9c; --accent-soft: rgba(255, 123, 156, .16); --accent-ink: #26060f; }
+/* 浅色主题全套加深变体（v1.7.1 补齐六色）：白底可辨，进度条/强调边/勾选框不再近白隐形 */
 html[data-theme="light"][data-accent="cyan"]   { --accent: #0e9488; --accent-soft: rgba(14, 148, 136, .13); --accent-ink: #ffffff; }
-html[data-theme="light"][data-accent="green"]  { --accent-ink: #ffffff; }
-html[data-theme="light"][data-accent="violet"] { --accent-ink: #ffffff; }
-html[data-theme="light"][data-accent="orange"] { --accent-ink: #2a1604; }
-html[data-theme="light"][data-accent="pink"]   { --accent-ink: #ffffff; }
+html[data-theme="light"][data-accent="blue"]   { --accent: #0a6ebd; --accent-soft: rgba(10, 110, 189, .13); --accent-ink: #ffffff; }
+html[data-theme="light"][data-accent="green"]  { --accent: #0f8a52; --accent-soft: rgba(15, 138, 82, .13); --accent-ink: #ffffff; }
+html[data-theme="light"][data-accent="violet"] { --accent: #6d28d9; --accent-soft: rgba(109, 40, 217, .13); --accent-ink: #ffffff; }
+html[data-theme="light"][data-accent="orange"] { --accent: #b45309; --accent-soft: rgba(180, 83, 9, .13); --accent-ink: #ffffff; }
+html[data-theme="light"][data-accent="pink"]   { --accent: #d6336c; --accent-soft: rgba(214, 51, 108, .13); --accent-ink: #ffffff; }
 
 /* 字号四档 + 内容列宽（其它尺寸一律引用变量，不再散落 px） */
 :root {
@@ -284,7 +287,11 @@ html[data-theme="dark"] .card {
 .check-item:has(input:checked) { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 .check-item.all { grid-column: 1 / -1; background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
 #check-grid > .tree-item:last-child { grid-column: 1 / -1; }
-.check-item.fast { margin-top: 4px; width: 100%; }
+.check-item.fast { margin-top: 0; width: 100%; }
+/* v1.7.1：快速模式独立「运行选项」行（虚线与勾选格分隔，小标签点明性质=运行方式而非检查项目） */
+.run-opts { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); display: flex; align-items: center; gap: 10px; }
+.run-opts-label { flex: none; font-size: var(--fs-1); color: var(--faint); white-space: nowrap; }
+.run-opts .check-item.fast { flex: 1; min-width: 0; }
 .check-item.disabled { opacity: .55; cursor: default; }
 .check-item.disabled:hover { border-color: var(--line); background: transparent; }
 .check-item input { position: absolute; opacity: 0; pointer-events: none; }
@@ -344,8 +351,11 @@ html[data-theme="dark"] .card {
   transition: width .3s ease;
 }
 .running .progress-fill {
-  background-image: linear-gradient(110deg, rgba(255,255,255,.28) 25%, transparent 40%, rgba(255,255,255,.28) 60%);
-  background-size: 220% 100%;
+  /* 双图层叠加：流光层在前、强调色色层在后——只写流光会整体顶掉基态色层（浅色主题白叠白=进度条隐形，v1.7.1 修） */
+  background-image:
+    linear-gradient(110deg, rgba(255,255,255,.28) 25%, transparent 40%, rgba(255,255,255,.28) 60%),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 55%, #0a4a5e), var(--accent) 70%, color-mix(in srgb, var(--accent) 72%, #ffffff));
+  background-size: 220% 100%, 100% 100%;
   animation: sheen 1.3s linear infinite;
 }
 @keyframes sheen { from { background-position: 130% 0; } to { background-position: -90% 0; } }

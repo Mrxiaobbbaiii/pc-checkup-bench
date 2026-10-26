@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag web server v1.7.0 —— Edge 壳本地服务（判定零改动，engine 数据通路沿用；
+diag web server v1.7.1 —— Edge 壳本地服务（判定零改动，engine 数据通路沿用；
       v1.1.0 起加载 ext	rees 与 ext
 epairctions：只新增不覆盖，同名冲突忽略+crash log 告警）
 用法（bat 启动器代跑）：powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File server.ps1
@@ -42,7 +42,7 @@ elseif ($root -like '*\WindowsApps\*') {
 $engineScript = Join-Path $root 'engine\run.ps1'
 $uiDir = Join-Path $root 'ui'
 $reportsDir = Join-Path $dataRoot 'reports'
-$webVersion = 'v1.7.0'
+$webVersion = 'v1.7.1'
 $diagPs = (Get-Process -Id $PID).Path
 
 # ---------- 子进程 stdout 排水器（C# 空回调：scriptblock delegate 无 runspace 回调线程会炸进程；v0.6 已验机制照搬）
@@ -377,7 +377,9 @@ function Send-Json($res, $obj, [int]$code = 200) {
     $res.OutputStream.Write($bytes, 0, $bytes.Length)
 }
 function Send-Static($res, [string]$file, [string]$mime) {
-    $path = Join-Path $uiDir $file
+    # v1.7.1：ui\custom\ 同名文件优先（用户自换图层）——custom 不在安装包内，Inno 升级只覆盖包内文件=自换图永不丢
+    $path = Join-Path $uiDir ('custom\' + $file)
+    if (-not (Test-Path -LiteralPath $path)) { $path = Join-Path $uiDir $file }
     if (-not (Test-Path -LiteralPath $path)) {
         $res.StatusCode = 404; $bytes = [System.Text.Encoding]::UTF8.GetBytes('not found')
         $res.OutputStream.Write($bytes, 0, $bytes.Length); return

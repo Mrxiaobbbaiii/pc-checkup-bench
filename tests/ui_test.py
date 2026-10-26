@@ -165,7 +165,7 @@ def main():
         check('A1 五棵单树卡', cdp.eval("document.querySelectorAll('.check-item').length") >= 5,
               str(cdp.eval("document.querySelectorAll('.check-item').length")))
         check('A2 开始体检按钮在', cdp.eval("!!document.querySelector('#btn-run')"))
-        check('A3 版本串 v1.7.0', 'v1.7.0' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
+        check('A3 版本串 v1.7.1', 'v1.7.1' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
         check('A4 只读承诺文案', '只看、不动你电脑的任何设置' in str(cdp.eval('document.body.innerText')))
         # 首次启动引导：全新 profile（localStorage 空）→三步引导卡可见
         check('A5 首次启动引导卡在', cdp.eval("!!document.querySelector('#first-guide') && !document.querySelector('#first-guide').classList.contains('hidden')"))
@@ -189,6 +189,38 @@ def main():
         # 恢复「全面体检」默认态
         cdp.eval("document.querySelector('#chk-all').click()")
         check('A9 恢复全面体检默认态', cdp.eval("document.querySelector('#chk-all').checked") is True)
+
+        # ---- A10-A16 v1.7.1 体验修批（进度条双图层 / ui\custom 静态层 / 运行选项行 / 组合提示） ----
+        # 静态通路 custom 层优先：临时写 ui\custom\bg.jpg 哨兵 → /bg.jpg 应回哨兵 → 删除后回落包内 JPEG
+        cust_dir = os.path.join(DIAG, 'ui', 'custom')
+        os.makedirs(cust_dir, exist_ok=True)
+        cust_file = os.path.join(cust_dir, 'bg.jpg')
+        sent = b'UITEST-CUSTOM-SENTINEL-' + str(os.getpid()).encode()
+        open(cust_file, 'wb').write(sent)
+        try:
+            with urllib.request.urlopen('http://127.0.0.1:%d/bg.jpg' % port, timeout=8) as r:
+                got = r.read()
+            check('A10 静态通路 custom 层优先', got == sent, 'got ' + str(got[:40]))
+        finally:
+            os.remove(cust_file)
+        with urllib.request.urlopen('http://127.0.0.1:%d/bg.jpg' % port, timeout=8) as r:
+            check('A11 custom 移除后回落包内原图', r.read()[:3] == b'\xff\xd8\xff')
+        # 运行态进度条=双图层（流光在前+强调色色层在后）；只写流光层会整体顶掉色层（浅色白叠白隐形根因）
+        pr = cdp.eval("(() => { const v = document.querySelector('#btn-run').closest('.view'); v.classList.add('running'); const cs = getComputedStyle(document.querySelector('.progress-fill')); const r = [cs.backgroundImage, cs.backgroundSize]; v.classList.remove('running'); return r; })()")
+        check('A12 运行态进度条双图层(流光+色层)', isinstance(pr, list) and str(pr[0]).count('linear-gradient') >= 2
+              and '110deg' in str(pr[0]) and str(pr[1]).replace(' ', '') == '220%100%,100%100%', str(pr)[:240])
+        # 浅色主题强调色加深变体（v1.7.1 补齐六色）：blue 此前连规则都没有，回落亮蓝近白
+        la = cdp.eval("(() => { const h = document.documentElement; const ot = h.dataset.theme; const oa = h.dataset.accent; h.dataset.theme = 'light'; h.dataset.accent = 'blue'; const a1 = getComputedStyle(h).getPropertyValue('--accent').trim(); h.dataset.accent = 'orange'; const a2 = getComputedStyle(h).getPropertyValue('--accent').trim(); h.dataset.theme = ot; h.dataset.accent = oa; return [a1, a2]; })()")
+        check('A13 浅色 blue/orange 强调色加深变体', isinstance(la, list) and la[0] == '#0a6ebd' and la[1] == '#b45309', str(la))
+        # 运行选项行：快速模式独立容器（在 run-opts 内、不在勾选格内）
+        check('A14 快速模式独立运行选项行', cdp.eval("!!document.querySelector('#run-opts #chk-fast-item') && !document.querySelector('#check-grid #chk-fast-item')"))
+        # 组合提示实时反映快速开关（全面体检勾选态下切换快速）
+        cdp.eval("document.querySelector('#chk-fast').click()")
+        a15_hint = str(cdp.eval("document.querySelector('#sel-hint')?.textContent || ''"))
+        check('A15 全面+快速组合提示', '全面' in a15_hint and '快速模式' in a15_hint, a15_hint)
+        cdp.eval("document.querySelector('#chk-fast').click()")
+        a16_hint = str(cdp.eval("document.querySelector('#sel-hint')?.textContent || ''"))
+        check('A16 取消快速后提示回全查口径', '全面' in a16_hint and '快速模式' not in a16_hint, a16_hint)
 
         # ---- B 页签交互 ----
         cdp.eval("document.querySelector('[data-view=\"repair\"]')?.click() || document.querySelectorAll('.tab')[2].click()")

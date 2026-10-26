@@ -9,7 +9,7 @@
    —— 页眉合并为「外观」菜单；字号四档；键盘焦点可见；红级指南可整段复制。
    只读承诺、绿/黄/红三级语义、五段修复结果、server/engine 接口全部保持 v1.0.1 原样。 */
 
-const APP_VERSION = 'v1.7.0';
+const APP_VERSION = 'v1.7.1';
 
 /* v1.1.0 ext 口子：ui/custom.css 存在则加载（免重打包换肤）；不存在=404 静默跳过，控制台零报错 */
 fetch('custom.css', { cache: 'no-store' })
@@ -786,16 +786,25 @@ function updateSelUi() {
         const tr = S.meta.trees.find((x) => x.id === id);
         return n + (tr ? treeCheckCount(tr) : 0);
       }, 0);
-      hint.textContent = tf('chrome.hint_multi', { n: ids.length, m: total });
+      // v1.7.1：组合提示列举所选类名+快速模式开关状态（实时跟随勾选变化）
+      const names = ids.map((id) => {
+        const tr = S.meta.trees.find((x) => x.id === id);
+        return tr ? treeName(tr) : id;
+      }).join(t('chrome.name_sep'));
+      hint.textContent = tf($('#chk-fast').checked ? 'chrome.hint_multi_fast' : 'chrome.hint_multi',
+        { n: ids.length, m: total, names });
       hint.className = 'hint';
       setStatus(t('chrome.status_ready'), '');
     } else {
       btn.disabled = false;
       const tree = sel === 'all' ? null : S.meta.trees.find((x) => x.id === sel);
-      const n = tree ? treeCheckCount(tree) : 0;
-      hint.textContent = tree
-        ? tf('chrome.hint_tree', { name: treeName(tree), n })
-        : t('chrome.hint_all');
+      const fast = $('#chk-fast').checked;
+      if (tree) {
+        const n = treeCheckCount(tree);
+        hint.textContent = tf(fast ? 'chrome.hint_tree_fast' : 'chrome.hint_tree', { name: treeName(tree), n });
+      } else {
+        hint.textContent = t(fast ? 'chrome.hint_all_fast' : 'chrome.hint_all');
+      }
       hint.className = 'hint';
       setStatus(t('chrome.status_ready'), '');
     }

@@ -4,7 +4,7 @@ English | **[中文](README.md)**
 
 > A free Windows checkup tool: **It only looks. It never touches your settings.** 52 read-only checks cover six categories — Network / Blue Screen / Hardware / Performance / Driver / Security — and for every item it tells you: where the problem is, what the evidence is, how to fix it, and which official Microsoft document the fix is based on.
 
-[![CI](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml) ![GitHub License](https://img.shields.io/badge/license-MIT-green) ![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![Version](https://img.shields.io/badge/version-v1.7.0-orange)
+[![CI](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml) ![GitHub License](https://img.shields.io/badge/license-MIT-green) ![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![Version](https://img.shields.io/badge/version-v1.7.1-orange)
 
 | Checkup Wizard | During a Checkup |
 |---|---|
@@ -47,7 +47,7 @@ The Security Checkup looks at the two lines of defense against malware: Microsof
 
 ### Option 1: Installer (Recommended)
 
-1. Go to [Releases](../../releases) and download the latest installer `PC-CheckupBench-setup-v1.7.0.exe`
+1. Go to [Releases](../../releases) and download the latest installer `PC-CheckupBench-setup-v1.7.1.exe`
 2. Double-click to run it. The first time, Windows shows a blue prompt saying "Windows protected your PC" — this tool has no paid code-signing certificate, so this is the generic warning for unsigned programs. Click **More info → Run anyway**
 3. Installing needs no administrator rights. It installs into your user folder, and a "PC Checkup Bench" icon appears on the desktop and in the Start menu
 4. What opens is a native window (not a browser page). Closing the window exits completely — no background processes left behind
@@ -57,7 +57,7 @@ The Security Checkup looks at the two lines of defense against malware: Microsof
 
 ### Option 2: Portable Version (No Install Needed)
 
-1. Download `diag-lite-v1.7.0.zip` and extract it anywhere (the desktop is fine)
+1. Download `diag-lite-v1.7.1.zip` and extract it anywhere (the desktop is fine)
 2. Double-click `全面体检（网页版）.bat` to get the windowed interface; or double-click any one of the six checkup `.bat` files to run the console version directly
 3. Requires Windows 10/11 (the built-in Edge browser is enough)
 
@@ -85,13 +85,13 @@ Each theme (dark / light) comes with a **procedurally generated** background ima
 
 ### Bring Your Own Background
 
-1. Find the `ui\` folder in the install directory (by default `C:\Users\<your-user-name>\AppData\Local\电脑体检台\ui\`; for the portable version it is inside the extracted folder)
-2. Rename your own image and overwrite `bg.jpg` (used by the dark theme) / `bg-light.jpg` (used by the light theme)
-3. Reopen the app and the new background is in place
+1. Find the `ui\custom\` folder in the install directory (by default `C:\Users\<your-user-name>\AppData\Local\电脑体检台\ui\custom\`; create it if it does not exist; for the portable version it is inside the extracted folder)
+2. Put your own image there and rename it: `bg.jpg` (used by the dark theme) / `bg-light.jpg` (used by the light theme)
+3. Reopen the app and the new background is in place; the "View background art" dialog shows your own images too
 
-To go back to the defaults: reinstall, or extract the two original images from the official release package.
+To go back to the defaults: delete the matching image from `ui\custom\` and reopen the app.
 
-> **Note: an upgrade install overwrites the `ui` folder — back up your own images first.**
+> **An upgrade install never touches `ui\custom\`** — your own background survives upgrades.
 
 ## Read-Only Promise
 

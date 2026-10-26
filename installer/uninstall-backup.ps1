@@ -7,9 +7,12 @@ $suffix = -join (@(0x62A5, 0x544A, 0x5907, 0x4EFD) | ForEach-Object { [char]$_ }
 $stamp = Get-Date -Format 'yyyyMMddHHmm'
 $backup = Join-Path $env:LOCALAPPDATA ($name + '-' + $suffix + '-' + $stamp)
 New-Item -ItemType Directory -Force -Path $backup | Out-Null
-foreach ($n in @('reports', 'ext')) {
+# v1.7.1: ui\custom carries user-supplied background images - rescue it too (dest parent is created for subpaths).
+foreach ($n in @('reports', 'ext', 'ui\custom')) {
     $p = Join-Path $AppDir $n
     if (Test-Path -LiteralPath $p) {
+        $destParent = Join-Path $backup (Split-Path $n -Parent)
+        New-Item -ItemType Directory -Force -Path $destParent | Out-Null
         Move-Item -LiteralPath $p -Destination (Join-Path $backup $n) -Force
     }
 }

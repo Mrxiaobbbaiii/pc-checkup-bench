@@ -91,11 +91,15 @@
         </label>
         <!-- 单树选项由 app.js 按 /api/meta 注入 -->
       </div>
-      <label class="check-item fast" id="chk-fast-item">
-        <input type="checkbox" id="chk-fast">
-        <span class="box"></span>
-        <span class="txt"><b data-i18n="chrome.fast_name">快速模式（每类查到问题就跳过剩余细项，更快）</b><small data-i18n="chrome.fast_tip">不勾＝每类全部查完（证据最全）；勾上＝查到问题就跳过该类剩余细项</small></span>
-      </label>
+      <!-- v1.7.1：快速模式独立「运行选项」行——与勾选格视觉分离，不再像与全面体检二选一 -->
+      <div class="run-opts" id="run-opts">
+        <span class="run-opts-label" data-i18n="chrome.run_opts">运行选项</span>
+        <label class="check-item fast" id="chk-fast-item">
+          <input type="checkbox" id="chk-fast">
+          <span class="box"></span>
+          <span class="txt"><b data-i18n="chrome.fast_name">快速模式（每类查到问题就跳过剩余细项，更快）</b><small data-i18n="chrome.fast_tip">不勾＝每类全部查完（证据最全）；勾上＝查到问题就跳过该类剩余细项</small></span>
+        </label>
+      </div>
       <div class="hint" id="sel-hint" data-i18n="chrome.sel_hint">选好后点下面的「开始体检」</div>
     </div>
     <div class="cta-row">
@@ -214,7 +218,7 @@
 
 <footer class="statusbar">
   <span id="status-left" data-state="idle" data-i18n="chrome.status_ready">就绪</span>
-  <span id="status-right"><span class="ver-chip">电脑体检台 v1.7.0</span></span>
+  <span id="status-right"><span class="ver-chip">电脑体检台 v1.7.1</span></span>
 </footer>
 
 <!-- 关闭确认弹层（网页内弹层，不用同步模态框） -->

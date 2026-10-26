@@ -4,7 +4,7 @@
 
 > 一个免费的 Windows 体检工具：**只看、不动你电脑的任何设置**。52 项只读检查把「网络 / 蓝屏 / 硬件 / 性能 / 驱动 / 安全」六类问题查清楚，每一项都给出：问题在哪、证据是什么、怎么修、修的依据是微软哪篇官方文档。
 
-[![CI](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml) ![GitHub License](https://img.shields.io/badge/license-MIT-green) ![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![版本](https://img.shields.io/badge/version-v1.7.0-orange)
+[![CI](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml) ![GitHub License](https://img.shields.io/badge/license-MIT-green) ![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![版本](https://img.shields.io/badge/version-v1.7.1-orange)
 
 | 体检向导 | 跑批中 |
 |---|---|
@@ -47,7 +47,7 @@
 
 ### 方式一：安装包（推荐）
 
-1. 到 [Releases](../../releases) 下载最新的 `PC-CheckupBench-setup-v1.7.0.exe`
+1. 到 [Releases](../../releases) 下载最新的 `PC-CheckupBench-setup-v1.7.1.exe`
 2. 双击运行。第一次会弹 Windows 蓝色提示「已保护你的电脑」——本工具没有购买代码签名证书，这是对无签名程序的通用提醒。点 **「更多信息」→「仍要运行」** 即可
 3. 安装不需要管理员权限，装到你的用户目录，桌面和开始菜单会出现「电脑体检台」图标
 4. 打开的是原生窗口（不是浏览器页面），关窗即完全退出，不留后台进程
@@ -57,7 +57,7 @@
 
 ### 方式二：绿色版（免安装）
 
-1. 下载 `diag-lite-v1.7.0.zip`，解压到任意位置（桌面也行）
+1. 下载 `diag-lite-v1.7.1.zip`，解压到任意位置（桌面也行）
 2. 双击「全面体检（网页版）.bat」出窗口界面；或双击六类体检任一 `.bat` 直接跑黑窗口版
 3. 需要 Windows 10/11（自带 Edge 浏览器即可）
 
@@ -87,13 +87,13 @@
 
 想用自己的图当背景：
 
-1. 找到安装目录里的 `ui\` 文件夹（默认 `C:\Users\<用户名>\AppData\Local\电脑体检台\ui\`；绿色版在解压出的文件夹里）
-2. 把自备的图改名覆盖进去：`bg.jpg`（深色主题用）/ `bg-light.jpg`（浅色主题用）
-3. 重开应用，新背景就位
+1. 找到安装目录里的 `ui\custom\` 文件夹（默认 `C:\Users\<用户名>\AppData\Local\电脑体检台\ui\custom\`；没有这个文件夹就自建一个；绿色版在解压出的文件夹里同样操作）
+2. 把自备的图放进去并改名：`bg.jpg`（深色主题用）/ `bg-light.jpg`（浅色主题用）
+3. 重开应用，新背景就位；「看背景大图」弹层里看到的也是你自己的图
 
-想恢复默认：重装一次，或从官方发布包里把这两张原图解回来。
+想恢复默认：删掉 `ui\custom\` 里对应的图，重开应用即可。
 
-> **提醒：升级安装会覆盖 `ui` 目录，自换的图请先备份。**
+> **升级安装不会动 `ui\custom\` 里的图**——自换背景一次设置，升级不丢。
 
 ## 只读承诺
 
