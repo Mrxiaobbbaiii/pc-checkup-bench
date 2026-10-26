@@ -1828,7 +1828,7 @@ function buildRepairList() {
       head.className = 'ri-head';
       const ti = document.createElement('div');
       ti.className = 'ri-title';
-      ti.textContent = '【' + repNameDisplay(f.tree) + '】' + humanCheck(f.check);
+      ti.textContent = (LANG === 'zh-CN' ? '【' : '[') + repNameDisplay(f.tree) + (LANG === 'zh-CN' ? '】' : '] ') + humanCheck(f.check);
       const sevb = document.createElement('span');
       sevb.className = 'sev-badge ' + SEV_META[checkSeverity(f.check)].cls;
       sevb.textContent = SEV_META[checkSeverity(f.check)].word;

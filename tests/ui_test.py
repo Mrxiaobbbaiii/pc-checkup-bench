@@ -478,6 +478,11 @@ def main():
         check('J5 en 修复中心 console.warn 清零（missing action 类）',
               j5 == 0, 'missing-action=' + str(j5) + ' all-i18n-warns=' + str(j5_all) + ' :: '
               + str(cdp.eval("(window.__i18nWarns||[]).slice(0,3)")))
+        # J6 手工修复条目标题方括号随语言切换（1026 flash 验收揪出的【】硬编码漏网点）
+        # C 段 network 场景 net_dns_gateway_proxy FAIL 无动作卡匹配 → rest 区条目常驻
+        j6 = str(cdp.eval("Array.from(document.querySelectorAll('.repair-item .ri-title')).map(x=>x.textContent).join(' | ') || ''"))
+        check('J6 en 手工修复条目标题=[Tree] 式半角方括号',
+              (j6 == '' or ('[' in j6 and '【' not in j6)), j6[:160])
         # 收尾：切回中文，H 段语义闭环（后续无段依赖语言态，恢复默认态收尾）
         cdp.eval("document.getElementById('btn-appearance').click()")
         time.sleep(0.4)
