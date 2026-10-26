@@ -77,6 +77,55 @@ function actSource(a, s, i) {
   console.warn('[i18n] missing action source: ' + a.id + '#' + i);
   return s.title;
 }
+/* 建议正文英译（1026 方案 B M1）：engine suggestion 恒中文，en 模式按 check_id 查 en-US.suggestions
+   模板并用 detail 回填 {占位符}；缺模板/缺变量/zh 语言=回退中文原文（渐进覆盖，翻多少亮多少）。
+   占位符来源=engine JSON 的 detail 字段：直通字段同名直取；派生变量（deadList=死地址去重列表、
+   avgSec=毫秒转秒、分支键选择）在 SUGGEST_EN_PICK/SUGGEST_EN_VARS，分支序照抄检查脚本（只选词
+   不判定）。对齐关系由 tests/cases_i18n.ps1 静态校验把守，改模板/改派生规则须同步那边的声明。 */
+function sugTplKey(name, detail) {
+  if (name === 'pf_boot_duration') {
+    return (detail && Number(detail.warnCount) >= 2) ? 'pf_boot_duration_marks' : 'pf_boot_duration_avg';
+  }
+  return name;
+}
+/* engine 落盘 JSON 的 ConvertTo-Json 逐层计数深度有限，嵌套对象（findings 数组元素）被压成
+   PS 转储串 "@{k=v; k2=v2}"（扁平标量 detail 幸存为真对象）。适配层容错解析取 verdict/dns；
+   根治=engine 落盘加深序列化深度，属判定层禁区，已登记 M2 议。 */
+function psDumpVars(s) {
+  const out = {};
+  const re = /([A-Za-z_][A-Za-z0-9_]*)=([^;}]*)/g;
+  let m; while ((m = re.exec(String(s)))) out[m[1]] = m[2].trim();
+  return out;
+}
+function sugVars(tplKey, detail) {
+  const d = detail || {};
+  if (tplKey === 'net_dns_deadaddr') {
+    const seen = Object.create(null); const list = [];
+    (Array.isArray(d.findings) ? d.findings : []).forEach((raw) => {
+      const f = (typeof raw === 'string') ? psDumpVars(raw) : raw;
+      if (f && f.verdict === 'DEAD-SUSPECT' && f.dns && !seen[f.dns]) { seen[f.dns] = 1; list.push(f.dns); }
+    });
+    return { deadList: list.join(' / ') };
+  }
+  if (tplKey === 'pf_boot_duration_marks') return { warnCount: d.warnCount };
+  if (tplKey === 'pf_boot_duration_avg') return { avgSec: Math.round((Number(d.avgMs) || 0) / 1000) };
+  return {};
+}
+function sugPlaceholders(tpl) {
+  return (String(tpl).match(/\{[A-Za-z0-9_]+\}/g) || []).map((s) => s.slice(1, -1));
+}
+function enSuggestion(name, zhSug, detail) {
+  if (LANG !== 'en-US' || !zhSug) return zhSug;
+  const tplKey = sugTplKey(name, detail);
+  const tpl = i18nGet(window.I18N_EN || {}, 'suggestions.' + tplKey);
+  if (typeof tpl !== 'string' || !tpl) { console.warn('[i18n] missing suggestion template, fallback zh: ' + tplKey); return zhSug; }
+  const vars = sugVars(tplKey, detail);
+  const missing = sugPlaceholders(tpl).filter((p) => vars[p] === undefined || vars[p] === null || vars[p] === '');
+  if (missing.length) { console.warn('[i18n] suggestion placeholders unresolvable, fallback zh: ' + tplKey + ' [' + missing.join(',') + ']'); return zhSug; }
+  let s = tpl;
+  Object.keys(vars).forEach((k) => { s = s.split('{' + k + '}').join(String(vars[k])); });
+  return s;
+}
 /* 树/层取词：meta 树与报告树都用 tree id 查 en.groups.trees；ext 扩展树无词条→中文原值+warn（第三方内容不在产品翻译范围） */
 function enTree(id) { return (LANG !== 'zh-CN' && window.I18N_EN && window.I18N_EN.groups && window.I18N_EN.groups.trees) ? window.I18N_EN.groups.trees[id] : null; }
 function treeName(tdef) {
@@ -914,7 +963,7 @@ function collectChecks() {
         let e = map.get(c.name);
         if (!e) {
           e = {
-            name: c.name, status: c.status, evidence: c.evidence || '', suggestion: c.suggestion || '',
+            name: c.name, status: c.status, evidence: c.evidence || '', suggestion: c.suggestion || '', detail: c.detail || null,
             trees: [t.report_name], checks: [c],
           };
           map.set(c.name, e);
@@ -924,6 +973,7 @@ function collectChecks() {
           else if (c.status === 'SKIP' && e.status !== 'FAIL') e.status = 'SKIP';
           if (!e.evidence && c.evidence) e.evidence = c.evidence;
           if (!e.suggestion && c.suggestion) e.suggestion = c.suggestion;
+          if (!e.detail && c.detail) e.detail = c.detail;
         }
       });
     });
@@ -1078,7 +1128,7 @@ function buildLayerNode(tr, l, idx) {
     leaf.appendChild(document.createTextNode(statusWord(c.status) + '  ' + humanCheck(c.name)));
     leaf.__data = { type: 'check', data: c, treeName: tr.report_name };
     leaf.addEventListener('click', () => {
-      renderCheckDetail({ name: c.name, status: c.status, evidence: c.evidence || '', suggestion: c.suggestion || '', trees: [tr.report_name] });
+      renderCheckDetail({ name: c.name, status: c.status, evidence: c.evidence || '', suggestion: c.suggestion || '', detail: c.detail || null, trees: [tr.report_name] });
     });
     kids.appendChild(leaf);
   });
@@ -1273,8 +1323,9 @@ function renderCheckDetail(entry) {
       hint.innerHTML += '<p>' + esc(t('chrome.no_suggestion_warn')) + '</p>';
     }
     label.textContent = t('chrome.how_fix');
-    sug.textContent = entry.suggestion || t('chrome.no_suggestion_box');
-    if (entry.suggestion) { S.currentSuggestion = entry.suggestion; copyBtn.disabled = false; }
+    const sugEn = enSuggestion(entry.name, entry.suggestion, entry.detail);
+    sug.textContent = sugEn || t('chrome.no_suggestion_box');
+    if (sugEn) { S.currentSuggestion = sugEn; copyBtn.disabled = false; }
   } else if (st === 'SKIP') {
     const admin = isAdminSkip(entry.name, entry.evidence);
     const adminNote = adminSkipNote(entry.name);
@@ -1283,7 +1334,7 @@ function renderCheckDetail(entry) {
       (admin ? esc(t('chrome.need_admin_note')) : '') + '</p>';
     hint.classList.remove('hidden');
     label.textContent = t('chrome.how_handle');
-    sug.textContent = adminNote || entry.suggestion || t('chrome.skip_default_sug');
+    sug.textContent = adminNote || enSuggestion(entry.name, entry.suggestion, entry.detail) || t('chrome.skip_default_sug');
   } else {
     hint.innerHTML = '<p><b>' + esc(t('chrome.what_is')) + '</b>' + esc(info || t('chrome.default_info')) + '</p>' +
       '<p>' + esc(t('chrome.pass_ok_line')) + '</p>';
@@ -1601,7 +1652,7 @@ function buildRepairList() {
     (t.layers || []).forEach((l) => {
       (l.checks || []).forEach((c) => {
         if (c.status !== 'FAIL' || !c.suggestion) return;
-        if (!failMap.has(c.name)) failMap.set(c.name, { tree: t.report_name, check: c.name, sug: c.suggestion });
+        if (!failMap.has(c.name)) failMap.set(c.name, { tree: t.report_name, check: c.name, sug: enSuggestion(c.name, c.suggestion, c.detail) });
       });
     });
   });

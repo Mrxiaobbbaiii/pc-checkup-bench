@@ -1069,4 +1069,17 @@ window.I18N_EN = {
       sources: ['schtasks command reference (Microsoft Learn)', 'MITRE ATT&CK T1053.005: scheduled task persistence (industry authority, not Microsoft)'],
     },
   },
+
+  /* ---------- suggestions：检查项建议正文模板（1026 方案 B M1）----------
+     键=check_id；同一检查多 FAIL 分支用后缀变体键（pf_boot_duration_marks/_avg，分支选择=app.js 适配层照抄
+     检查脚本的分支序，只选词不判定）。值=单行模板字符串（\n 换行），{占位符}=engine JSON detail 的动态内容：
+     直通字段同名（warnCount），派生字段（deadList/avgSec）的来源与算法=app.js SUGGEST_EN 区。
+     zh 侧不建对应表（zh-CN.js=engine 原文直显，双层冗余禁引入）；缺键/缺字段=适配层回退中文原文（渐进覆盖）。
+     「模板占位符 ↔ detail 字段」对齐由 tests/cases_i18n.ps1 静态校验把守——改模板必须同步改那边声明。 */
+  suggestions: {
+    'net_dns_deadaddr': 'Suspected dead DNS server(s) found: {deadList} — private address(es) belonging to no active adapter subnet, most likely leftovers from an old router or old subnet; every lookup pointed at them will time out. The command below switches DNS to Alibaba Public DNS (223.5.5.5).\n[Fix command — run it yourself] netsh interface ip set dns "<adapter name>" static 223.5.5.5\n[Rollback] netsh interface ip set dns "<adapter name>" dhcp (if DNS was automatic before) or netsh interface ip set dns "<adapter name>" static <original DNS>',
+    'sec_uac_level': 'UAC has been lowered to its minimum level (Never notify) — installing software or changing system settings no longer pops a confirmation, and a malware elevation request goes through silently too. Microsoft\'s official wording: this level is for "the most restricted environments" only.\n[Manual path] Win+R → type useraccountcontrolsettings and press Enter → drag the slider from the very bottom up to "Default" (second from the bottom, text = "Notify me only when apps try to make changes to my computer") → click "OK" → click "Yes" in the confirmation dialog.\n[Rollback] Same path — drag the slider back to the original level (a level change touches no data, reversible at any time)',
+    'pf_boot_duration_marks': 'Windows automatically flagged {warnCount} of the last 5 boots as slow startups (Warning/Critical = Microsoft\'s own slow-boot verdict, not a threshold this tool made up). Pair this with the Startup burden section\'s autostart list and service-timeout evidence to find the culprit.\n[Fix command — run it yourself] None (manual: press Ctrl+Shift+Esc to open Task Manager → "Startup apps" page → right-click and disable unfamiliar or unused high-impact autostart entries)\n[Rollback] Task Manager → "Startup apps", same place — right-click and re-enable',
+    'pf_boot_duration_avg': 'The last 5 boots averaged {avgSec} seconds, over the 60-second warning line. Pair this with the Startup burden section\'s evidence to find the cause: too many autostart entries / service timeouts / disk I/O are the three usual suspects.\n[Fix command — run it yourself] None (manual: press Ctrl+Shift+Esc to open Task Manager → "Startup apps" page → right-click and disable unfamiliar or unused high-impact autostart entries)\n[Rollback] Task Manager → "Startup apps", same place — right-click and re-enable',
+  },
 };

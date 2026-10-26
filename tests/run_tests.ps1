@@ -17,6 +17,7 @@ $diagPs = (Get-Process -Id $PID).Path
 . (Join-Path $PSScriptRoot 'cases_repair.ps1')
 . (Join-Path $PSScriptRoot 'cases_ext.ps1')
 . (Join-Path $PSScriptRoot 'cases_dataroot.ps1')
+. (Join-Path $PSScriptRoot 'cases_i18n.ps1')
 
 $results = @()
 
@@ -320,6 +321,73 @@ foreach ($dc in $global:DiagDataRootCases) {
     if ($bad.Count -gt 0) { Add-Result 'dataroot' $dc.name '' $false ($bad -join '; ') }
     else { Add-Result 'dataroot' $dc.name '' $true }
     Remove-Item $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# ---------- ⑦ i18n suggestions 模板静态校验（1026 方案 B M1：跑真检查脚本取实况 detail） ----------
+$enJs = Get-Content -LiteralPath (Join-Path $root 'ui/i18n/en-US.js') -Raw -Encoding UTF8
+$zhJs = Get-Content -LiteralPath (Join-Path $root 'ui/i18n/zh-CN.js') -Raw -Encoding UTF8
+# guard: zh pack must NOT carry a suggestions table (zh = engine original, double layer banned)
+if ($zhJs -match '(?m)^\s*suggestions\s*:') {
+    Add-Result 'i18n' 'zh_no_suggestions_table' '' $false 'zh-CN.js gained a suggestions table (double layer banned)'
+} else {
+    Add-Result 'i18n' 'zh_no_suggestions_table' '' $true
+}
+# guard: every suggestions key maps to a real check script (after variant suffix strip)
+$sugBlock = ''
+if ($enJs -match '(?ms)suggestions:\s*\{(.*?)\n\s*\},') { $sugBlock = $Matches[1] }
+$blockKeys = @([regex]::Matches($sugBlock, "(?m)^\s*'([A-Za-z0-9_]+)':") | ForEach-Object { $_.Groups[1].Value })
+$badKeys = @()
+foreach ($k in $blockKeys) {
+    $base = $k
+    foreach ($sfx in $global:DiagI18nVariantSuffixes) {
+        if ($base.EndsWith($sfx)) { $base = $base.Substring(0, $base.Length - $sfx.Length); break }
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $root ("checks/" + $base + ".ps1")))) { $badKeys += $k }
+}
+if ($badKeys.Count -gt 0) { Add-Result 'i18n' 'sug_keys_map_to_checks' ('keys=' + $blockKeys.Count) $false ('orphan keys: ' + ($badKeys -join ',')) }
+else { Add-Result 'i18n' 'sug_keys_map_to_checks' ('keys=' + $blockKeys.Count) $true }
+
+foreach ($ic in $global:DiagI18nCases) {
+    $scriptFile = Join-Path $root ("checks/" + $ic.check + ".ps1")
+    $mockTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-mock-i18n-$PID-" + $ic.name + '.txt')
+    Set-Content -Path $mockTmp -Value $ic.mock -Encoding UTF8
+    $job = Start-Job -ScriptBlock {
+        param($ps, $s, $mf)
+        [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+        & $ps -NoProfile -ExecutionPolicy Bypass -File $s -MockFile $mf 2>&1 | Out-String
+    } -ArgumentList $diagPs, $scriptFile, $mockTmp
+    if (-not (Wait-Job $job -Timeout 60)) { Stop-Job $job -Force; $outText = '' }
+    else { $outText = (Receive-Job $job) | Out-String }
+    Remove-Job $job -Force -ErrorAction SilentlyContinue
+    Remove-Item $mockTmp -Force -ErrorAction SilentlyContinue
+    $bad = @()
+    $j = $null
+    try { $j = $outText | ConvertFrom-Json } catch { $j = $null }
+    if ($null -eq $j) { $bad += 'check output unparsable' }
+    else {
+        if ($j.status -ne 'FAIL') { $bad += ('expect FAIL got ' + $j.status) }
+        if ([string]::IsNullOrWhiteSpace($j.suggestion)) { $bad += 'FAIL without zh suggestion' }
+        $liveFields = @()
+        if ($null -ne $j.detail) { $liveFields = @($j.detail.PSObject.Properties | ForEach-Object { $_.Name }) }
+        foreach ($src in $ic.detailSources) {
+            if ($liveFields -notcontains $src) { $bad += ('detail source missing in live run: ' + $src) }
+        }
+    }
+    # template extraction: single-line quoted value (write templates one-per-line in en-US.js)
+    $tpl = $null
+    $m = [regex]::Match($enJs, "(?m)^\s*'" + [regex]::Escape($ic.tplKey) + "':\s*'(.*)',\s*$")
+    if ($m.Success) { $tpl = $m.Groups[1].Value }
+    if (-not $tpl) { $bad += ('template not found / not single-line: ' + $ic.tplKey) }
+    else {
+        $ph = @([regex]::Matches($tpl, '\{([A-Za-z0-9_]+)\}') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+        $exp = @($ic.placeholders | Sort-Object -Unique)
+        if (($ph -join ',') -ne ($exp -join ',')) { $bad += ('placeholders expect [' + ($exp -join ',') + '] got [' + ($ph -join ',') + ']') }
+        foreach ($kw in $ic.keywords) {
+            if ($tpl -notmatch [regex]::Escape($kw)) { $bad += ('template missing keyword: ' + $kw) }
+        }
+    }
+    if ($bad.Count -gt 0) { Add-Result 'i18n' $ic.name '' $false ($bad -join '; ') }
+    else { Add-Result 'i18n' $ic.name '' $true }
 }
 
 # ---------- 汇总 ----------

@@ -34,6 +34,9 @@ MOCKS = {
     # 出现在「能代跑的修复」——match_checks=net_dns_public；场景=DNS 全瘫）。
     # F 段点击修复前会把本项 mock 文件覆写回 NSOKPUB，模拟刷新缓存修复生效→快扫 PASS→改善行。
     'net_dns_public': NSTIMEOUT,
+    # I 段（建议正文英译 M1）：安全树/性能树单树跑批用 mock；缺 mock 的其余检查=SKIP（missing-mock）
+    'sec_uac_level': 'EnableLUA=1\nConsentPromptBehaviorAdmin=0\nPromptOnSecureDesktop=1',
+    'pf_boot_duration': '10-20 | Warning | 95300\n10-19 | Warning | 88210\n10-18 | Information | 41200',
 }
 
 def http_json(url, method='GET', body=None, timeout=8):
@@ -341,6 +344,68 @@ def main():
         cdp.wait_ready(); time.sleep(2)
         h4 = cdp.eval("document.querySelector('.tab[data-view=\"wizard\"] .tab-full')?.textContent") == '体检向导'             and str(cdp.eval("localStorage.getItem('diag-lang') || ''")) == 'zh-CN'
         check('H4 localStorage 语言记忆保持', h4, str(cdp.eval("localStorage.getItem('diag-lang')")))
+
+        # ---- I 建议正文英译（1026 方案 B M1：mock 跑批→切英文→详情建议=英文模板+detail 回填） ----
+        def sug_of(check_id):
+            # headless 页在 API 驱动跑批期间会被节流（C 段同款坑）：先 reload 走启动恢复路径
+            # 拉最新报告，再点问题清单项读建议框
+            cdp.eval('location.reload()'); cdp.wait_ready(); time.sleep(2.5)
+            cdp.activate()
+            cdp.eval("document.querySelector('.tab[data-view=\"results\"]').click()")
+            cdp.eval("document.querySelector('.pc-item[data-check=\"%s\"]')?.click()" % check_id)
+            time.sleep(0.4)
+            return str(cdp.eval("document.querySelector('#sug-box')?.innerText || ''"))
+        def run_tree(tree_id):
+            # 必须=轮询 /api/events：server 的 jsonReport 指针与 running→done 收割都挂在
+            # Read-NewEvents（events 通路）上，只轮 /api/report 会永远等不到新报告；
+            # 且事件缓冲每轮清空（Start-Engine 内 events=@()），开跑后缓冲里的 done 必属本轮
+            http_json('http://127.0.0.1:%d/api/start' % port, method='POST', body='{"tree":"%s"}' % tree_id)
+            for _ in range(120):
+                time.sleep(2)
+                ev = http_json('http://127.0.0.1:%d/api/events?since=0' % port)
+                if ev.get('state') == 'done' and any(e.get('event') == 'done' for e in ev.get('events', [])):
+                    return True
+            return False
+        # I1 网络树报告（C 段跑批仍在 server 内存）：切英文→死地址建议=英文模板+死地址列表+命令
+        cdp.eval("document.getElementById('btn-appearance').click()")
+        time.sleep(0.4)
+        cdp.eval("document.querySelector('#lang-seg [data-lang-opt=\"en-US\"]').click()")
+        cdp.wait_ready(); time.sleep(2.5)
+        cdp.activate()
+        i1 = sug_of('net_dns_deadaddr')
+        check('I1 en 死地址建议=英文模板+死地址回填',
+              ('192.168.137.1' in i1) and ('netsh interface ip set dns' in i1) and ('223.5.5.5' in i1)
+              and ('【' not in i1) and ('死地址' not in i1), i1[:120])
+        # I1b 渐进覆盖回退：未翻模板的 FAIL（net_dns_default）在英文界面仍显中文原文
+        i1b = sug_of('net_dns_default')
+        check('I1b 未翻检查回退中文原文', ('【' in i1b), i1b[:100])
+        # I2 安全树跑批→UAC 建议英文（纯静态模板）
+        check('I2 安全树跑批完成', run_tree('security'))
+        time.sleep(1.5)
+        i2 = sug_of('sec_uac_level')
+        check('I2b en UAC 建议=英文（useraccountcontrolsettings 路径在场）',
+              ('useraccountcontrolsettings' in i2) and ('Never notify' in i2) and ('【' not in i2), i2[:120])
+        # I3 性能树跑批（2×Warning）→慢启动标记分支英文+数字回填
+        check('I3 性能树跑批完成', run_tree('performance'))
+        time.sleep(1.5)
+        i3 = sug_of('pf_boot_duration')
+        check('I3b en 开机建议=marks 分支（flagged 2 of the last 5）',
+              ('flagged 2 of the last 5 boots' in i3) and ('Ctrl+Shift+Esc' in i3) and ('【' not in i3), i3[:120])
+        # I4 换 avg mock 再跑性能树→均值分支：75 秒换算（78000+72000 → avg 75000ms → 75s）
+        open(os.path.join(tmp, 'mocks', 'pf_boot_duration.txt'), 'w', encoding='utf-8').write(
+            '10-20 | Information | 78000\n10-19 | Information | 72000')
+        check('I4 性能树二跑完成', run_tree('performance'))
+        time.sleep(1.5)
+        i4 = sug_of('pf_boot_duration')
+        check('I4b en 开机建议=avg 分支（averaged 75 seconds）',
+              ('averaged 75 seconds' in i4) and ('60-second' in i4) and ('【' not in i4), i4[:120])
+        # I5 中英数字一致：同一份 avg 报告切回中文，建议含「75 秒」（与 I4b 同源 detail）
+        cdp.eval("document.getElementById('btn-appearance').click()")
+        time.sleep(0.4)
+        cdp.eval("document.querySelector('#lang-seg [data-lang-opt=\"zh-CN\"]').click()")
+        cdp.wait_ready(); time.sleep(2.5)
+        i5 = sug_of('pf_boot_duration')
+        check('I5 zh 同报告均值 75 秒（数字中英一致）', '75 秒' in i5 and '60 秒' in i5, i5[:120])
 
         passing = sum(1 for _, ok in RESULTS if ok)
         print('\n================ UI-TESTS: %d/%d PASS ================' % (passing, len(RESULTS)))
