@@ -165,7 +165,7 @@ def main():
         check('A1 五棵单树卡', cdp.eval("document.querySelectorAll('.check-item').length") >= 5,
               str(cdp.eval("document.querySelectorAll('.check-item').length")))
         check('A2 开始体检按钮在', cdp.eval("!!document.querySelector('#btn-run')"))
-        check('A3 版本串 v1.6.1', 'v1.6.1' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
+        check('A3 版本串 v1.7.0', 'v1.7.0' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
         check('A4 只读承诺文案', '只看、不动你电脑的任何设置' in str(cdp.eval('document.body.innerText')))
         # 首次启动引导：全新 profile（localStorage 空）→三步引导卡可见
         check('A5 首次启动引导卡在', cdp.eval("!!document.querySelector('#first-guide') && !document.querySelector('#first-guide').classList.contains('hidden')"))
@@ -430,6 +430,59 @@ def main():
         cdp.wait_ready(); time.sleep(2.5)
         i5 = sug_of('pf_boot_duration')
         check('I5 zh 同报告均值 75 秒（数字中英一致）', '75 秒' in i5 and '60 秒' in i5, i5[:120])
+
+        # ---- J 修复卡英文收口（1026 方案 B·M3：三色常驻卡抽验+确认 modal+console.warn 真页清零） ----
+        # warn 收集：新文档注入 hook（applyLang 切语言会 reload，hook 每次加载重挂）；
+        # 全量 33 卡×全字段的对齐由 tests/i18n_actions_check.mjs（run_tests ⑧ 节）静态保证，
+        # 本段=真页面实证渲染面（launcher 区+commons 折叠+命中卡+确认 modal）。
+        cdp._send('Page.addScriptToEvaluateOnNewDocument', {'source':
+            "window.__i18nWarns=[]; const __w=console.warn.bind(console);"
+            " console.warn=function(){ const s=Array.from(arguments).join(' ');"
+            " if(s.indexOf('[i18n]')>=0) window.__i18nWarns.push(s); __w.apply(null,arguments); };"})
+        cdp.eval("document.getElementById('btn-appearance').click()")
+        time.sleep(0.4)
+        cdp.eval("document.querySelector('#lang-seg [data-lang-opt=\"en-US\"]').click()")
+        cdp.wait_ready(); time.sleep(2.5); cdp.activate()
+        cdp.eval("document.querySelector('[data-view=\"repair\"]').click()")
+        time.sleep(1.2)
+        # commons 折叠与卡内 steps 折叠全部展开，innerText 才含步骤文本
+        cdp.eval("document.querySelectorAll('#repair-list details').forEach(d=>{d.open=true;})")
+        time.sleep(0.5)
+        # J1 红卡=commons 常驻 net_hosts_clean：英文名+步骤英文教学+零【】中文标记
+        j1 = str(cdp.eval("(document.querySelector('.action-card[data-action-id=net_hosts_clean]')||{}).innerText || ''"))
+        check('J1 en 红卡 hosts 清卡=英文（Step 1..3 教学在场）',
+              ('Manual hosts cleanup' in j1) and ('Step 1: back up + open hosts' in j1)
+              and ('Step 3: flush the cache' in j1) and ('【' not in j1), j1[:160])
+        # J2 黄卡=commons 常驻 net_wininet_proxy_off：英文名+影响栏英文
+        j2 = str(cdp.eval("(document.querySelector('.action-card[data-action-id=net_wininet_proxy_off]')||{}).innerText || ''"))
+        check('J2 en 黄卡关代理=英文（Turn off the user-level proxy）',
+              ('Turn off the user-level proxy' in j2) and ('【' not in j2), j2[:160])
+        # J3 绿卡=launcher 区常驻 open_devmgr：英文名（launcher 卡精简面）
+        j3 = str(cdp.eval("(document.querySelector('.launcher-grid .action-card[data-action-id=open_devmgr]')||{}).innerText || ''"))
+        check('J3 en 绿卡设备管理器=英文（Device Manager）',
+              ('Device Manager' in j3) and ('【' not in j3), j3[:120])
+        # J4 绿卡 admin 确认 modal：点执行→showGreenConfirmModal→fillModalRows（rollback_note 真消费点）
+        # →三行+步骤+回滚包附注英文+行内标点半角→取消不真跑
+        cdp.eval("(() => { const b = document.querySelector('.action-card[data-action-id=sys_time_sync] button.act-run'); if (b) b.click(); return !!b; })()")
+        time.sleep(0.8)
+        modal_on = cdp.eval("!document.querySelector('#repair-modal')?.classList.contains('hidden')")
+        j4 = str(cdp.eval("(document.getElementById('rm-rows')||{}).innerText || ''"))
+        check('J4 en 确认 modal=英文（回滚包附注 rollback_note 译文在场+标点半角）',
+              modal_on and ('No rollback needed: syncing the clock' in j4) and ('【' not in j4)
+              and ('（' not in j4) and ('：' not in j4), j4[:200])
+        cdp.eval("document.getElementById('rm-cancel')?.click()")
+        time.sleep(0.5)
+        # J5 真页 console.warn 扫描：[i18n] missing action 类告警清零
+        j5 = cdp.eval("(window.__i18nWarns||[]).filter(s=>s.indexOf('missing action')>=0).length")
+        j5_all = cdp.eval("(window.__i18nWarns||[]).length")
+        check('J5 en 修复中心 console.warn 清零（missing action 类）',
+              j5 == 0, 'missing-action=' + str(j5) + ' all-i18n-warns=' + str(j5_all) + ' :: '
+              + str(cdp.eval("(window.__i18nWarns||[]).slice(0,3)")))
+        # 收尾：切回中文，H 段语义闭环（后续无段依赖语言态，恢复默认态收尾）
+        cdp.eval("document.getElementById('btn-appearance').click()")
+        time.sleep(0.4)
+        cdp.eval("document.querySelector('#lang-seg [data-lang-opt=\"zh-CN\"]').click()")
+        cdp.wait_ready(); time.sleep(2)
 
         passing = sum(1 for _, ok in RESULTS if ok)
         print('\n================ UI-TESTS: %d/%d PASS ================' % (passing, len(RESULTS)))

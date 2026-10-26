@@ -316,7 +316,7 @@ foreach ($dc in $global:DiagDataRootCases) {
     if ($dataReports.Count -ge 1) {
         try { $j = Get-Content $dataReports[0].FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $j = $null }
         if ($null -eq $j) { $bad += 'data-root json unparsable' }
-        elseif ($j.engine -ne '电脑体检台 v1.6.1') { $bad += 'engine field: ' + $j.engine }
+        elseif ($j.engine -ne '电脑体检台 v1.7.0') { $bad += 'engine field: ' + $j.engine }
     }
     if ($bad.Count -gt 0) { Add-Result 'dataroot' $dc.name '' $false ($bad -join '; ') }
     else { Add-Result 'dataroot' $dc.name '' $true }
@@ -423,6 +423,26 @@ foreach ($ic in $global:DiagI18nCases) {
     }
     if ($bad.Count -gt 0) { Add-Result 'i18n' $ic.name '' $false ($bad -join '; ') }
     else { Add-Result 'i18n' $ic.name '' $true }
+}
+
+# ---------- ⑧ 修复卡 en 映射静态对齐（1026 方案 B·M3：node 断言 33 键双侧字段对齐+warn 语义零） ----------
+# en-US.js actions 与 repair/actions/*.json（执行层真源，只读）按 actField/actSteps/actSource
+# 真实消费语义对齐：键集双向/六字段非空/steps 逐键长度+desc/how 对齐/sources 对齐/CJK 零残留/
+# warn 触发条件模拟=0。fail-closed：node 起不来=FAIL（验证类无程序级证据不放行）。
+$nodeCheck = Join-Path $PSScriptRoot 'i18n_actions_check.mjs'
+try {
+    $nodeOut = (& node $nodeCheck 2>&1 | Out-String)
+    $nodeExit = $LASTEXITCODE
+} catch { $nodeOut = [string]$_.Exception.Message; $nodeExit = 1 }
+if ($nodeExit -eq 0) {
+    if ($nodeOut -match 'i18n_actions_check: (\d+)/(\d+) PASS') {
+        Add-Result 'i18n' 'en_actions_alignment' ('checks=' + $Matches[1] + '/' + $Matches[2]) $true
+    } else {
+        Add-Result 'i18n' 'en_actions_alignment' '' $false 'node ran but summary line not parsed'
+    }
+} else {
+    $failLines = @($nodeOut -split "`r?`n" | Where-Object { $_ -match '^FAIL' } | Select-Object -First 3)
+    Add-Result 'i18n' 'en_actions_alignment' '' $false (($failLines -join ' ; ') + ' (exit=' + $nodeExit + ')')
 }
 
 # ---------- 汇总 ----------
