@@ -178,9 +178,14 @@ foreach ($rc in $global:DiagRepairCases) {
     New-Item -ItemType Directory -Path (Join-Path $tmpRoot 'reports') -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $tmpRoot 'repair\actions') -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $root 'repair\repair.ps1') -Destination (Join-Path $tmpRoot 'repair\repair.ps1') -Force
+    if (Test-Path -LiteralPath (Join-Path $root 'repair\recon')) { Copy-Item -Recurse -Force (Join-Path $root 'repair\recon') (Join-Path $tmpRoot 'repair\recon') }   # v1.8 recon 动作：侦察脚本目录随拷（fixture 隔离同样生效）
     if ($rc.kind -eq 'fixture') {
         foreach ($kv in $rc.fixtures.GetEnumerator()) {
-            [System.IO.File]::WriteAllText((Join-Path $tmpRoot ("repair\actions\" + $kv.Key)), $kv.Value, (New-Object System.Text.UTF8Encoding($true)))
+            $rel = [string]$kv.Key
+            # 键含路径分隔符=recon 等子目录文件（相对 repair\）；否则按动作 JSON 落 actions\
+            $dst = if ($rel -match '[\\/]') { Join-Path $tmpRoot ('repair\' + $rel) } else { Join-Path $tmpRoot ('repair\actions\' + $rel) }
+            New-Item -ItemType Directory -Path (Split-Path -Parent $dst) -Force | Out-Null
+            [System.IO.File]::WriteAllText($dst, $kv.Value, (New-Object System.Text.UTF8Encoding($true)))
         }
     } else {
         Copy-Item -LiteralPath (Join-Path $root ("repair\actions\" + $rc.actionId + '.json')) -Destination (Join-Path $tmpRoot ("repair\actions\" + $rc.actionId + '.json')) -Force

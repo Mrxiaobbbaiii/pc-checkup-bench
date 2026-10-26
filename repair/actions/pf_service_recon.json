@@ -1,0 +1,29 @@
+{
+ "id": "pf_service_recon",
+ "name": "服务元凶侦察（只读代查）",
+ "level": "recon",
+ "desc": "工具替你把报告点名的服务逐个查清楚：属于哪个软件、装在哪、现在什么状态、是不是卸载残留，查完列成一张对号表。全程只读，不改服务、不动软件、不弹窗。",
+ "affect": "零改动——只读查询服务注册信息与文件属性，不写任何系统状态。",
+ "undo": "不适用（本动作只读，没有可撤销的变更）",
+ "requires_admin": false,
+ "prechecks": [],
+ "steps": [
+  {
+   "exe": "powershell.exe",
+   "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "recon\\report_recon.ps1", "-Kind", "service"],
+   "desc": "第 1 步：读取最近一次体检报告点名的服务，逐个查归属软件与当前状态"
+  }
+ ],
+ "rollback": [],
+ "rollback_note": "",
+ "timeout_sec": 60,
+ "caveat": "侦察只读；处置决策（卸载/停用）永远由你拍板——对号表只是指路，不替你做决定。",
+ "match_checks": ["pf_service_timeouts"],
+ "verify_checks": [],
+ "sources": [
+  {
+   "title": "微软官方 sc query 命令参考（微软 Learn）",
+   "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/sc-query"
+  }
+ ]
+}

@@ -1,0 +1,29 @@
+{
+ "id": "hw_mdsched_open",
+ "name": "代开 Windows 内存诊断（官方向导）",
+ "level": "green",
+ "desc": "替你把官方「Windows 内存诊断」窗口打开：要不要现在重启检测由你点——不点重启就不会有任何影响。检测约十几分钟，跑完自动回桌面，结果记在事件日志里，重跑体检即可看到。",
+ "affect": "只打开官方诊断窗口，不改系统任何设置；你点「立即重新启动并检查问题」才会重启检测（先保存手头工作）。",
+ "undo": "关掉弹出的窗口即可，什么都不用还原。",
+ "requires_admin": false,
+ "prechecks": [],
+ "steps": [
+  {
+   "exe": "cmd.exe",
+   "args": ["/c", "start", "mdsched"],
+   "desc": "第 1 步：打开内存诊断窗口（点不点「立即重新启动并检查问题」由你决定）"
+  }
+ ],
+ "rollback": [],
+ "rollback_note": "",
+ "timeout_sec": 20,
+ "caveat": "官方工具入口=Win+R 运行 mdsched；诊断是只读检测不改配置。想更深入的测试用 MemTest86U 盘版（官方文档有指引）。",
+ "match_checks": ["hw_memdiag_history", "bs_whea_hardware"],
+ "verify_checks": [],
+ "sources": [
+  {
+   "title": "Windows 内存诊断官方支持文档（微软支持）",
+   "url": "https://support.microsoft.com/en-us/windows/windows-memory-diagnostics-tool-results-f2a30aa4-3ae1-6713-ccc9-7b4b817b8ba7"
+  }
+ ]
+}

@@ -899,6 +899,24 @@ $global:DiagRepairCases += @{
                 if (-not $reason) { $bad += "advice row needs reason: $cn" }
                 if ($matched) { $bad += "declared advice but actions match it ($($matched -join '/')): $cn" }
             }
+            # ---- v1.8 处置分层：disposition 五档必填 + how↔disposition 映射一致 + semi 档必须有 recon/green 动作垫背 ----
+            $disp = ''
+            if ($p.Value.PSObject.Properties['disposition']) { $disp = [string]$p.Value.disposition }
+            else { $bad += "missing disposition: $cn"; continue }
+            if (@('auto', 'semi', 'wizard', 'manual', 'watch') -notcontains $disp) { $bad += "bad disposition '$disp': $cn"; continue }
+            $hasRecon = ($matched -contains 'recon')
+            $hasGreen = ($matched -contains 'green')
+            $hasRed = ($matched -contains 'red')
+            if ($how -eq 'action') {
+                if ($disp -ne 'auto') { $bad += "how=action must be auto: $cn" }
+            } elseif ($how -eq 'card') {
+                if ($disp -eq 'auto') { $bad += "card cannot be auto: $cn" }
+                elseif ($disp -eq 'semi') { if (-not ($hasRecon -or $hasGreen)) { $bad += "semi requires recon/green action matched: $cn" } }
+                elseif ($disp -eq 'wizard') { if (-not $hasRed) { $bad += "wizard requires red card matched: $cn" } }
+                else { $bad += "card disposition must be semi/wizard: $cn" }
+            } else {
+                if (@('manual', 'watch') -notcontains $disp) { $bad += "advice must be manual/watch: $cn" }
+            }
         }
         foreach ($cn in $checkNames) { if (-not $seen[$cn]) { $bad += "check has no closure coverage (silent dead-end): $cn" } }
         return $bad
@@ -1034,3 +1052,234 @@ foreach ($redAct in @('pf_app_crashes_card', 'dv_display_residue_card')) {
     }
 }
 
+# ---- v1.8 处置分层：recon 级动作（只读侦察）----
+#      正例×2=真跑库内侦察动作（真机只读，只断言结构不看数据内容）；负例×4+stub 正例=白名单/约束
+#      在加载段拒载（零副作用，出厂闸）；stub 走 fixture recon 目录验证脚本路径 contained 解析。
+$global:DiagRepairCases += @{
+    name = 'rep_recon_real_service'
+    kind = 'real'
+    actionId = 'pf_service_recon'
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        if ($res.ok -ne $true) { $bad += "expect ok=true got $($res.ok) (fail=$($res.fail_stage) human=$($res.human))"; return $bad }
+        if ($res.level -ne 'recon') { $bad += "level should be recon got $($res.level)" }
+        $steps = @($res.stages.exec.steps)
+        if ($steps.Count -ne 1 -or [int]$steps[0].exit -ne 0) { $bad += 'recon step not clean' }
+        $outs = @($res.stages.exec.recon_out)
+        if ($outs.Count -lt 1) { $bad += 'recon_out missing (full stdout capture broken)'; return $bad }
+        $j = $null
+        try { $j = $outs[0] | ConvertFrom-Json } catch { }
+        if (-not $j -or $j.ok -ne $true) { $bad += 'recon_out unparsable or not ok' }
+        elseif (-not ($j.PSObject.Properties['rows'])) { $bad += 'recon rows property missing' }
+        $log = Get-LastRepairLog $ctx.TmpRoot
+        if (-not $log -or $log.ok -ne $true -or [string]$log.level -ne 'recon') { $bad += 'repair-log recon line missing/wrong' }
+        return $bad
+    }
+}
+$global:DiagRepairCases += @{
+    name = 'rep_recon_real_driver'
+    kind = 'real'
+    actionId = 'dv_stack_recon'
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        if ($res.ok -ne $true) { $bad += "expect ok=true got $($res.ok) (fail=$($res.fail_stage))"; return $bad }
+        $outs = @($res.stages.exec.recon_out)
+        if ($outs.Count -lt 1) { $bad += 'recon_out missing'; return $bad }
+        try { $null = $outs[0] | ConvertFrom-Json } catch { $bad += 'recon_out unparsable' }
+        return $bad
+    }
+}
+
+$fixtureReconStubAction = @'
+{
+ "id": "zz_test_recon_stub",
+ "name": "stub recon",
+ "level": "recon",
+ "desc": "fixture stub",
+ "affect": "x",
+ "undo": "",
+ "requires_admin": false,
+ "prechecks": [],
+ "steps": [
+  { "exe": "powershell.exe", "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "recon\\zz_stub.ps1"], "desc": "stub step" }
+ ],
+ "rollback": [],
+ "timeout_sec": 30,
+ "match_checks": [],
+ "verify_checks": [],
+ "sources": []
+}
+'@
+$fixtureReconStubScript = @'
+Write-Output '{"ok":true,"kind":"stub","source":"fixture","rows":[{"name":"stub","exists":false}],"apps":[]}'
+'@
+$global:DiagRepairCases += @{
+    name = 'rep_recon_stub'
+    kind = 'fixture'
+    actionId = 'zz_test_recon_stub'
+    fixtures = @{ 'zz_test_recon_stub.json' = $fixtureReconStubAction; 'recon\zz_stub.ps1' = $fixtureReconStubScript }
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        if ($res.ok -ne $true) { $bad += "expect ok=true got $($res.ok) (fail=$($res.fail_stage) err=$($res.error))"; return $bad }
+        $outs = @($res.stages.exec.recon_out)
+        if ($outs.Count -lt 1) { $bad += 'recon_out missing'; return $bad }
+        $j = $null
+        try { $j = $outs[0] | ConvertFrom-Json } catch { }
+        if (-not $j -or -not $j.rows -or [string]$j.rows[0].name -ne 'stub') { $bad += 'stub recon_out content wrong' }
+        return $bad
+    }
+}
+
+$fixtureReconBadExe = @'
+{
+ "id": "zz_test_recon_badexe",
+ "name": "bad exe",
+ "level": "recon",
+ "desc": "x", "affect": "x", "undo": "", "requires_admin": false, "prechecks": [],
+ "steps": [ { "exe": "cmd.exe", "args": ["/c", "echo hi"], "desc": "shell not allowed" } ],
+ "rollback": [], "timeout_sec": 10, "match_checks": [], "verify_checks": [], "sources": []
+}
+'@
+$global:DiagRepairCases += @{
+    name = 'rep_recon_badexe'
+    kind = 'fixture'
+    actionId = 'zz_test_recon_badexe'
+    fixtures = @{ 'zz_test_recon_badexe.json' = $fixtureReconBadExe }
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        if ($res.ok -ne $false) { $bad += "expect ok=false got $($res.ok)" }
+        if ([string]$res.fail_stage -ne 'load') { $bad += "expect fail_stage=load got $($res.fail_stage)" }
+        if ($res.error -notmatch 'not in read-only whitelist') { $bad += "error should mention whitelist: $($res.error)" }
+        return $bad
+    }
+}
+
+$fixtureReconBanVerb = @'
+{
+ "id": "zz_test_recon_banverb",
+ "name": "banned verb",
+ "level": "recon",
+ "desc": "x", "affect": "x", "undo": "", "requires_admin": false, "prechecks": [],
+ "steps": [ { "exe": "sc.exe", "args": ["stop", "Spooler"], "desc": "stop a service" } ],
+ "rollback": [], "timeout_sec": 10, "match_checks": [], "verify_checks": [], "sources": []
+}
+'@
+$global:DiagRepairCases += @{
+    name = 'rep_recon_banverb'
+    kind = 'fixture'
+    actionId = 'zz_test_recon_banverb'
+    fixtures = @{ 'zz_test_recon_banverb.json' = $fixtureReconBanVerb }
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        if ($res.ok -ne $false) { $bad += "expect ok=false got $($res.ok)" }
+        if ([string]$res.fail_stage -ne 'load') { $bad += "expect fail_stage=load got $($res.fail_stage)" }
+        if ($res.error -notmatch 'banned write-verb') { $bad += "error should mention banned verb: $($res.error)" }
+        return $bad
+    }
+}
+
+$fixtureReconFirstArg = @'
+{
+ "id": "zz_test_recon_badfirst",
+ "name": "bad first arg",
+ "level": "recon",
+ "desc": "x", "affect": "x", "undo": "", "requires_admin": false, "prechecks": [],
+ "steps": [ { "exe": "reg.exe", "args": ["delete", "HKLM\\SOFTWARE\\Test"], "desc": "reg delete not allowed" } ],
+ "rollback": [], "timeout_sec": 10, "match_checks": [], "verify_checks": [], "sources": []
+}
+'@
+$global:DiagRepairCases += @{
+    name = 'rep_recon_badfirst'
+    kind = 'fixture'
+    actionId = 'zz_test_recon_badfirst'
+    fixtures = @{ 'zz_test_recon_badfirst.json' = $fixtureReconFirstArg }
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        if ($res.ok -ne $false) { $bad += "expect ok=false got $($res.ok)" }
+        if ([string]$res.fail_stage -ne 'load') { $bad += "expect fail_stage=load got $($res.fail_stage)" }
+        if ($res.error -notmatch 'first arg must be one of') { $bad += "error should mention first-arg rule: $($res.error)" }
+        return $bad
+    }
+}
+
+$fixtureReconRollback = @'
+{
+ "id": "zz_test_recon_rollback",
+ "name": "rollback banned",
+ "level": "recon",
+ "desc": "x", "affect": "x", "undo": "", "requires_admin": false, "prechecks": [],
+ "steps": [ { "exe": "tasklist.exe", "args": [], "desc": "read only" } ],
+ "backup_steps": [ { "exe": "tasklist.exe", "args": [], "desc": "not allowed" } ],
+ "rollback": [], "timeout_sec": 10, "match_checks": [], "verify_checks": [], "sources": []
+}
+'@
+$global:DiagRepairCases += @{
+    name = 'rep_recon_rollback_banned'
+    kind = 'fixture'
+    actionId = 'zz_test_recon_rollback'
+    fixtures = @{ 'zz_test_recon_rollback.json' = $fixtureReconRollback }
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        if ($res.ok -ne $false) { $bad += "expect ok=false got $($res.ok)" }
+        if ([string]$res.fail_stage -ne 'load') { $bad += "expect fail_stage=load got $($res.fail_stage)" }
+        if ($res.error -notmatch 'read-only: backup_steps') { $bad += "error should mention read-only constraint: $($res.error)" }
+        return $bad
+    }
+}
+
+$fixtureReconAdmin = @'
+{
+ "id": "zz_test_recon_admin",
+ "name": "admin banned",
+ "level": "recon",
+ "desc": "x", "affect": "x", "undo": "", "requires_admin": true, "prechecks": [],
+ "steps": [ { "exe": "tasklist.exe", "args": [], "desc": "read only" } ],
+ "rollback": [], "timeout_sec": 10, "match_checks": [], "verify_checks": [], "sources": []
+}
+'@
+$global:DiagRepairCases += @{
+    name = 'rep_recon_admin_banned'
+    kind = 'fixture'
+    actionId = 'zz_test_recon_admin'
+    fixtures = @{ 'zz_test_recon_admin.json' = $fixtureReconAdmin }
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        if ($res.ok -ne $false) { $bad += "expect ok=false got $($res.ok)" }
+        if ([string]$res.fail_stage -ne 'load') { $bad += "expect fail_stage=load got $($res.fail_stage)" }
+        if ($res.error -notmatch 'cannot require elevation') { $bad += "error should mention elevation ban: $($res.error)" }
+        return $bad
+    }
+}
+
+$fixtureReconEscape = @'
+{
+ "id": "zz_test_recon_escape",
+ "name": "path escape",
+ "level": "recon",
+ "desc": "x", "affect": "x", "undo": "", "requires_admin": false, "prechecks": [],
+ "steps": [ { "exe": "powershell.exe", "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "..\\actions\\zz_test_recon_escape.json"], "desc": "escape recon dir" } ],
+ "rollback": [], "timeout_sec": 10, "match_checks": [], "verify_checks": [], "sources": []
+}
+'@
+$global:DiagRepairCases += @{
+    name = 'rep_recon_path_escape'
+    kind = 'fixture'
+    actionId = 'zz_test_recon_escape'
+    fixtures = @{ 'zz_test_recon_escape.json' = $fixtureReconEscape }
+    assert = {
+        param($res, $ctx)
+        $bad = @()
+        if ($res.ok -ne $false) { $bad += "expect ok=false got $($res.ok)" }
+        if ([string]$res.fail_stage -ne 'load') { $bad += "expect fail_stage=load got $($res.fail_stage)" }
+        if ($res.error -notmatch 'escapes recon dir') { $bad += "error should mention path containment: $($res.error)" }
+        return $bad
+    }
+}
