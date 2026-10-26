@@ -166,7 +166,7 @@ $global:DiagBCases = @(
            $jfiles = Get-LatestJson $ctx.Root
            if ($jfiles.Count -ne 0) { $bad += "default-off produced $($jfiles.Count) json file(s)" }
            if (Test-Path $ctx.Prog) { $bad += 'progress file should not exist (param not given)' }
-           if ($ctx.Out -notmatch [regex]::Escape('五层全通')) { $bad += 'stdout baseline keyword missing' }
+           if ($ctx.Out -notmatch [regex]::Escape('五组全通')) { $bad += 'stdout baseline keyword missing' }
            return $bad
        } },
 

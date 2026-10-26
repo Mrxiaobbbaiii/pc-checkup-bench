@@ -105,7 +105,7 @@ SAMPLE | SYN_SENT | 1 | SYN_RCVD | 0
 
 $global:DiagScenarios = @(
     @{ name = 'full_pass_all_green'; expectExit = 0
-       keywords = @('五层全通', '网络栈全通', '应用层')
+       keywords = @('五组全通', '网络栈全通', '应用层')
        mocks    = @{
            net_adapter_list     = $mockAdapterPass
            net_ip_dhcp          = $mockIpPass
@@ -200,7 +200,7 @@ rassstp | Stopped | C:\Windows\system32\drivers\rassstp.sys
 
 $global:DiagScenarios += @(
     @{ name = 'bs_full_clean'; tree = 'bluescreen'; expectExit = 0
-       keywords = @('三层全通', '无蓝屏', '隐患结论')
+       keywords = @('三组全通', '无蓝屏', '隐患结论')
        mocks    = @{
            bs_event_history         = ''
            bs_powerloss_distinction = ''
@@ -224,7 +224,7 @@ $global:DiagScenarios += @(
 # ---------- v0.3 硬件树场景（1020） ----------
 $global:DiagScenarios += @(
     @{ name = 'hw_full_clean'; tree = 'hardware'; expectExit = 0
-       keywords = @('三层全通', '硬件体检报告')
+       keywords = @('三组全通', '硬件体检报告')
        mocks    = @{
            hw_disk_health     = "Samsung SSD 970 | SSD | Healthy | OK"
            hw_smart_predict   = "Samsung SSD 970 | 2 | 0 | 40.0 | false"
@@ -253,7 +253,7 @@ $pfStartup25 = (@(1..25) | ForEach-Object { 'App{0} | HKCU Run | C:\x\a{0}.exe' 
 
 $global:DiagScenarios += @(
     @{ name = 'pf_full_clean'; tree = 'performance'; expectExit = 0
-       keywords = @('三层全通', '性能体检报告', '未发现明显性能瓶颈')
+       keywords = @('三组全通', '性能体检报告', '未发现明显性能瓶颈')
        mocks    = @{
            pf_boot_duration          = "10-20 | Information | 21000`n10-19 | Information | 19000"
            pf_boot_degradation_events = ''
@@ -348,7 +348,7 @@ $secTasksCleanCsv = @'
 
 $global:DiagScenarios += @(
     @{ name = 'dv_full_clean'; tree = 'drivers'; expectExit = 0
-       keywords = @('驱动体检报告', '三层全通', '未发现驱动域隐患')
+       keywords = @('驱动体检报告', '三组全通', '未发现驱动域隐患')
        mocks    = @{
            dv_driver_signature     = $dvSigClean
            dv_driver_age           = $dvAgeClean
