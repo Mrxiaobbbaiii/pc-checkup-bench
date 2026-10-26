@@ -566,7 +566,7 @@ if ($TreeName -eq 'all' -or $TreeName -match ',') {
         if ($OpenReport) { Start-Process $repFile }
         if ($JsonReport) {
             $jsonFile = Join-Path $reportsDir ("diag-all-$stamp.json")
-            Set-Content -LiteralPath $jsonFile -Value (ConvertTo-Json (New-JsonPayload -TreeEntries $treeEntries -HostName $hostName -Ts $ts) -Depth 8) -Encoding UTF8
+            Set-Content -LiteralPath $jsonFile -Value (ConvertTo-Json (New-JsonPayload -TreeEntries $treeEntries -HostName $hostName -Ts $ts) -Depth 12) -Encoding UTF8
             $jsonFileOut = $jsonFile
         }
         Trim-Reports
@@ -619,7 +619,7 @@ if (-not $NoSaveReport) {
     if ($OpenReport) { Start-Process $repFile }
     if ($JsonReport) {
         $jsonFile = Join-Path $reportsDir ("diag-$TreeName-$stamp.json")
-        Set-Content -LiteralPath $jsonFile -Value (ConvertTo-Json (New-JsonPayload -TreeEntries @(@{ TreeData = $tree; Layers = $layerResults; BreakLayer = $breakLayer }) -HostName $hostName -Ts $ts) -Depth 8) -Encoding UTF8
+        Set-Content -LiteralPath $jsonFile -Value (ConvertTo-Json (New-JsonPayload -TreeEntries @(@{ TreeData = $tree; Layers = $layerResults; BreakLayer = $breakLayer }) -HostName $hostName -Ts $ts) -Depth 12) -Encoding UTF8
         $jsonFileOut = $jsonFile
     }
     Trim-Reports

@@ -82,10 +82,34 @@ function actSource(a, s, i) {
    占位符来源=engine JSON 的 detail 字段：直通字段同名直取；派生变量（deadList=死地址去重列表、
    avgSec=毫秒转秒、分支键选择）在 SUGGEST_EN_PICK/SUGGEST_EN_VARS，分支序照抄检查脚本（只选词
    不判定）。对齐关系由 tests/cases_i18n.ps1 静态校验把守，改模板/改派生规则须同步那边的声明。 */
-function sugTplKey(name, detail) {
+function sugTplKey(name, detail, zhSug) {
+  const d = detail || {}; const zs = String(zhSug || '');
   if (name === 'pf_boot_duration') {
-    return (detail && Number(detail.warnCount) >= 2) ? 'pf_boot_duration_marks' : 'pf_boot_duration_avg';
+    return (Number(d.warnCount) >= 2) ? 'pf_boot_duration_marks' : 'pf_boot_duration_avg';
   }
+  /* M2 分支选择：判据=engine detail 既有字段值（why/mode/result/proxyEnabled…），
+     照抄检查脚本的分支序，只选词不判定。bs_code_frequency 的码书命中不在 detail
+     暴露，用 zh 原文的「未收录」特征选分支（engine 产出物本身=分支结果载体）。 */
+  if (name === 'net_gateway_conflict') {
+    if (d.why === 'no-default-route') return 'net_gateway_conflict_noroute';
+    if (d.why === 'gateway-not-in-subnet') return 'net_gateway_conflict_xnet';
+    return 'net_gateway_conflict_conflict';
+  }
+  if (name === 'net_dns_default') {
+    if (d.mode === 'nxdomain') return 'net_dns_default_nxdomain';
+    if (d.mode === 'refused') return 'net_dns_default_refused';
+    return 'net_dns_default_timeout';
+  }
+  if (name === 'bs_code_frequency') return zs.indexOf('未收录') >= 0 ? 'bs_code_frequency_unknown' : 'bs_code_frequency_known';
+  if (name === 'pf_startup_items') return (Array.isArray(d.hits) && d.hits.length) ? 'pf_startup_items_hit' : 'pf_startup_items_overload';
+  if (name === 'pf_memory_pressure') return (Number(d.physicalGB) < 4) ? 'pf_memory_pressure_lowmem' : 'pf_memory_pressure_commit';
+  if (name === 'dv_device_errors') {
+    const codes = (Array.isArray(d.errors) ? d.errors : []).map((e) => Number(e.code));
+    return (codes.indexOf(28) >= 0 || codes.indexOf(43) >= 0) ? 'dv_device_errors_known' : 'dv_device_errors_other';
+  }
+  if (name === 'net_proxy_vpn') return d.proxyEnabled ? 'net_proxy_vpn_proxy' : 'net_proxy_vpn_hosts';
+  if (name === 'net_proxy_system') return d.winhttpMode === 'proxy' ? 'net_proxy_system_winhttp' : 'net_proxy_system_wininet';
+  if (name === 'net_df_ping') return d.result === 'NEED-FRAG' ? 'net_df_ping_frag' : 'net_df_ping_blackhole';
   return name;
 }
 /* engine 落盘 JSON 的 ConvertTo-Json 逐层计数深度有限，嵌套对象（findings 数组元素）被压成
@@ -97,8 +121,8 @@ function psDumpVars(s) {
   let m; while ((m = re.exec(String(s)))) out[m[1]] = m[2].trim();
   return out;
 }
-function sugVars(tplKey, detail) {
-  const d = detail || {};
+function sugVars(tplKey, detail, zhSug) {
+  const d = detail || {}; const zs = String(zhSug || '');
   if (tplKey === 'net_dns_deadaddr') {
     const seen = Object.create(null); const list = [];
     (Array.isArray(d.findings) ? d.findings : []).forEach((raw) => {
@@ -109,6 +133,100 @@ function sugVars(tplKey, detail) {
   }
   if (tplKey === 'pf_boot_duration_marks') return { warnCount: d.warnCount };
   if (tplKey === 'pf_boot_duration_avg') return { avgSec: Math.round((Number(d.avgMs) || 0) / 1000) };
+  /* ---- M2 派生变量（来源=detail 直通字段或数组派生；bs_code_frequency/xnet 的
+     码全名/官方 URL/本机网段从 zh 原文特征提取——engine 产出物即真源） ---- */
+  if (tplKey === 'net_gateway_conflict_conflict') {
+    const rt = Array.isArray(d.routes) ? d.routes : [];
+    return { gwCount: rt.length, gwList: rt.map((r) => r.gateway).join(' / ') };
+  }
+  if (tplKey === 'net_gateway_conflict_xnet') {
+    const rt = Array.isArray(d.routes) ? d.routes : [];
+    const m = zs.match(/本机网段：([0-9./]+)/);
+    return { gw: rt.length ? rt[0].gateway : '', subnet: m ? m[1] : '' };
+  }
+  if (tplKey === 'bs_code_frequency_known' || tplKey === 'bs_code_frequency_unknown') {
+    const m = String(d.distribution || '').match(/(0x[0-9A-Fa-f]+)\s*[×x]\s*(\d+)/);
+    const vars = { code: m ? m[1] : '', count: m ? m[2] : '' };
+    if (tplKey === 'bs_code_frequency_known') {
+      const fm = zs.match(/蓝屏码 0x[0-9A-Fa-f]+（([A-Z_0-9]+)）/);
+      const um = zs.match(/(https:\/\/\S+)/);
+      vars.fullName = fm ? fm[1] : '';
+      vars.url = um ? um[1] : '';
+    }
+    return vars;
+  }
+  if (tplKey === 'bs_event_history') return { count: d.count };
+  if (tplKey === 'bs_powerloss_distinction') return { total41: d.total41 };
+  if (tplKey === 'bs_whea_hardware') return { count: d.count };
+  if (tplKey === 'bs_suspect_drivers') {
+    return { labels: (Array.isArray(d.hits) ? d.hits : []).map((h) => h.label).join('；') };
+  }
+  if (tplKey === 'hw_disk_health') {
+    const bad = (Array.isArray(d.disks) ? d.disks : []).filter((x) => x.health && x.health !== 'Healthy');
+    return { badCount: d.badCount, badList: bad.map((x) => x.name + ' (' + x.health + ')').join('; ') };
+  }
+  if (tplKey === 'hw_smart_predict') {
+    const lines = (Array.isArray(d.rows) ? d.rows : []).map((r) => {
+      if (r.predict === 'true') return r.name + ': SMART PredictFailure=true (the drive itself reports an impending failure)';
+      if (r.errUnc !== 'null' && Number(r.errUnc) > 0) return r.name + ': ' + r.errUnc + ' uncorrectable read errors';
+      if (r.wear !== 'null' && Number(r.wear) > 10) return r.name + ': SSD wear ' + r.wear + '% (over the 10% warning line)';
+      if (r.tempC !== 'null' && Number(r.tempC) > 60) return r.name + ': drive temperature ' + r.tempC + '°C (over 60°C)';
+      return '';
+    }).filter(Boolean);
+    return { alerts: lines.join('\n') };
+  }
+  if (tplKey === 'hw_battery_wear') return { wearPct: d.wearPct };
+  if (tplKey === 'hw_thermal') {
+    const hot = (Array.isArray(d.zones) ? d.zones : []).filter((z) => Number(z.tempC) > 75);
+    return { hotList: hot.map((z) => z.zone + '=' + z.tempC + '°C').join('; ') };
+  }
+  if (tplKey === 'hw_memdiag_history') return { badCount: d.badCount };
+  if (tplKey === 'hw_disk_errors') return { id55: d.id55, id98: d.id98, id153: d.id153 };
+  if (tplKey === 'pf_boot_degradation_events') return { count: d.count };
+  if (tplKey === 'pf_startup_items_overload') return { total: d.total };
+  if (tplKey === 'pf_startup_items_hit') {
+    return { hitList: (Array.isArray(d.hits) ? d.hits : []).map((h) => h.label).join('；') };
+  }
+  if (tplKey === 'pf_service_timeouts') return { total: d.total };
+  if (tplKey === 'pf_disk_space') {
+    const sys = (Array.isArray(d.disks) ? d.disks : []).find((x) => x.isSys);
+    return { freeGB: sys ? sys.freeGB : '', pct: sys ? sys.pct : '' };
+  }
+  if (tplKey === 'pf_memory_pressure_lowmem') return { physicalGB: d.physicalGB };
+  if (tplKey === 'pf_memory_pressure_commit') return { commitPct: d.commitPct };
+  if (tplKey === 'pf_disk_saturation') {
+    return {
+      queueStr: (Array.isArray(d.queue) ? d.queue : []).join('/'),
+      avgStr: (Array.isArray(d.avgMs) ? d.avgMs : []).join('/'),
+    };
+  }
+  if (tplKey === 'pf_app_crashes') {
+    const gs = Array.isArray(d.groups) ? d.groups : (d.groups ? [d.groups] : []);
+    return { total: d.total, apps: gs.map((g) => g.app).join(', ') };
+  }
+  if (tplKey === 'dv_driver_signature') return { badCount: Array.isArray(d.bad) ? d.bad.length : 0 };
+  if (tplKey === 'dv_driver_age') return { old: d.old };
+  if (tplKey === 'dv_thirdparty_inventory') return { thirdParty: d.thirdParty };
+  if (tplKey === 'dv_network_filters') return { filters: d.filters };
+  if (tplKey === 'dv_device_errors_known' || tplKey === 'dv_device_errors_other') {
+    return { errCount: Array.isArray(d.errors) ? d.errors.length : 0 };
+  }
+  if (tplKey === 'dv_driver_load_failures') {
+    const rp = (Array.isArray(d.top) ? d.top : []).filter((t) => Number(t.times) >= 2).map((t) => t.path);
+    return { count: d.count, repeatPaths: rp.join('、') };
+  }
+  if (tplKey === 'net_proxy_vpn_hosts') return { hostsCount: d.hostsCount };
+  if (tplKey === 'sec_defender_exclusions') {
+    const n = (a) => (Array.isArray(a) ? a.length : 0);
+    return { exclCount: n(d.paths) + n(d.extensions) + n(d.processes) + n(d.ipAddresses) };
+  }
+  if (tplKey === 'sec_firewall_profiles') {
+    const off = (Array.isArray(d.profiles) ? d.profiles : []).filter((p) => !p.enabled);
+    return { offCount: off.length };
+  }
+  if (tplKey === 'sec_suspicious_tasks') {
+    return { susCount: Array.isArray(d.suspicious) ? d.suspicious.length : 0 };
+  }
   return {};
 }
 function sugPlaceholders(tpl) {
@@ -116,10 +234,10 @@ function sugPlaceholders(tpl) {
 }
 function enSuggestion(name, zhSug, detail) {
   if (LANG !== 'en-US' || !zhSug) return zhSug;
-  const tplKey = sugTplKey(name, detail);
+  const tplKey = sugTplKey(name, detail, zhSug);
   const tpl = i18nGet(window.I18N_EN || {}, 'suggestions.' + tplKey);
   if (typeof tpl !== 'string' || !tpl) { console.warn('[i18n] missing suggestion template, fallback zh: ' + tplKey); return zhSug; }
-  const vars = sugVars(tplKey, detail);
+  const vars = sugVars(tplKey, detail, zhSug);
   const missing = sugPlaceholders(tpl).filter((p) => vars[p] === undefined || vars[p] === null || vars[p] === '');
   if (missing.length) { console.warn('[i18n] suggestion placeholders unresolvable, fallback zh: ' + tplKey + ' [' + missing.join(',') + ']'); return zhSug; }
   let s = tpl;

@@ -37,6 +37,10 @@ MOCKS = {
     # I 段（建议正文英译 M1）：安全树/性能树单树跑批用 mock；缺 mock 的其余检查=SKIP（missing-mock）
     'sec_uac_level': 'EnableLUA=1\nConsentPromptBehaviorAdmin=0\nPromptOnSecureDesktop=1',
     'pf_boot_duration': '10-20 | Warning | 95300\n10-19 | Warning | 88210\n10-18 | Information | 41200',
+    # I 段 M2 抽验（1026 全量轮）：defender 状态/磁盘空间（嵌套 disks 真对象）/内存 lowmem 变体分支
+    'sec_defender_status': 'AMRunningMode=Normal\nAntivirusEnabled=True\nRealTimeProtectionEnabled=False\nAntivirusSignatureAge=0\nAntivirusSignatureLastUpdated=2026/10/25 0:31:48\n',
+    'pf_disk_space': 'C: | 237 | 11.2 | sys\nD: | 931 | 512 | -\n',
+    'pf_memory_pressure': '2.0 | 31.9 | 3.1\n',
 }
 
 def http_json(url, method='GET', body=None, timeout=8):
@@ -355,11 +359,14 @@ def main():
             cdp.eval("document.querySelector('.pc-item[data-check=\"%s\"]')?.click()" % check_id)
             time.sleep(0.4)
             return str(cdp.eval("document.querySelector('#sug-box')?.innerText || ''"))
-        def run_tree(tree_id):
+        def run_tree(tree_id, full=False):
             # 必须=轮询 /api/events：server 的 jsonReport 指针与 running→done 收割都挂在
             # Read-NewEvents（events 通路）上，只轮 /api/report 会永远等不到新报告；
-            # 且事件缓冲每轮清空（Start-Engine 内 events=@()），开跑后缓冲里的 done 必属本轮
-            http_json('http://127.0.0.1:%d/api/start' % port, method='POST', body='{"tree":"%s"}' % tree_id)
+            # 且事件缓冲每轮清空（Start-Engine 内 events=@()），开跑后缓冲里的 done 必属本轮。
+            # full=True=全树跑完不断点：M2 起安全/性能树有多项 FAIL mock，快速模式断点
+            # 即停会把后排层截成 SKIPPED（I2c/I3c/I3d 读不到项的根因）。
+            body = json.dumps({'tree': tree_id, 'full': bool(full)})
+            http_json('http://127.0.0.1:%d/api/start' % port, method='POST', body=body)
             for _ in range(120):
                 time.sleep(2)
                 ev = http_json('http://127.0.0.1:%d/api/events?since=0' % port)
@@ -376,25 +383,42 @@ def main():
         check('I1 en 死地址建议=英文模板+死地址回填',
               ('192.168.137.1' in i1) and ('netsh interface ip set dns' in i1) and ('223.5.5.5' in i1)
               and ('【' not in i1) and ('死地址' not in i1), i1[:120])
-        # I1b 渐进覆盖回退：未翻模板的 FAIL（net_dns_default）在英文界面仍显中文原文
-        i1b = sug_of('net_dns_default')
-        check('I1b 未翻检查回退中文原文', ('【' in i1b), i1b[:100])
+        # I1b 渐进覆盖回退护栏（M2 全量翻完无未翻项：改运行时删模板键，验证回退仍工作；不动主仓文件）
+        cdp.eval('location.reload()'); cdp.wait_ready(); time.sleep(2.5); cdp.activate()
+        cdp.eval("delete window.I18N_EN.suggestions['net_dns_default_timeout']")
+        cdp.eval("document.querySelector('.tab[data-view=\"results\"]').click()")
+        cdp.eval("document.querySelector('.pc-item[data-check=\"net_dns_default\"]')?.click()")
+        time.sleep(0.4)
+        i1b = str(cdp.eval("document.querySelector('#sug-box')?.innerText || ''"))
+        check('I1b 缺模板键回退中文原文（运行时删键）', ('【' in i1b), i1b[:100])
         # I2 安全树跑批→UAC 建议英文（纯静态模板）
-        check('I2 安全树跑批完成', run_tree('security'))
+        check('I2 安全树跑批完成', run_tree('security', full=True))
         time.sleep(1.5)
         i2 = sug_of('sec_uac_level')
         check('I2b en UAC 建议=英文（useraccountcontrolsettings 路径在场）',
               ('useraccountcontrolsettings' in i2) and ('Never notify' in i2) and ('【' not in i2), i2[:120])
+        # I2c M2 抽验：defender 状态静态模板（安全树 mock 已在，同一次跑批带出）
+        i2c = sug_of('sec_defender_status')
+        check('I2c en Defender 状态建议=英文（Real-time protection 指引）',
+              ('Real-time protection' in i2c) and ('Virus & threat protection' in i2c) and ('【' not in i2c), i2c[:120])
         # I3 性能树跑批（2×Warning）→慢启动标记分支英文+数字回填
-        check('I3 性能树跑批完成', run_tree('performance'))
+        check('I3 性能树跑批完成', run_tree('performance', full=True))
         time.sleep(1.5)
         i3 = sug_of('pf_boot_duration')
         check('I3b en 开机建议=marks 分支（flagged 2 of the last 5）',
               ('flagged 2 of the last 5 boots' in i3) and ('Ctrl+Shift+Esc' in i3) and ('【' not in i3), i3[:120])
+        # I3c M2 抽验：磁盘空间=合并键+嵌套 disks 真对象派生回填（engine 升 -Depth 12 后数组对象直达）
+        i3c = sug_of('pf_disk_space')
+        check('I3c en 磁盘空间建议=嵌套 disks 回填（11.2GB (4.7%)）',
+              ('11.2GB' in i3c) and ('4.7%' in i3c) and ('Storage Sense' in i3c) and ('【' not in i3c), i3c[:120])
+        # I3d M2 抽验：内存 lowmem 变体分支（physicalGB<4 走 lowmem 键）+直通占位符回填
+        i3d = sug_of('pf_memory_pressure')
+        check('I3d en 内存建议=lowmem 变体分支（2GB below the official minimum）',
+              ('2GB' in i3d) and ('4GB' in i3d) and ('【' not in i3d), i3d[:120])
         # I4 换 avg mock 再跑性能树→均值分支：75 秒换算（78000+72000 → avg 75000ms → 75s）
         open(os.path.join(tmp, 'mocks', 'pf_boot_duration.txt'), 'w', encoding='utf-8').write(
             '10-20 | Information | 78000\n10-19 | Information | 72000')
-        check('I4 性能树二跑完成', run_tree('performance'))
+        check('I4 性能树二跑完成', run_tree('performance', full=True))
         time.sleep(1.5)
         i4 = sug_of('pf_boot_duration')
         check('I4b en 开机建议=avg 分支（averaged 75 seconds）',

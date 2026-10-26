@@ -338,9 +338,13 @@ if ($enJs -match '(?ms)suggestions:\s*\{(.*?)\n\s*\},') { $sugBlock = $Matches[1
 $blockKeys = @([regex]::Matches($sugBlock, "(?m)^\s*'([A-Za-z0-9_]+)':") | ForEach-Object { $_.Groups[1].Value })
 $badKeys = @()
 foreach ($k in $blockKeys) {
+    # full key first (e.g. net_dns_gateway_proxy ends in a registered suffix yet IS a check id),
+    # then strip exactly one registered suffix
     $base = $k
-    foreach ($sfx in $global:DiagI18nVariantSuffixes) {
-        if ($base.EndsWith($sfx)) { $base = $base.Substring(0, $base.Length - $sfx.Length); break }
+    if (-not (Test-Path -LiteralPath (Join-Path $root ("checks/" + $base + ".ps1")))) {
+        foreach ($sfx in $global:DiagI18nVariantSuffixes) {
+            if ($base.EndsWith($sfx)) { $base = $base.Substring(0, $base.Length - $sfx.Length); break }
+        }
     }
     if (-not (Test-Path -LiteralPath (Join-Path $root ("checks/" + $base + ".ps1")))) { $badKeys += $k }
 }
@@ -349,17 +353,48 @@ else { Add-Result 'i18n' 'sug_keys_map_to_checks' ('keys=' + $blockKeys.Count) $
 
 foreach ($ic in $global:DiagI18nCases) {
     $scriptFile = Join-Path $root ("checks/" + $ic.check + ".ps1")
+    # mock 来源：用例自带 mock（M1 范式），或 mockFrom='note 片段' 引用 cases.ps1 的既有 FAIL 用例
+    # （M2 起：挑 check 相同 + note 含片段 + expectStatus=FAIL 的第一条；找不到=显性 FAIL 不静默）
+    $mockRaw = $ic.mock
+    $codesJson = $ic.mockCodesJson; $suspJson = $ic.mockSuspectsJson
+    if (-not $mockRaw -and $ic.mockFrom) {
+        $src = @($global:DiagCases | Where-Object { $_.check -eq $ic.check -and $_.expectStatus -eq 'FAIL' -and $_.note -like ('*' + $ic.mockFrom + '*') })
+        if ($src.Count -lt 1) {
+            Add-Result 'i18n' $ic.name '' $false ('mockFrom not found in cases.ps1: ' + $ic.mockFrom)
+            continue
+        }
+        $mockRaw = $src[0].mock; $codesJson = $src[0].mockCodesJson; $suspJson = $src[0].mockSuspectsJson
+    }
+    if (-not $mockRaw) {
+        Add-Result 'i18n' $ic.name '' $false 'case has neither mock nor mockFrom'
+        continue
+    }
     $mockTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-mock-i18n-$PID-" + $ic.name + '.txt')
-    Set-Content -Path $mockTmp -Value $ic.mock -Encoding UTF8
+    Set-Content -Path $mockTmp -Value $mockRaw -Encoding UTF8
+    $exArgs = @(); $tmpJsons = @()
+    if ($codesJson) {
+        $cj = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-i18n-codes-$PID-" + $ic.name + '.json')
+        Set-Content -Path $cj -Value $codesJson -Encoding UTF8
+        $exArgs += @('-CodesFile', $cj); $tmpJsons += $cj
+    }
+    if ($suspJson) {
+        $sj = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-i18n-susp-$PID-" + $ic.name + '.json')
+        Set-Content -Path $sj -Value $suspJson -Encoding UTF8
+        $exArgs += @('-SuspectsFile', $sj); $tmpJsons += $sj
+    }
     $job = Start-Job -ScriptBlock {
-        param($ps, $s, $mf)
+        param($ps, $s, $mf, $ex)
         [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-        & $ps -NoProfile -ExecutionPolicy Bypass -File $s -MockFile $mf 2>&1 | Out-String
-    } -ArgumentList $diagPs, $scriptFile, $mockTmp
+        $a = @()
+        if ($mf) { $a += @('-MockFile', $mf) }
+        if ($ex) { $a += $ex }
+        & $ps -NoProfile -ExecutionPolicy Bypass -File $s @a 2>&1 | Out-String
+    } -ArgumentList $diagPs, $scriptFile, $mockTmp, $exArgs
     if (-not (Wait-Job $job -Timeout 60)) { Stop-Job $job -Force; $outText = '' }
     else { $outText = (Receive-Job $job) | Out-String }
     Remove-Job $job -Force -ErrorAction SilentlyContinue
     Remove-Item $mockTmp -Force -ErrorAction SilentlyContinue
+    foreach ($tj in $tmpJsons) { Remove-Item $tj -Force -ErrorAction SilentlyContinue }
     $bad = @()
     $j = $null
     try { $j = $outText | ConvertFrom-Json } catch { $j = $null }
