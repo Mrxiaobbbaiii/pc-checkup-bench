@@ -136,6 +136,13 @@ if (Test-Path -LiteralPath $repairActionsDir) {
     }
 }
 
+# ---------- v1.8 处置分层：coverage.json 处置注册表（每 FAIL-able 检查项的档位；随 /api/repair/list 下发） ----------
+$repairCoverage = $null
+$coveragePath = Join-Path $root 'repair\coverage.json'
+if (Test-Path -LiteralPath $coveragePath) {
+    try { $repairCoverage = Get-Content -LiteralPath $coveragePath -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $repairCoverage = $null; Write-CrashLog ('coverage.json unparsable: ' + $_.Exception.Message) }
+}
+
 # ---------- v1.1.0 ext 扩展修复动作（ext\repair\actions\*.json；只新增不覆盖：id 与内置冲突忽略+crash log 告警；红级照样零执行） ----------
 # 同 ext 树——数据根先扫（用户扩展），应用根后扫（包内示例）
 $extActionsDirs = @((Join-Path $dataRoot 'ext\repair\actions'), (Join-Path $root 'ext\repair\actions')) | Select-Object -Unique
@@ -515,8 +522,8 @@ function Invoke-Route($ctx) {
             return
         }
         if ($path -eq '/api/repair/list') {
-            # 动作库清单（含等级/三行文案/步骤人话/匹配检查项；ui 修复中心数据源）
-            Send-Json $res ([ordered]@{ ok = $true; actions = $repairDefs })
+            # 动作库清单（含等级/三行文案/步骤人话/匹配检查项；ui 修复中心数据源；v1.8 附处置档位注册表）
+            Send-Json $res ([ordered]@{ ok = $true; actions = $repairDefs; coverage = $repairCoverage })
             return
         }
         if ($path -eq '/api/repair/history') {

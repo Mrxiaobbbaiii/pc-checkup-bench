@@ -15,7 +15,7 @@
   }
  ],
  "rollback": [],
- "rollback_note": "",
+ "rollback_note": "侦察只读无变更，无需撤销",
  "timeout_sec": 60,
  "caveat": "侦察只读；驱动与加速器的卸载决策永远由你拍板（游戏刚需件请自留），对号表只是指路。",
  "match_checks": ["dv_network_filters", "dv_thirdparty_inventory"],

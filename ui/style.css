@@ -958,3 +958,38 @@ html[data-theme="dark"] .repair-item, html[data-theme="dark"] .action-card {
 .trend-bar i.bad { background: var(--bad, #ff7d7d); }
 .trend-bar i.ok { background: var(--ok, #56d29c); }
 .trend-val { min-width: 28px; text-align: right; font-weight: 600; }
+
+/* ===== v1.8 处置分层：档位徽章+recon 侦察对号表（颜色全走主题变量，深浅自适配） ===== */
+.disp-chip {
+  flex: none; font-size: var(--fs-1); font-weight: 600; border-radius: 999px; padding: 1px 9px;
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--dim); white-space: nowrap;
+}
+.disp-auto   { color: var(--pass); border-color: color-mix(in srgb, var(--pass) 45%, var(--line)); background: color-mix(in srgb, var(--pass) 9%, var(--panel-2)); }
+.disp-semi   { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--accent-soft); }
+.disp-wizard { color: var(--yellow); border-color: color-mix(in srgb, var(--yellow) 45%, var(--line)); background: color-mix(in srgb, var(--yellow) 9%, var(--panel-2)); }
+.disp-manual { color: var(--dim); }
+.disp-watch  { color: var(--faint); border-style: dashed; }
+.lv-tag.recon { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--accent-soft); }
+.recon-table {
+  margin-top: 10px; padding: 10px 13px; border-radius: 8px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  font-size: var(--fs-1); line-height: 1.7;
+}
+.recon-cap { color: var(--dim); font-weight: 600; letter-spacing: .3px; margin-bottom: 5px; }
+.recon-row {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 3px 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  overflow-wrap: anywhere;
+}
+.recon-row:last-of-type { border-bottom: none; }
+.recon-row b { font-family: var(--mono); min-width: 130px; }
+.recon-row > span:nth-of-type(1) { min-width: 130px; color: var(--dim); }
+.recon-row > span:nth-of-type(2) { flex: 1 1 160px; color: var(--dim); }
+.recon-row.recon-residue b { color: var(--fail); }
+.recon-tag {
+  flex: none; font-weight: 700; border-radius: 5px; padding: 0 7px;
+  color: var(--fail); border: 1px solid color-mix(in srgb, var(--fail) 45%, var(--line));
+  background: color-mix(in srgb, var(--fail) 10%, transparent);
+}
+.recon-apps { margin-top: 6px; color: var(--text); }
+.recon-note { margin-top: 6px; color: var(--faint); }

@@ -279,12 +279,14 @@ $global:DiagRepairCases = @(
             $seenIds = @{}
             $exeAllow = @('ipconfig.exe', 'arp.exe', 'nbtstat.exe', 'netsh.exe', 'reg.exe', 'w32tm.exe', 'ie4uinit.exe', 'net.exe', 'powercfg.exe', 'cmd.exe', 'driverquery.exe', 'pnputil.exe')
             $exeAllowRed = @('sfc.exe', 'dism.exe', 'notepad.exe', 'ipconfig.exe', 'pnputil.exe', 'cmd.exe', 'driverquery.exe', 'powercfg.exe')
+            # v1.8 recon 级：exe 白名单与 repair.ps1 ReconExeAllow 同集（只读侦察硬门）
+            $exeAllowRecon = @('powershell.exe', 'sc.exe', 'driverquery.exe', 'tasklist.exe', 'pnputil.exe', 'reg.exe')
             foreach ($jf in $jsons) {
                 $a = $null
                 try { $a = Get-Content -LiteralPath $jf.FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $bad += "unparsable: $($jf.Name)"; continue }
                 if ([string]$a.id -ne $jf.BaseName) { $bad += "id/file mismatch: $($jf.Name)" }
                 $lvl = [string]$a.level
-                if (@('green', 'yellow', 'red') -notcontains $lvl) { $bad += "level not green/yellow/red: $($jf.Name)" }
+                if (@('green', 'yellow', 'red', 'recon') -notcontains $lvl) { $bad += "level not green/yellow/red/recon: $($jf.Name)" }
                 if ($seenIds[[string]$a.id]) { $bad += "duplicate id: $($a.id)" }
                 $seenIds[[string]$a.id] = $true
                 foreach ($mc in @($a.match_checks)) { if ($checksNames -notcontains [string]$mc) { $bad += "match_check not a real check: $mc" } }
@@ -292,7 +294,7 @@ $global:DiagRepairCases = @(
                 # v0.9.8：match_checks 为空的动作必须标 common=true（防「永不出现」的死动作）
                 if (-not @($a.match_checks).Count -and $a.common -ne $true) { $bad += "match_checks empty requires common=true: $($jf.Name)" }
                 if (@($a.steps).Count -lt 1) { $bad += "no steps: $($jf.Name)" }
-                $lvlAllow = $exeAllow; if ($lvl -eq 'red') { $lvlAllow = $exeAllowRed }
+                $lvlAllow = $exeAllow; if ($lvl -eq 'red') { $lvlAllow = $exeAllowRed }; if ($lvl -eq 'recon') { $lvlAllow = $exeAllowRecon }
                 foreach ($st in @($a.steps)) {
                     if ($lvlAllow -notcontains [string]$st.exe) { $bad += "exe not in allowlist: $($st.exe)" }
                     if (-not @($st.args).Count) { $bad += "step without args: $($jf.Name)" }
@@ -1189,7 +1191,7 @@ $fixtureReconFirstArg = @'
  "name": "bad first arg",
  "level": "recon",
  "desc": "x", "affect": "x", "undo": "", "requires_admin": false, "prechecks": [],
- "steps": [ { "exe": "reg.exe", "args": ["delete", "HKLM\\SOFTWARE\\Test"], "desc": "reg delete not allowed" } ],
+ "steps": [ { "exe": "reg.exe", "args": ["enumdepend", "Spooler"], "desc": "first arg not in read-only subset" } ],
  "rollback": [], "timeout_sec": 10, "match_checks": [], "verify_checks": [], "sources": []
 }
 '@
@@ -1265,7 +1267,7 @@ $fixtureReconEscape = @'
  "name": "path escape",
  "level": "recon",
  "desc": "x", "affect": "x", "undo": "", "requires_admin": false, "prechecks": [],
- "steps": [ { "exe": "powershell.exe", "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "..\\actions\\zz_test_recon_escape.json"], "desc": "escape recon dir" } ],
+ "steps": [ { "exe": "powershell.exe", "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "..\\actions\\zz_test_recon_escape.ps1"], "desc": "escape recon dir" } ],
  "rollback": [], "timeout_sec": 10, "match_checks": [], "verify_checks": [], "sources": []
 }
 '@

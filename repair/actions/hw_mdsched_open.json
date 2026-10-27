@@ -15,7 +15,7 @@
   }
  ],
  "rollback": [],
- "rollback_note": "",
+ "rollback_note": "关闭弹出的窗口即无痕，无需撤销",
  "timeout_sec": 20,
  "caveat": "官方工具入口=Win+R 运行 mdsched；诊断是只读检测不改配置。想更深入的测试用 MemTest86U 盘版（官方文档有指引）。",
  "match_checks": ["hw_memdiag_history", "bs_whea_hardware"],
