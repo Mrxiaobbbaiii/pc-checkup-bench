@@ -411,6 +411,13 @@ html[data-theme="dark"] .verdict-banner {
   padding: 10px 16px; border-left: 4px solid var(--accent);
 }
 
+/* 快照恢复横幅（v1.8.3）：重开软件恢复上次体检结果时置顶标注「非本次实跑」 */
+.restore-bar {
+  margin-bottom: 10px; padding: 10px 16px; border-left: 4px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  font-size: var(--fs-2); font-weight: 600; color: var(--dim);
+}
+
 /* 先修这个（v1.4.0）：根因关联行动区——合并项+单项行动，按收益÷风险×把握排序 */
 .first-fix { border-left: 4px solid var(--accent); }
 .ff-intro { font-size: var(--fs-2); color: var(--dim); line-height: 1.5; margin: 2px 0 10px; }

@@ -85,6 +85,8 @@ window.I18N_EN = {
 
     status_ready: 'Ready',
     ver_chip: 'PC Checkup Bench {v}',
+    restore_banner: 'Snapshot of your last checkup · {when} · not a live run (rerun to refresh)',
+    restore_status: 'Last checkup restored — view problems and fixes without rerunning; start a new checkup for fresh results',
     run_time: 'Elapsed {t}',
     quit_title: 'Checkup not finished. Quit anyway?',
     quit_body: 'Quitting stops the running checks. This round will not produce a report.',

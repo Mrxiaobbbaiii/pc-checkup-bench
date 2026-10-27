@@ -105,6 +105,17 @@ def main():
     env = dict(os.environ)
     env['DIAG_DATA_ROOT'] = os.path.join(tmp, 'dataroot')
     os.makedirs(env['DIAG_DATA_ROOT'], exist_ok=True)
+    # v1.8.3 快照恢复测试夹具：dataroot\reports 预置一份历史 JSON，重开软件应自动恢复
+    rep_dir = os.path.join(env['DIAG_DATA_ROOT'], 'reports')
+    os.makedirs(rep_dir, exist_ok=True)
+    open(os.path.join(rep_dir, 'diag-hardware-20260101-120000.json'), 'w', encoding='utf-8-sig').write(
+        json.dumps({'engine': '电脑体检台 v1.8.2', 'host': 'uitest', 'time': '2026-01-01 12:00:00',
+                    'trees': [{'tree': 'hardware', 'report_name': '硬件体检报告', 'verdict_all_pass': False,
+                               'break_layer': 'mem',
+                               'layers': [{'name': 'mem', 'title': '内存主板', 'state': 'BREAK',
+                                           'checks': [{'name': 'hw_memdiag_history', 'status': 'FAIL',
+                                                       'evidence': 'uitest-evidence', 'suggestion': 'uitest-fix',
+                                                       'detail': {}}]}]}]}, ensure_ascii=False))
     server = subprocess.Popen(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
         os.path.join(DIAG, 'server.ps1'), '-NoBrowser', '-PortFile', portfile, '-MockDir', os.path.join(tmp, 'mocks')],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
@@ -165,7 +176,7 @@ def main():
         check('A1 五棵单树卡', cdp.eval("document.querySelectorAll('.check-item').length") >= 5,
               str(cdp.eval("document.querySelectorAll('.check-item').length")))
         check('A2 开始体检按钮在', cdp.eval("!!document.querySelector('#btn-run')"))
-        check('A3 版本串 v1.8.2', 'v1.8.2' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
+        check('A3 版本串 v1.8.3', 'v1.8.3' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
         check('A4 只读承诺文案', '只看、不动你电脑的任何设置' in str(cdp.eval('document.body.innerText')))
         # 首次启动引导：全新 profile（localStorage 空）→三步引导卡可见
         check('A5 首次启动引导卡在', cdp.eval("!!document.querySelector('#first-guide') && !document.querySelector('#first-guide').classList.contains('hidden')"))
@@ -189,6 +200,17 @@ def main():
         # 恢复「全面体检」默认态
         cdp.eval("document.querySelector('#chk-all').click()")
         check('A9 恢复全面体检默认态', cdp.eval("document.querySelector('#chk-all').checked") is True)
+
+        # ---- A9b-A9d v1.8.3 重开软件快照恢复（dataroot\reports 预置历史 JSON；呈现层，判定零碰） ----
+        time.sleep(1)
+        check('A9b 启动自动恢复结果树', cdp.eval("document.querySelectorAll('#result-tree details').length") > 0,
+              str(cdp.eval("document.querySelectorAll('#result-tree details').length")))
+        check('A9c 快照横幅标注非实跑', '快照' in str(cdp.eval("document.querySelector('.restore-bar')?.textContent || ''")),
+              str(cdp.eval("document.querySelector('.restore-bar')?.textContent || ''")))
+        # A9d：修复中心随快照渲染就绪（计数语义依赖 list[0] 的 FAIL 带 suggestion，真跑报告铁律必有；
+        # 本沙箱 list[0]=E 段预塞件无 suggestion，cnt 空=正确行为，不锁计数锁渲染）
+        a9d_n = cdp.eval("document.querySelectorAll('#repair-list *').length")
+        check('A9d 修复中心随快照渲染就绪', a9d_n > 0, str(a9d_n))
 
         # ---- A10-A16 v1.7.1 体验修批（进度条双图层 / ui\custom 静态层 / 运行选项行 / 组合提示） ----
         # 静态通路 custom 层优先：临时写 ui\custom\bg.jpg 哨兵 → /bg.jpg 应回哨兵 → 删除后回落包内 JPEG
@@ -289,7 +311,7 @@ def main():
         time.sleep(2.5)
         hist_txt = str(cdp.eval("document.querySelector('#view-history')?.innerText || ''"))
         hist_items = cdp.eval("document.querySelectorAll('.hist-item').length")
-        check('E1 历史列表3份(预塞2+跑批1)', hist_items == 3, str(hist_items) + ' :: ' + hist_txt[:160])
+        check('E1 历史列表4份(预塞2+跑批1+v1.8.3快照夹具1)', hist_items == 4, str(hist_items) + ' :: ' + hist_txt[:160])
         check('E2 趋势区渲染', '问题数趋势' in hist_txt)
         cmp_visible = cdp.eval("document.querySelector('#hist-compare-card')?.hidden === false")
         check('E3 对比卡可见(>=2份)', cmp_visible)

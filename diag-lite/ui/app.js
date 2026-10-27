@@ -9,7 +9,7 @@
    —— 页眉合并为「外观」菜单；字号四档；键盘焦点可见；红级指南可整段复制。
    只读承诺、绿/黄/红三级语义、五段修复结果、server/engine 接口全部保持 v1.0.1 原样。 */
 
-const APP_VERSION = 'v1.8.2';
+const APP_VERSION = 'v1.8.3';
 
 /* v1.1.0 ext 口子：ui/custom.css 存在则加载（免重打包换肤）；不存在=404 静默跳过，控制台零报错 */
 fetch('custom.css', { cache: 'no-store' })
@@ -1061,6 +1061,7 @@ function stopElapsed() {
 /* ---------- 报告 ---------- */
 async function loadReport() {
   try {
+    const oldBar = document.querySelector('.restore-bar'); if (oldBar) oldBar.remove(); // 跑新批装载前清快照横幅
     const r = await fetch('/api/report', { cache: 'no-store' });
     const j = await r.json();
     if (j.error || !j.report) { S.reportPayload = null; S.entries = null; updateResultsShell(); return false; }
@@ -1072,6 +1073,39 @@ async function loadReport() {
     if (S.pendingSense && S.appState === 'done') { S.pendingSense = false; renderFixSense(); }
     return true;
   } catch (e) { updateResultsShell(); return false; }
+}
+
+/* ---------- 重开软件恢复上次体检快照（v1.8.3；呈现层，判定零碰，数据源=reports/ 已落盘 JSON） ---------- */
+async function restoreLastSnapshot() {
+  if (S.reportPayload) return;
+  try {
+    const r = await fetch('/api/reports/list', { cache: 'no-store' });
+    const list = ((await r.json()).reports || []).filter((x) => /\.json$/i.test(x.file));
+    if (!list.length) return;
+    const rr = await fetch('/reports/' + encodeURIComponent(list[0].file), { cache: 'no-store' });
+    const rep = await rr.json();
+    if (!rep || !(rep.trees || []).length) return;
+    let anyFail = false;
+    (rep.trees || []).forEach((t) => (t.layers || []).forEach((l) => (l.checks || []).forEach((c) => { if (c.status === 'FAIL') anyFail = true; })));
+    S.reportPayload = { report: rep, exit: anyFail ? 2 : 0, restored: true };
+    const htmlName = list[0].file.replace(/\.json$/i, '.html');
+    S.htmlUrl = (list.some((x) => x.file === htmlName)) ? '/reports/' + encodeURIComponent(htmlName) : '';
+    buildResultTree();
+    buildRepairList();
+    renderRestoreBanner();
+    setStatus(t('chrome.restore_status'));
+  } catch (e) {}
+}
+
+function renderRestoreBanner() {
+  if (!S.reportPayload || !S.reportPayload.restored) return;
+  const host = $('#results-body'); if (!host) return;
+  const old = host.querySelector('.restore-bar'); if (old) old.remove();
+  const when = (S.reportPayload.report.time || '').replace(/:\d\d$/, '');
+  const bar = document.createElement('div');
+  bar.className = 'restore-bar';
+  bar.textContent = tf('chrome.restore_banner', { when });
+  host.prepend(bar);
 }
 
 function updateResultsShell() {
@@ -2640,6 +2674,9 @@ if (/[?&]probe/.test(location.search)) {
       $('#btn-run').textContent = t('chrome.run_again');
       updateSelUi();
       markGuided(); // server 侧已跑完＝跑过一轮体检：首次引导卡同样永久收起（防跑完瞬间刷新回潮）
+    } else if (p0.state !== 'running') {
+      // 重开软件（server 新会话）：静默恢复最近一次体检快照——结果中心/修复中心免重跑直接可用（v1.8.3）
+      await restoreLastSnapshot();
     }
   } catch (e) {}
   updateResultsShell();
@@ -2666,6 +2703,7 @@ function histCheckMap(rep) {
    纯前端复用对比口径（改善=上次 FAIL 这次不 FAIL；新增=上次不 FAIL 这次 FAIL），明细去历史对比页看 */
 async function renderDeltaBar() {
   const el = $('#delta-bar'); if (!el) return;
+  if (S.reportPayload && S.reportPayload.restored) { el.classList.add('hidden'); return; } // 快照恢复态：「和上次比」失义，隐藏
   try {
     const r = await fetch('/api/reports/list', { cache: 'no-store' });
     const list = ((await r.json()).reports) || [];

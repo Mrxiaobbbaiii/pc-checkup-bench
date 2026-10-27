@@ -85,6 +85,8 @@ window.I18N_ZH = {
 
     status_ready: '就绪',
     ver_chip: '电脑体检台 {v}',
+    restore_banner: '上次体检快照 · {when} · 非本次实跑（重跑可刷新）',
+    restore_status: '已恢复上次体检结果，免重跑即可查看问题与修复；开始体检可获取最新状态',
     run_time: '用时 {t}',
     quit_title: '体检没跑完，确定退出？',
     quit_body: '退出会停掉正在跑的检查，这一轮不会出报告。',
