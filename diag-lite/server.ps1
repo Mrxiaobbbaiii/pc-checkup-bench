@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
 <#
-diag web server v1.7.1 —— Edge 壳本地服务（判定零改动，engine 数据通路沿用；
+diag web server v1.8.0 —— Edge 壳本地服务（判定零改动，engine 数据通路沿用；
       v1.1.0 起加载 ext	rees 与 ext
 epairctions：只新增不覆盖，同名冲突忽略+crash log 告警）
 用法（bat 启动器代跑）：powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File server.ps1
@@ -42,7 +42,7 @@ elseif ($root -like '*\WindowsApps\*') {
 $engineScript = Join-Path $root 'engine\run.ps1'
 $uiDir = Join-Path $root 'ui'
 $reportsDir = Join-Path $dataRoot 'reports'
-$webVersion = 'v1.7.1'
+$webVersion = 'v1.8.0'
 $diagPs = (Get-Process -Id $PID).Path
 
 # ---------- 子进程 stdout 排水器（C# 空回调：scriptblock delegate 无 runspace 回调线程会炸进程；v0.6 已验机制照搬）
@@ -134,6 +134,13 @@ if (Test-Path -LiteralPath $repairActionsDir) {
             else { Write-CrashLog ('repair action skipped (no id/level/steps): ' + $af.Name) }
         } catch { Write-CrashLog ('repair action json bad: ' + $af.Name + ' : ' + $_.Exception.Message) }
     }
+}
+
+# ---------- v1.8 处置分层：coverage.json 处置注册表（每 FAIL-able 检查项的档位；随 /api/repair/list 下发） ----------
+$repairCoverage = $null
+$coveragePath = Join-Path $root 'repair\coverage.json'
+if (Test-Path -LiteralPath $coveragePath) {
+    try { $repairCoverage = Get-Content -LiteralPath $coveragePath -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $repairCoverage = $null; Write-CrashLog ('coverage.json unparsable: ' + $_.Exception.Message) }
 }
 
 # ---------- v1.1.0 ext 扩展修复动作（ext\repair\actions\*.json；只新增不覆盖：id 与内置冲突忽略+crash log 告警；红级照样零执行） ----------
@@ -515,8 +522,8 @@ function Invoke-Route($ctx) {
             return
         }
         if ($path -eq '/api/repair/list') {
-            # 动作库清单（含等级/三行文案/步骤人话/匹配检查项；ui 修复中心数据源）
-            Send-Json $res ([ordered]@{ ok = $true; actions = $repairDefs })
+            # 动作库清单（含等级/三行文案/步骤人话/匹配检查项；ui 修复中心数据源；v1.8 附处置档位注册表）
+            Send-Json $res ([ordered]@{ ok = $true; actions = $repairDefs; coverage = $repairCoverage })
             return
         }
         if ($path -eq '/api/repair/history') {

@@ -9,7 +9,7 @@
    —— 页眉合并为「外观」菜单；字号四档；键盘焦点可见；红级指南可整段复制。
    只读承诺、绿/黄/红三级语义、五段修复结果、server/engine 接口全部保持 v1.0.1 原样。 */
 
-const APP_VERSION = 'v1.7.1';
+const APP_VERSION = 'v1.8.0';
 
 /* v1.1.0 ext 口子：ui/custom.css 存在则加载（免重打包换肤）；不存在=404 静默跳过，控制台零报错 */
 fetch('custom.css', { cache: 'no-store' })

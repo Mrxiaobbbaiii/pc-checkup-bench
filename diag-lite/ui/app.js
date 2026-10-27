@@ -9,7 +9,7 @@
    —— 页眉合并为「外观」菜单；字号四档；键盘焦点可见；红级指南可整段复制。
    只读承诺、绿/黄/红三级语义、五段修复结果、server/engine 接口全部保持 v1.0.1 原样。 */
 
-const APP_VERSION = 'v1.7.1';
+const APP_VERSION = 'v1.8.0';
 
 /* v1.1.0 ext 口子：ui/custom.css 存在则加载（免重打包换肤）；不存在=404 静默跳过，控制台零报错 */
 fetch('custom.css', { cache: 'no-store' })
@@ -62,6 +62,13 @@ function actField(a, field) {
   if (typeof v === 'string' && v) return v;
   console.warn('[i18n] missing action field: ' + a.id + '.' + field);
   return raw;
+}
+/* v1.8 处置分层：检查项→处置档位（coverage 注册表；server /api/repair/list 附带） */
+function dispTierFor(check) {
+  const c = S.repairCoverage;
+  if (!c || !c[check]) return null;
+  const d = c[check].disposition;
+  return ['auto', 'semi', 'wizard', 'manual', 'watch'].indexOf(d) >= 0 ? d : null;
 }
 function actSteps(a) {
   const raw = a.steps || [];
@@ -346,6 +353,7 @@ const S = {
   elapsedTimer: null,
   beatFail: 0,
   repairActions: null,   // /api/repair/list 缓存（null=还没拿到）
+  repairCoverage: null,  // v1.8 处置档位注册表（同端点 coverage.checks；null=还没拿到）
   repairBusy: false,     // 本地镜像：修复进行中（禁其他修复/按钮态）
   repairDoneIds: {},     // 已执行过的动作 id → 结果（防重复渲染）
   lastNode: null,        // 结果树最后选中节点
@@ -606,7 +614,7 @@ function renderFirstFix() {
     const why = document.createElement('div');
     why.className = 'ff-why';
     why.textContent = act ? tf('chrome.ff_has_action', { name: actField(act, 'name') }) +
-      (act.level === 'green' ? t('chrome.ff_green') : act.level === 'yellow' ? t('chrome.ff_yellow') : t('chrome.ff_red'))
+      (act.level === 'green' ? t('chrome.ff_green') : act.level === 'yellow' ? t('chrome.ff_yellow') : act.level === 'recon' ? t('chrome.ff_recon') : t('chrome.ff_red'))
       : t('chrome.ff_no_action');
     item.appendChild(why);
     const btnRow = document.createElement('div');
@@ -1334,7 +1342,16 @@ function buildProblemList() {
       const trEl = document.createElement('span');
       trEl.className = 'pc-tree';
       trEl.textContent = e.trees.map((x) => repNameDisplay(x)).join(' / ');
-      btn.appendChild(st); btn.appendChild(nm); btn.appendChild(trEl);
+      btn.appendChild(st); btn.appendChild(nm);
+      const disp = dispTierFor(e.name);   // v1.8 处置档位徽章：这项工具能帮你到哪一步
+      if (disp) {
+        const chip = document.createElement('span');
+        chip.className = 'disp-chip disp-' + disp;
+        chip.textContent = t('chrome.disp_' + disp);
+        chip.title = t('chrome.disp_' + disp + '_tip');
+        btn.appendChild(chip);
+      }
+      btn.appendChild(trEl);
       btn.addEventListener('click', () => renderCheckDetail(e));
       list.appendChild(btn);
     });
@@ -1650,6 +1667,7 @@ const LV_META = {
   green: { get word() { return t('chrome.lv_green'); }, cls: 'green' },
   yellow: { get word() { return t('chrome.lv_yellow'); }, cls: 'yellow' },
   red: { get word() { return t('chrome.lv_red'); }, cls: 'red' },
+  recon: { get word() { return t('chrome.lv_recon'); }, cls: 'recon' },
 };
 const CMD_MAP = {
   'ipconfig.exe /flushdns': 'ipconfig /flushdns',
@@ -1949,8 +1967,9 @@ function buildActionCard(a, hits) {
   const btn = document.createElement('button');
   btn.className = 'btn act-run';
   btn.dataset.actionId = a.id;
-  if (a.level === 'green') {
-    btn.textContent = a.requires_admin ? t('chrome.btn_run_green_admin') : t('chrome.btn_run_green');
+  if (a.level === 'green' || a.level === 'recon') {
+    btn.textContent = a.level === 'recon' ? t('chrome.btn_run_recon')
+      : (a.requires_admin ? t('chrome.btn_run_green_admin') : t('chrome.btn_run_green'));
     btn.addEventListener('click', () => onGreenRun(a, btn, card));
   } else if (a.level === 'yellow') {
     btn.textContent = t('chrome.btn_run_yellow');
@@ -2171,7 +2190,7 @@ async function startRepairRun(a, btn, card, opts) {
   opts = opts || {};
   S.lastRepairCtx = { a, btn, card };  // 还原点中止等场景「跳过还原点直接修」重试要用
   setRepairBusy(true, btn);
-  setStatus(tf('chrome.repairing', { name: actField(a, 'name'), extra: a.level === 'yellow' ? t('chrome.repairing_yellow') : t('chrome.repairing_ellipsis') }), '', 'run');
+  setStatus(tf(a.level === 'recon' ? 'chrome.recon_running' : 'chrome.repairing', { name: actField(a, 'name'), extra: a.level === 'yellow' ? t('chrome.repairing_yellow') : t('chrome.repairing_ellipsis') }), '', 'run');
   let slot = card.querySelector('.ac-result');
   if (!slot) { slot = document.createElement('div'); slot.className = 'ac-result'; card.appendChild(slot); }
   slot.innerHTML = '<div class="rr-big running">' + esc(tf('chrome.rr_running', { name: actField(a, 'name') })) + '</div>' +
@@ -2248,6 +2267,49 @@ function renderRepairResult(slot, res, okWord) {
         : tf('chrome.verify_skip', { name: humanCheck(c.name) });
       slot.appendChild(l);
     });
+  }
+  // v1.8 处置分层：recon 侦察结果=对号表（只读代查数据，非「修复结果」语义）
+  const reconOuts = res.stages && res.stages.exec && res.stages.exec.recon_out;
+  if (reconOuts && reconOuts.length) {
+    let rj = null;
+    try { rj = JSON.parse(reconOuts[0]); } catch (e) { }
+    if (rj && rj.rows) {
+      const tbl = document.createElement('div');
+      tbl.className = 'recon-table';
+      const cap = document.createElement('div');
+      cap.className = 'recon-cap';
+      cap.textContent = t('chrome.recon_cap') + (rj.source ? ' · ' + rj.source : '');
+      tbl.appendChild(cap);
+      rj.rows.forEach((r) => {
+        const row = document.createElement('div');
+        row.className = 'recon-row' + (r.exists === false && r.state !== 'not-registered' ? ' recon-residue' : '');
+        const stWord = r.state === 'not-registered' ? t('chrome.recon_notreg')
+          : r.exists === false ? t('chrome.recon_residue')
+          : r.state;
+        const isRes = r.exists === false && r.state !== 'not-registered';
+        row.innerHTML = '<b>' + esc(r.name || '') + '</b>' +
+          '<span>' + esc(stWord) + '</span>' +
+          '<span>' + esc(r.company || r.product || '') + '</span>' +
+          (isRes ? '<span class="recon-tag">' + esc(t('chrome.recon_residue_tag')) + '</span>' : '');
+        tbl.appendChild(row);
+      });
+      const apps = rj.apps || [];
+      if (apps.length) {
+        const seen = {};
+        const names = apps.map((a) => a.app).filter((n) => n && !seen[n] && (seen[n] = true));
+        if (names.length) {
+          const ap = document.createElement('div');
+          ap.className = 'recon-apps';
+          ap.textContent = t('chrome.recon_apps') + ' ' + names.join('、');
+          tbl.appendChild(ap);
+        }
+      }
+      const note = document.createElement('div');
+      note.className = 'recon-note';
+      note.textContent = t('chrome.recon_note');
+      tbl.appendChild(note);
+      slot.appendChild(tbl);
+    }
   }
   const next = document.createElement('div');
   next.className = 'rr-next' + (ok ? '' : ' bad');
@@ -2534,7 +2596,10 @@ if (/[?&]probe/.test(location.search)) {
   try {
     const rr = await fetch('/api/repair/list', { cache: 'no-store' });
     const rj = await rr.json();
-    if (rj.ok) S.repairActions = rj.actions || [];
+    if (rj.ok) {
+      S.repairActions = rj.actions || [];
+      S.repairCoverage = (rj.coverage && rj.coverage.checks) || null;
+    }
   } catch (e) {}
 
   // 页面刷新恢复：server 侧若正在跑，重放事件接着显示

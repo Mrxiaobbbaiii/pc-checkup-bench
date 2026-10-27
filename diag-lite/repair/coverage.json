@@ -1,325 +1,375 @@
 {
-  "_comment": "修复中心闭环率注册表（v1.2.0）：每个可 FAIL 的检查项必须有下文，禁静默断链。三种合法下文——action=绿/黄级动作匹配（可代跑或确认后代跑）；card=红级处置卡匹配（只给步骤）；advice=显式「建议即处置」声明（该 FAIL 的处置=检查项自带的 suggestion 文本，无库内动作，reason 必填）。程序级断言=tests/cases_repair.ps1 的 rep_closure（检查项全覆盖+声明与动作库 match_checks 一致）。",
-  "version": "1.0",
-  "updated": "2026-10-25",
-  "checks": {
-    "net_adapter_list": {
-      "how": "advice",
-      "reason": "物理连接故障（网线/WiFi 开关/飞行模式），只能人工动手；检查项建议已给排查三步",
-      "source": [
-        {
-          "title": "Get-NetAdapter 官方 cmdlet 参考（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/powershell/module/netadapter/get-netadapter"
-        }
-      ]
-    },
-    "net_ip_dhcp": {
-      "how": "action"
-    },
-    "net_gateway_conflict": {
-      "how": "action"
-    },
-    "net_gateway_ping": {
-      "how": "action"
-    },
-    "net_dns_deadaddr": {
-      "how": "action"
-    },
-    "net_dns_default": {
-      "how": "action"
-    },
-    "net_dns_gateway_proxy": {
-      "how": "advice",
-      "reason": "路由器侧 DNS 代理故障，处置=重启路由器/改路由器 DNS，属路由器管理页人工动作，本机无可代跑项",
-      "source": [
-        {
-          "title": "nslookup 命令官方参考（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/nslookup"
-        }
-      ]
-    },
-    "net_dns_public": {
-      "how": "action"
-    },
-    "net_public_ping": {
-      "how": "action"
-    },
-    "net_tcp_port": {
-      "how": "advice",
-      "reason": "443 被拦需分辨网络策略/安全软件/运营商，建议文本已给换网对比法；无普适可代跑命令",
-      "source": [
-        {
-          "title": "Test-NetConnection 官方 cmdlet 参考（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/powershell/module/nettcpip/test-netconnection"
-        }
-      ]
-    },
-    "net_df_ping": {
-      "how": "advice",
-      "reason": "MTU 修复=路由器管理页改 WAN 口 MTU（1492 拨号值），属路由器侧人工动作",
-      "source": [
-        {
-          "title": "ping 命令官方参考（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/ping"
-        }
-      ]
-    },
-    "net_tcp_stall": {
-      "how": "advice",
-      "reason": "持续连接停滞的元凶=失效代理/过滤层/安全软件，按报告其他层（应用层代理、网络过滤层）的点名与配套动作处理，本项只供现场证据",
-      "source": [
-        {
-          "title": "netstat 命令官方参考（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netstat"
-        }
-      ]
-    },
-    "net_wlan_signal": {
-      "how": "advice",
-      "reason": "信号弱是物理问题（距离/穿墙/频段），建议文本已给改善四招，软件无可代跑项",
-      "source": [
-        {
-          "title": "netsh wlan 命令官方参考（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netsh-wlan"
-        }
-      ]
-    },
-    "net_proxy_vpn": {
-      "how": "action"
-    },
-    "net_proxy_system": {
-      "how": "action"
-    },
-    "bs_event_history": {
-      "how": "card"
-    },
-    "bs_code_frequency": {
-      "how": "card"
-    },
-    "bs_minidump_inventory": {
-      "how": "card"
-    },
-    "bs_powerloss_distinction": {
-      "how": "card"
-    },
-    "bs_whea_hardware": {
-      "how": "card"
-    },
-    "bs_suspect_drivers": {
-      "how": "card"
-    },
-    "hw_disk_health": {
-      "how": "advice",
-      "reason": "磁盘 Warning=先备份数据再换盘，属硬件采购与数据抢救人工动作；建议文本已给备份优先口径",
-      "source": [
-        {
-          "title": "chkdsk 命令官方参考（磁盘错误检查官方入口，微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/chkdsk"
-        }
-      ]
-    },
-    "hw_smart_predict": {
-      "how": "advice",
-      "reason": "SMART 预警同磁盘健康：备份+换盘，无软件可修",
-      "source": [
-        {
-          "title": "chkdsk 命令官方参考（SMART 解读无微软专文，最接近官方=磁盘错误检查，已标注）",
-          "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/chkdsk"
-        }
-      ]
-    },
-    "hw_disk_errors": {
-      "how": "advice",
-      "reason": "文件系统修复=chkdsk 需独占卷并重启，属用户逐项确认的系统级操作，建议文本已给命令与回滚；不设代跑防误伤在写盘卷",
-      "source": [
-        {
-          "title": "chkdsk 命令官方参考（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/chkdsk"
-        }
-      ]
-    },
-    "hw_battery_wear": {
-      "how": "advice",
-      "reason": "电池损耗=硬件耗损，处置=换电池或外接供电，建议文本已给 batteryreport 自查",
-      "source": [
-        {
-          "title": "powercfg 命令行选项官方参考（含电池报告，微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/powercfg-command-line-options"
-        }
-      ]
-    },
-    "hw_thermal": {
-      "how": "advice",
-      "reason": "过热处置=除尘/清灰/换硅脂，属物理维护人工动作",
-      "source": [
-        {
-          "title": "微软官方：设备性能与健康状况指南（Microsoft Support）",
-          "url": "https://support.microsoft.com/en-us/windows/security/windows-security/device-performance-and-health-in-the-windows-security-app"
-        }
-      ]
-    },
-    "hw_memdiag_history": {
-      "how": "card"
-    },
-    "pf_boot_duration": {
-      "how": "advice",
-      "reason": "慢启动处置=按「拖慢启动点名」层的名单卸载/禁自启对应软件，与点名层共用人工路径",
-      "source": [
-        {
-          "title": "Windows 事件日志官方文档（Diagnostics-Performance，微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows/win32/wes/windows-event-log"
-        }
-      ]
-    },
-    "pf_boot_degradation_events": {
-      "how": "advice",
-      "reason": "官方点名名单处置=卸载/更新点名的应用与服务，建议文本已带点名；无普适可代跑命令",
-      "source": [
-        {
-          "title": "Windows 事件日志官方文档（Diagnostics-Performance，微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows/win32/wes/windows-event-log"
-        }
-      ]
-    },
-    "pf_startup_items": {
-      "how": "advice",
-      "reason": "自启精简=任务管理器「启动应用」逐项禁用，属用户取舍类人工动作（禁哪些=用户偏好），建议文本已给入口",
-      "source": [
-        {
-          "title": "Win32_StartupCommand 官方类文档（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-startupcommand"
-        }
-      ]
-    },
-    "pf_service_timeouts": {
-      "how": "card"
-    },
-    "pf_disk_space": {
-      "how": "advice",
-      "reason": "清盘=磁盘清理/存储感知，属用户取舍类（删什么=用户决定），建议文本已给安全清理入口",
-      "source": [
-        {
-          "title": "cleanmgr（磁盘清理）命令官方参考（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/cleanmgr"
-        }
-      ]
-    },
-    "pf_memory_pressure": {
-      "how": "advice",
-      "reason": "内存吃紧处置=关程序/加内存条，前者即时可做后者属硬件采购；建议文本已给方向",
-      "source": [
-        {
-          "title": "Windows 11 系统要求官方页（最低内存 4GB，微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows/whats-new/windows-11-requirements"
-        }
-      ]
-    },
-    "pf_disk_saturation": {
-      "how": "advice",
-      "reason": "磁盘堵=查占用盘的进程（任务管理器排序），属现场观察类人工动作；建议文本已给入口",
-      "source": [
-        {
-          "title": "微软官方：设备性能与健康状况指南（磁盘繁忙观察入口，Microsoft Support）",
-          "url": "https://support.microsoft.com/en-us/windows/security/windows-security/device-performance-and-health-in-the-windows-security-app"
-        }
-      ]
-    },
-    "pf_app_crashes": {
-      "how": "card"
-    },
-    "pf_uptime": {
-      "how": "advice",
-      "reason": "处置=重启电脑，属用户即时动作且建议文本已给（重启不改设置零回滚），不值得立库内动作",
-      "source": [
-        {
-          "title": "Win32_OperatingSystem 官方类文档（LastBootUpTime，微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-operatingsystem"
-        }
-      ]
-    },
-    "dv_driver_signature": {
-      "how": "card"
-    },
-    "dv_driver_age": {
-      "how": "card"
-    },
-    "dv_thirdparty_inventory": {
-      "how": "card"
-    },
-    "dv_network_filters": {
-      "how": "card"
-    },
-    "dv_device_errors": {
-      "how": "action"
-    },
-    "dv_driver_load_failures": {
-      "how": "card"
-    },
-    "sec_defender_status": {
-      "how": "advice",
-      "reason": "重开实时保护需管理员权限，且可能被组策略/第三方杀软接管，属 Windows 安全中心人工核对",
-      "source": [
-        {
-          "title": "Get-MpComputerStatus 官方 cmdlet 参考（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/powershell/module/defender/get-mpcomputerstatus"
-        }
-      ]
-    },
-    "sec_defender_exclusions": {
-      "how": "card"
-    },
-    "sec_defender_threats": {
-      "how": "advice",
-      "reason": "处置走「保护历史记录」逐条人工核对（每条威胁的上下文不同），无普适可代跑命令",
-      "source": [
-        {
-          "title": "Defender 事件 ID 官方总表：故障排查指南（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus"
-        }
-      ]
-    },
-    "sec_defender_service": {
-      "how": "advice",
-      "reason": "服务重启需管理员权限，且第三方杀软环境下停摆是正常态，需人工判断",
-      "source": [
-        {
-          "title": "Get-Service 官方 cmdlet 参考（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/powershell/microsoft.powershell.management/get-service"
-        }
-      ]
-    },
-    "sec_uac_level": {
-      "how": "advice",
-      "reason": "UAC 档位是用户安全与便利的取舍，官方无强制值，人工调整",
-      "source": [
-        {
-          "title": "UAC 注册表键值官方总表：settings and configuration（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/settings-and-configuration"
-        }
-      ]
-    },
-    "sec_firewall_profiles": {
-      "how": "advice",
-      "reason": "防火墙开关属网络策略变更（可能影响用户在用的联机/共享场景），需人工确认",
-      "source": [
-        {
-          "title": "Get-NetFirewallProfile 官方 cmdlet 参考（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/powershell/module/netsecurity/get-netfirewallprofile"
-        }
-      ]
-    },
-    "sec_bitlocker": {
-      "how": "advice",
-      "reason": "开启 BitLocker 是长时高风险动作（丢恢复密钥=丢数据），只指路不代跑",
-      "source": [
-        {
-          "title": "Get-BitLockerVolume 官方 cmdlet 参考（微软 Learn）",
-          "url": "https://learn.microsoft.com/en-us/powershell/module/bitlocker/get-bitlockervolume"
-        }
-      ]
-    },
-    "sec_suspicious_tasks": {
-      "how": "card"
+ "_comment": "修复中心闭环率注册表（v1.2.0）：每个可 FAIL 的检查项必须有下文，禁静默断链。三种合法下文——action=绿/黄级动作匹配（可代跑或确认后代跑）；card=红级处置卡匹配（只给步骤）；advice=显式「建议即处置」声明（该 FAIL 的处置=检查项自带的 suggestion 文本，无库内动作，reason 必填）。程序级断言=tests/cases_repair.ps1 的 rep_closure（检查项全覆盖+声明与动作库 match_checks 一致）。 v1.8 处置分层新增 disposition 字段（五档）：auto=绿/黄动作可代跑；semi=recon 只读侦察+代开官方向导（卸载/停用决策仍归用户）；wizard=红卡傻瓜向导（永不代跑）；manual=人工路径（物理/路由器/管理员/用户取舍）；watch=取证观察项（处置在别处或暂不动手）。断言=rep_closure（how↔disposition 映射+档位枚举合法）。",
+ "version": "1.1",
+ "updated": "2026-10-26",
+ "checks": {
+  "net_adapter_list": {
+   "how": "advice",
+   "reason": "物理连接故障（网线/WiFi 开关/飞行模式），只能人工动手；检查项建议已给排查三步",
+   "source": [
+    {
+     "title": "Get-NetAdapter 官方 cmdlet 参考（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/powershell/module/netadapter/get-netadapter"
     }
+   ],
+   "disposition": "manual"
+  },
+  "net_ip_dhcp": {
+   "how": "action",
+   "disposition": "auto"
+  },
+  "net_gateway_conflict": {
+   "how": "action",
+   "disposition": "auto"
+  },
+  "net_gateway_ping": {
+   "how": "action",
+   "disposition": "auto"
+  },
+  "net_dns_deadaddr": {
+   "how": "action",
+   "disposition": "auto"
+  },
+  "net_dns_default": {
+   "how": "action",
+   "disposition": "auto"
+  },
+  "net_dns_gateway_proxy": {
+   "how": "advice",
+   "reason": "路由器侧 DNS 代理故障，处置=重启路由器/改路由器 DNS，属路由器管理页人工动作，本机无可代跑项",
+   "source": [
+    {
+     "title": "nslookup 命令官方参考（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/nslookup"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "net_dns_public": {
+   "how": "action",
+   "disposition": "auto"
+  },
+  "net_public_ping": {
+   "how": "action",
+   "disposition": "auto"
+  },
+  "net_tcp_port": {
+   "how": "advice",
+   "reason": "443 被拦需分辨网络策略/安全软件/运营商，建议文本已给换网对比法；无普适可代跑命令",
+   "source": [
+    {
+     "title": "Test-NetConnection 官方 cmdlet 参考（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/powershell/module/nettcpip/test-netconnection"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "net_df_ping": {
+   "how": "advice",
+   "reason": "MTU 修复=路由器管理页改 WAN 口 MTU（1492 拨号值），属路由器侧人工动作",
+   "source": [
+    {
+     "title": "ping 命令官方参考（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/ping"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "net_tcp_stall": {
+   "how": "advice",
+   "reason": "持续连接停滞的元凶=失效代理/过滤层/安全软件，按报告其他层（应用层代理、网络过滤层）的点名与配套动作处理，本项只供现场证据",
+   "source": [
+    {
+     "title": "netstat 命令官方参考（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netstat"
+    }
+   ],
+   "disposition": "watch"
+  },
+  "net_wlan_signal": {
+   "how": "advice",
+   "reason": "信号弱是物理问题（距离/穿墙/频段），建议文本已给改善四招，软件无可代跑项",
+   "source": [
+    {
+     "title": "netsh wlan 命令官方参考（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netsh-wlan"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "net_proxy_vpn": {
+   "how": "action",
+   "disposition": "auto"
+  },
+  "net_proxy_system": {
+   "how": "action",
+   "disposition": "auto"
+  },
+  "bs_event_history": {
+   "how": "card",
+   "disposition": "wizard"
+  },
+  "bs_code_frequency": {
+   "how": "card",
+   "disposition": "wizard"
+  },
+  "bs_minidump_inventory": {
+   "how": "card",
+   "disposition": "wizard"
+  },
+  "bs_powerloss_distinction": {
+   "how": "card",
+   "disposition": "wizard"
+  },
+  "bs_whea_hardware": {
+   "how": "card",
+   "disposition": "semi"
+  },
+  "bs_suspect_drivers": {
+   "how": "card",
+   "disposition": "wizard"
+  },
+  "hw_disk_health": {
+   "how": "advice",
+   "reason": "磁盘 Warning=先备份数据再换盘，属硬件采购与数据抢救人工动作；建议文本已给备份优先口径",
+   "source": [
+    {
+     "title": "chkdsk 命令官方参考（磁盘错误检查官方入口，微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/chkdsk"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "hw_smart_predict": {
+   "how": "advice",
+   "reason": "SMART 预警同磁盘健康：备份+换盘，无软件可修",
+   "source": [
+    {
+     "title": "chkdsk 命令官方参考（SMART 解读无微软专文，最接近官方=磁盘错误检查，已标注）",
+     "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/chkdsk"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "hw_disk_errors": {
+   "how": "advice",
+   "reason": "文件系统修复=chkdsk 需独占卷并重启，属用户逐项确认的系统级操作，建议文本已给命令与回滚；不设代跑防误伤在写盘卷",
+   "source": [
+    {
+     "title": "chkdsk 命令官方参考（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/chkdsk"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "hw_battery_wear": {
+   "how": "advice",
+   "reason": "电池损耗=硬件耗损，处置=换电池或外接供电，建议文本已给 batteryreport 自查",
+   "source": [
+    {
+     "title": "powercfg 命令行选项官方参考（含电池报告，微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/powercfg-command-line-options"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "hw_thermal": {
+   "how": "advice",
+   "reason": "过热处置=除尘/清灰/换硅脂，属物理维护人工动作",
+   "source": [
+    {
+     "title": "微软官方：设备性能与健康状况指南（Microsoft Support）",
+     "url": "https://support.microsoft.com/en-us/windows/security/windows-security/device-performance-and-health-in-the-windows-security-app"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "hw_memdiag_history": {
+   "how": "card",
+   "disposition": "semi"
+  },
+  "pf_boot_duration": {
+   "how": "advice",
+   "reason": "慢启动处置=按「拖慢启动点名」层的名单卸载/禁自启对应软件，与点名层共用人工路径",
+   "source": [
+    {
+     "title": "Windows 事件日志官方文档（Diagnostics-Performance，微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows/win32/wes/windows-event-log"
+    }
+   ],
+   "disposition": "watch"
+  },
+  "pf_boot_degradation_events": {
+   "how": "advice",
+   "reason": "官方点名名单处置=卸载/更新点名的应用与服务，建议文本已带点名；无普适可代跑命令",
+   "source": [
+    {
+     "title": "Windows 事件日志官方文档（Diagnostics-Performance，微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows/win32/wes/windows-event-log"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "pf_startup_items": {
+   "how": "advice",
+   "reason": "自启精简=任务管理器「启动应用」逐项禁用，属用户取舍类人工动作（禁哪些=用户偏好），建议文本已给入口",
+   "source": [
+    {
+     "title": "Win32_StartupCommand 官方类文档（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-startupcommand"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "pf_service_timeouts": {
+   "how": "card",
+   "disposition": "semi"
+  },
+  "pf_disk_space": {
+   "how": "advice",
+   "reason": "清盘=磁盘清理/存储感知，属用户取舍类（删什么=用户决定），建议文本已给安全清理入口",
+   "source": [
+    {
+     "title": "cleanmgr（磁盘清理）命令官方参考（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/cleanmgr"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "pf_memory_pressure": {
+   "how": "advice",
+   "reason": "内存吃紧处置=关程序/加内存条，前者即时可做后者属硬件采购；建议文本已给方向",
+   "source": [
+    {
+     "title": "Windows 11 系统要求官方页（最低内存 4GB，微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows/whats-new/windows-11-requirements"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "pf_disk_saturation": {
+   "how": "advice",
+   "reason": "磁盘堵=查占用盘的进程（任务管理器排序），属现场观察类人工动作；建议文本已给入口",
+   "source": [
+    {
+     "title": "微软官方：设备性能与健康状况指南（磁盘繁忙观察入口，Microsoft Support）",
+     "url": "https://support.microsoft.com/en-us/windows/security/windows-security/device-performance-and-health-in-the-windows-security-app"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "pf_app_crashes": {
+   "how": "card",
+   "disposition": "wizard"
+  },
+  "pf_uptime": {
+   "how": "advice",
+   "reason": "处置=重启电脑，属用户即时动作且建议文本已给（重启不改设置零回滚），不值得立库内动作",
+   "source": [
+    {
+     "title": "Win32_OperatingSystem 官方类文档（LastBootUpTime，微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-operatingsystem"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "dv_driver_signature": {
+   "how": "card",
+   "disposition": "wizard"
+  },
+  "dv_driver_age": {
+   "how": "card",
+   "disposition": "wizard"
+  },
+  "dv_thirdparty_inventory": {
+   "how": "card",
+   "disposition": "semi"
+  },
+  "dv_network_filters": {
+   "how": "card",
+   "disposition": "semi"
+  },
+  "dv_device_errors": {
+   "how": "action",
+   "disposition": "auto"
+  },
+  "dv_driver_load_failures": {
+   "how": "card",
+   "disposition": "wizard"
+  },
+  "sec_defender_status": {
+   "how": "advice",
+   "reason": "重开实时保护需管理员权限，且可能被组策略/第三方杀软接管，属 Windows 安全中心人工核对",
+   "source": [
+    {
+     "title": "Get-MpComputerStatus 官方 cmdlet 参考（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/powershell/module/defender/get-mpcomputerstatus"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "sec_defender_exclusions": {
+   "how": "card",
+   "disposition": "wizard"
+  },
+  "sec_defender_threats": {
+   "how": "advice",
+   "reason": "处置走「保护历史记录」逐条人工核对（每条威胁的上下文不同），无普适可代跑命令",
+   "source": [
+    {
+     "title": "Defender 事件 ID 官方总表：故障排查指南（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "sec_defender_service": {
+   "how": "advice",
+   "reason": "服务重启需管理员权限，且第三方杀软环境下停摆是正常态，需人工判断",
+   "source": [
+    {
+     "title": "Get-Service 官方 cmdlet 参考（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/powershell/microsoft.powershell.management/get-service"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "sec_uac_level": {
+   "how": "advice",
+   "reason": "UAC 档位是用户安全与便利的取舍，官方无强制值，人工调整",
+   "source": [
+    {
+     "title": "UAC 注册表键值官方总表：settings and configuration（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/settings-and-configuration"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "sec_firewall_profiles": {
+   "how": "advice",
+   "reason": "防火墙开关属网络策略变更（可能影响用户在用的联机/共享场景），需人工确认",
+   "source": [
+    {
+     "title": "Get-NetFirewallProfile 官方 cmdlet 参考（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/powershell/module/netsecurity/get-netfirewallprofile"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "sec_bitlocker": {
+   "how": "advice",
+   "reason": "开启 BitLocker 是长时高风险动作（丢恢复密钥=丢数据），只指路不代跑",
+   "source": [
+    {
+     "title": "Get-BitLockerVolume 官方 cmdlet 参考（微软 Learn）",
+     "url": "https://learn.microsoft.com/en-us/powershell/module/bitlocker/get-bitlockervolume"
+    }
+   ],
+   "disposition": "manual"
+  },
+  "sec_suspicious_tasks": {
+   "how": "card",
+   "disposition": "wizard"
   }
+ }
 }

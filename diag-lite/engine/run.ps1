@@ -30,7 +30,7 @@ param(
     [string]$ProgressFile = '',
     [switch]$JsonReport
 )
-$engVersion = '1.7.1'
+$engVersion = '1.8.0'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent

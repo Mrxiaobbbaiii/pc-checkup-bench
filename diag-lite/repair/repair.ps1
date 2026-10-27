@@ -4,7 +4,9 @@ diag repair executor v0.9 —— 修复事务五段式执行器（design 第四�
 五段=加载 → 预检 → 回滚包（黄级：撤销脚本先行落盘 reports\rollback\）→ 执行（超时受控；需提权时
       一次 RunAs 跑完 还原点→备份→主步骤→失败自动回滚）→ 复跑对应检查项验证 → 留痕 reports/repair-log.json。
 绿级=直接执行；黄级=必须显式 -AllowYellow（执行前自动生成撤销脚本；-WithRestorePoint=先建系统还原点，
-      还原点建不出来=中止不执行——「先留后路」约定）；红级永远拒绝加载执行（永不代跑=出厂闸铁律）。
+      还原点建不出来=中止不执行——「先留后路」约定）；红级永远拒绝加载执行（永不代跑=出厂闸铁律）；
+      recon 级（v1.8 处置分层）=只读侦察：exe/首参双白名单+写动词黑名单硬门，禁提权禁回滚包，
+      完整输出进结果 stages.exec.recon_out（对号表渲染数据源）。
 用法：repair.ps1 -ActionId net_flush_dns [-ActionsDir <dir>] [-Root <dir>] [-OutFile <file>] [-NeverElevate]
       [-AllowYellow] [-WithRestorePoint]
   -ActionsDir   动作库目录（默认 <本脚本目录>\actions；单测可指向临时目录塞 fixture）
@@ -83,6 +85,56 @@ function Join-StepArgs([string[]]$ArgList) {
     return (@($ArgList) | ForEach-Object { if ($_ -match '\s') { '"' + ($_ -replace '"', '') + '"' } else { $_ } }) -join ' '
 }
 
+# recon 级白名单（v1.8 处置分层）：只读侦察命令硬门，三道锁——
+# ①exe 白名单：sc/driverquery/tasklist/pnputil/reg 只读用法 + powershell.exe 仅限 -File 本域 recon 目录内脚本
+# ②首参白名单：sc 只许 qc/query；reg 只许 query（$null=本命令天然只读不限参）
+# ③全参写动词黑名单：/delete /uninstall stop config set- 管道符等出现即拒载（白名单 exe 带写参同样拦=双保险）
+# recon 步骤禁提权（requires_admin 必须为 false）、禁回滚包定义（只读无可撤销物）。
+# 返回 ''=通过；否则返回拒载原因（进 load 错误，exit 3）。
+$script:ReconExeAllow = @{
+    'sc.exe'          = @('qc', 'query')
+    'driverquery.exe' = $null
+    'tasklist.exe'    = $null
+    'pnputil.exe'     = $null
+    'reg.exe'         = @('query')
+    'powershell.exe'  = $null
+}
+$script:ReconVerbBan = '(?i)(/delete|/uninstall|/disable|/enable|/create|/config|/set|/delete-driver|delete\s|remove\s|stop\s|start\s|config\s|create\s|set-|new-|add-|remove-|restart-|\||&|;)'
+function Test-ReconWhitelist {
+    param($Steps, [string]$ForActionsDir)
+    # recon 脚本目录基准=ActionsDir 的父目录（部署=repair\actions → repair\recon；fixture 隔离同理；ext 扩展 recon 暂不支持=走主库）
+    $reconDir = (Join-Path (Split-Path -Parent $ForActionsDir) 'recon') + '\'
+    foreach ($st in @($Steps)) {
+        $exe = [string]$st.exe
+        $leaf = (Split-Path $exe -Leaf).ToLowerInvariant()
+        if (-not $script:ReconExeAllow.ContainsKey($leaf)) { return "recon step exe not in read-only whitelist: $exe" }
+        $argList = @(@($st.args) | ForEach-Object { [string]$_ })
+        $joined = $argList -join ' '
+        if ($joined -match $script:ReconVerbBan) { return "recon step args contain banned write-verb/pipe: $joined" }
+        $allow = $script:ReconExeAllow[$leaf]
+        if ($allow) {
+            $first = ''
+            foreach ($a in $argList) { $t = $a.Trim(); if ($t) { $first = $t.ToLowerInvariant(); break } }
+            if ($allow -notcontains $first) { return "recon step first arg must be one of [$($allow -join '/')] for $leaf" }
+        }
+        if ($leaf -eq 'powershell.exe') {
+            # 仅限 -NoProfile -File <recon 目录内 .ps1>；禁 -Command/-EncodedCommand（脚本文件唯一入口）
+            $largs = @($argList | ForEach-Object { $_.ToLowerInvariant() })
+            if (($largs -contains '-command') -or ($largs -contains '-encodedcommand')) { return 'recon powershell step forbids -Command (script files only)' }
+            if (-not ($largs -contains '-noprofile')) { return 'recon powershell step must set -NoProfile' }
+            $fi = -1
+            for ($k = 0; $k -lt $argList.Count; $k++) { if ($argList[$k] -ieq '-file') { $fi = $k; break } }
+            if ($fi -lt 0 -or ($fi + 1) -ge $argList.Count) { return 'recon powershell step must use -File <script under recon dir>' }
+            $scriptPath = $argList[$fi + 1]
+            if ([System.IO.Path]::GetExtension($scriptPath) -ne '.ps1') { return 'recon script must be a .ps1 file' }
+            $full = [System.IO.Path]::GetFullPath((Join-Path $ForActionsDir ('..\' + $scriptPath)))
+            if (-not $full.StartsWith($reconDir, [System.StringComparison]::OrdinalIgnoreCase)) { return "recon script path escapes recon dir: $scriptPath" }
+            if (-not (Test-Path -LiteralPath $full)) { return "recon script not found: $scriptPath" }
+        }
+    }
+    return ''
+}
+
 # .NET 子进程跑一步：同步 WaitForExit 后读 ExitCode（可靠）；输出经管道流读回（本域命令输出都很小，管道不会塞死；
 # 挂死由超时兜底）。超时=Kill+timed_out（如启动失败=evid 里的启动错误）
 function Invoke-StepDirect {
@@ -103,17 +155,23 @@ function Invoke-StepDirect {
     } catch {
         return @{ exit = -1; ms = [int]$sw.ElapsedMilliseconds; timed_out = $false; out = ''; err_head = ('启动失败：' + $_.Exception.Message) }
     }
+    # 异步收流（v1.8 修）：原同步 ReadToEnd 排在 WaitForExit 之后——输出超管道缓冲（~4KB，recon 对号表就超）
+    # 时子进程写管道即阻塞=死锁到超时。先起异步读再等退出；超时 Kill 后流关闭任务照常完成
+    $outTask = $p.StandardOutput.ReadToEndAsync()
+    $errTask = $p.StandardError.ReadToEndAsync()
     $timed = -not $p.WaitForExit($TimeoutMs)
     if ($timed) {
         try { $p.Kill() } catch { }
         $sw.Stop()
+        try { $null = $outTask.Result } catch { }
+        try { $null = $errTask.Result } catch { }
         return @{ exit = -1; ms = [int]$sw.ElapsedMilliseconds; timed_out = $true; out = ''; err_head = '' }
     }
     $null = $p.WaitForExit()   # 同步等待确保 ExitCode 就位（带时限版返回时可能还没填）
     $out = ''
     $err = ''
-    try { $out = $p.StandardOutput.ReadToEnd() } catch { }
-    try { $err = $p.StandardError.ReadToEnd() } catch { }
+    try { $out = [string]$outTask.Result } catch { }
+    try { $err = [string]$errTask.Result } catch { }
     $code = -1
     try { if ($null -ne $p.ExitCode) { $code = [int]$p.ExitCode } } catch { }
     $sw.Stop()
@@ -416,11 +474,25 @@ else {
 }
 if (-not $loadErr) {
     $lvl = [string]$action.level
+    $isReconLoad = ($lvl -eq 'recon')
+    # recon 只读约束预判：回滚包三件任一非空=拒载。@($null) 陷阱=缺失属性/空数组包一层变单元素，须显式判空
+    $pkgLeak = $false
+    if ($isReconLoad) {
+        if ($action.PSObject.Properties['backup_steps'] -and @($action.backup_steps | Where-Object { $null -ne $_ }).Count) { $pkgLeak = $true }
+        if ($action.PSObject.Properties['undo_script'] -and ([string]$action.undo_script).Trim()) { $pkgLeak = $true }
+        if ($action.PSObject.Properties['rollback'] -and @($action.rollback | Where-Object { $null -ne $_ }).Count) { $pkgLeak = $true }
+    }
     if ($lvl -eq 'red') { $loadErr = 'red level actions are never auto-executed (step guide only)' }
     elseif ($lvl -eq 'yellow' -and -not $AllowYellow) { $loadErr = 'yellow level requires explicit -AllowYellow (item-by-item confirm flow)' }
-    elseif (@('green', 'yellow') -notcontains $lvl) { $loadErr = "unknown level: $lvl" }
+    elseif (@('green', 'yellow', 'recon') -notcontains $lvl) { $loadErr = "unknown level: $lvl" }
     elseif (-not @($action.steps).Count) { $loadErr = 'action has no steps' }
     elseif ($lvl -eq 'yellow' -and (-not @($action.backup_steps).Count -or -not @($action.undo_script).Count)) { $loadErr = 'yellow action missing rollback package definition (backup_steps/undo_script)' }
+    elseif ($isReconLoad -and $pkgLeak) { $loadErr = 'recon is read-only: backup_steps/undo_script/rollback are not allowed' }
+    elseif ($isReconLoad -and [bool]$action.requires_admin) { $loadErr = 'recon cannot require elevation (read-only by definition)' }
+    elseif ($isReconLoad) {
+        $wlErr = Test-ReconWhitelist -Steps @($action.steps) -ForActionsDir $ActionsDir
+        if ($wlErr) { $loadErr = $wlErr }
+    }
 }
 if ($loadErr) {
     $r = [ordered]@{ ok = $false; id = $ActionId; level = ''; name = ''; fail_stage = 'load'; error = $loadErr; stages = @{} }
@@ -499,10 +571,39 @@ if ($isYellow) {
     }
 }
 
+# recon 步骤路径落地：相对 -File 路径重写为绝对（子进程 cwd 不保证=repair 目录，实锤 -196608；
+# 白名单已验 contained，重写只对 recon 目录内脚本生效）
+function Get-ReconResolvedSteps {
+    param($Steps, [string]$ForActionsDir)
+    $reconDir = (Join-Path (Split-Path -Parent $ForActionsDir) 'recon') + '\'
+    $out = @()
+    foreach ($st in @($Steps)) {
+        $argList = @(@($st.args) | ForEach-Object { [string]$_ })
+        if (([string]$st.exe).ToLowerInvariant() -eq 'powershell.exe') {
+            for ($k = 0; $k -lt $argList.Count - 1; $k++) {
+                if ($argList[$k] -ieq '-file') {
+                    $sp = $argList[$k + 1]
+                    if (-not [System.IO.Path]::IsPathRooted($sp)) {
+                        $full = [System.IO.Path]::GetFullPath((Join-Path $ForActionsDir ('..\' + $sp)))
+                        if ($full.StartsWith($reconDir, [System.StringComparison]::OrdinalIgnoreCase)) { $argList[$k + 1] = $full }
+                    }
+                    break
+                }
+            }
+        }
+        $out += [pscustomobject]@{ exe = [string]$st.exe; args = $argList; desc = [string]$st.desc }
+    }
+    return $out
+}
+
 # ---------- ③ 执行 ----------
 $execSteps = @()
 $execOk = $false
 $execNote = ''
+$isRecon = ($actLevel -eq 'recon')
+$reconFullOuts = @()   # recon 专用：主步骤完整 stdout（对号表数据；非 recon 不收集，结果体积不变）
+$stepDefs = @($action.steps)
+if ($isRecon) { $stepDefs = Get-ReconResolvedSteps -Steps $stepDefs -ForActionsDir $ActionsDir }
 # 备份步 args 的 {BK} 占位符在此替换成真实备份目录（pkg 段已建好目录；两执行路径共用）
 $bkSteps = @()
 if ($isYellow) {
@@ -585,7 +686,7 @@ if ($preOk) {
             }
             if (-not $bkFailed) {
                 $i = 0
-                foreach ($st in $action.steps) {
+                foreach ($st in $stepDefs) {
                     $i++
                     $sr = Invoke-StepDirect -Exe ([string]$st.exe) -ArgList @(@($st.args) | ForEach-Object { [string]$_ }) -TimeoutMs $timeoutMs
                     $execSteps += @{
@@ -593,6 +694,7 @@ if ($preOk) {
                         exe = [string]$st.exe; args = @(@($st.args) | ForEach-Object { [string]$_ }); desc = [string]$st.desc
                         exit = [int]$sr.exit; ms = [int]$sr.ms; timed_out = [bool]$sr.timed_out; out_head = (Get-HeadLines $sr.out 3)
                     }
+                    if ($isRecon) { $reconFullOuts += [string]$sr.out }
                     if ($sr.exit -ne 0 -or $sr.timed_out) {
                         $execNote = '步骤「' + [string]$st.desc + '」' + $(if ($sr.timed_out) { '超时被停' } else { '没有成功（退出码 ' + $sr.exit + '）' })
                         break
@@ -689,6 +791,7 @@ if ($isYellow) {
     $stagesOut['pkg'] = [ordered]@{ ok = $pkgOk; note = $pkgNote; undo_file = $pkgUndoFile; backup_dir = $pkgBackupDir; restore_point = [ordered]@{ requested = $rpRequested; ok = $rpOk; note = $rpNote } }
 }
 $stagesOut['exec']   = [ordered]@{ ok = $execOk; note = $execNote; steps = @(foreach ($es in $execSteps) { [ordered]@{ phase = $es.phase; exe = $es.exe; args = $es.args; desc = $es.desc; exit = $es.exit; ms = $es.ms; timed_out = $es.timed_out; out_head = $es.out_head } }) }
+if ($isRecon) { $stagesOut['exec']['recon_out'] = @($reconFullOuts) }   # v1.8 处置分层：侦察完整输出（对号表渲染数据源）
 $stagesOut['verify'] = [ordered]@{ note = $verifyNote; checks = @(foreach ($v in $verifyChecks) { [ordered]@{ name = $v.name; status = $v.status; evidence_head = $v.evidence } }) }
 $stagesOut['log']    = [ordered]@{ ok = $logOk; file = (Join-Path $reportsDir 'repair-log.json'); err = $logErr }
 
