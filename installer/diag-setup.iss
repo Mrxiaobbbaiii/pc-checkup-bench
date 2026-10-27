@@ -1,11 +1,11 @@
-﻿; 电脑体检台 Inno Setup 安装脚本 v1.8.0（片1 形态片）
+﻿; 电脑体检台 Inno Setup 安装脚本 v1.8.2（片1 形态片）
 ; per-user 安装 %LOCALAPPDATA%\电脑体检台，无管理员弹窗（PrivilegesRequired=lowest）
 ; WebView2 缺失时静默跑官方 bootstrapper；卸载 keep 分支把用户数据搬到 电脑体检台-报告备份-*。
 ; 本文件必须保存为 UTF-8 with BOM（ISCC 6 才能正确读中文）；build.ps1 侧有 BOM 断言。
-; 编译：ISCC installer\diag-setup.iss → build\PC-CheckupBench-setup-v1.8.0.exe
+; 编译：ISCC installer\diag-setup.iss → build\PC-CheckupBench-setup-v1.8.2.exe
 
 #define MyAppName "电脑体检台"
-#define MyAppVersion "1.8.0"
+#define MyAppVersion "1.8.2"
 #define MyAppExeName "host.exe"
 
 [Setup]
@@ -20,7 +20,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 OutputDir=..\build
-OutputBaseFilename=PC-CheckupBench-setup-v1.8.0
+OutputBaseFilename=PC-CheckupBench-setup-v1.8.2
 SetupIconFile=..\host\app.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/max

@@ -1,9 +1,11 @@
 ﻿#Requires -Version 5.1
 <#
 检查项：hw_memdiag_history —— Windows 内存诊断结果史（层：memory_board）
-命令：Get-WinEvent Provider=Microsoft-Windows-MemoryDiagnostics-Results（1101=检测到硬件问题/1102=无问题，全历史）；只读
-判定（design 第十节 5）：有 1101→FAIL（已报硬件问题：memtest86+ 复核/送修）；仅 1102→PASS；无任何事件（从未跑过系统内存诊断，常态）→SKIP
-mock 契约：逐行 `MM-dd | 1101`（或 `1102`）；空=SKIP
+命令：Get-WinEvent Provider=Microsoft-Windows-MemoryDiagnostics-Results（全历史）；只读
+判定（消息优先，知识来源 §十 2026-10-27 修正；旧「1101=检出硬件问题/1102=无问题」ID 硬映射作废——1101 实际语义=detected no errors（通过），本机 10-13 事件原文实证）：
+  Message 含 hardware problems→FAIL（检出硬件问题：mdsched 复核/送修）；含 no errors→PASS；两者都不含（无法判读）→SKIP(unrecognized-result)；无任何事件（从未跑过系统内存诊断，常态）→SKIP
+ID 仅进 evidence 展示，不参与判定分支。
+mock 契约：逐行 `MM-dd | ID | 结论短语`（如 `03-02 | 1101 | no errors`）；空=SKIP
 #>
 param([string]$MockRaw = '', [string]$MockFile = '')
 if ($MockFile -ne '' -and $MockRaw -eq '') { $MockRaw = Get-Content -LiteralPath $MockFile -Raw -Encoding UTF8 }
@@ -13,12 +15,12 @@ $ErrorActionPreference = 'Stop'
 $events = @()
 if ($MockRaw -ne '' -or $MockFile -ne '') {
     foreach ($ln in ($MockRaw -split "`r?`n" | Where-Object { $_.Trim() -ne '' })) {
-        if ($ln -match '^(\d{2}-\d{2})\s*\|\s*(110[12])') { $events += [PSCustomObject]@{ date = $Matches[1]; id = $Matches[2] } }
+        if ($ln -match '^(\d{2}-\d{2})\s*\|\s*(\d+)\s*\|\s*(.+?)\s*$') { $events += [PSCustomObject]@{ date = $Matches[1]; id = $Matches[2]; msg = $Matches[3] } }
     }
 } else {
     try {
         foreach ($e in @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = 'Microsoft-Windows-MemoryDiagnostics-Results' } -ErrorAction Stop)) {
-            $events += [PSCustomObject]@{ date = $e.TimeCreated.ToString('MM-dd'); id = [string]$e.Id }
+            $events += [PSCustomObject]@{ date = $e.TimeCreated.ToString('MM-dd'); id = [string]$e.Id; msg = (([string]$e.Message) -replace '\s+', ' ').Trim() }
         }
     } catch {
         if ($_.FullyQualifiedErrorId -match 'NoMatchingEvents') { $events = @() } else {
@@ -42,16 +44,27 @@ if ($events.Count -eq 0) {
     return
 }
 
-$bad = @($events | Where-Object { $_.id -eq '1101' })
-$lines = ($events | ForEach-Object { '{0} | {1}' -f $_.date, $_.id }) -join "`n"
+function Get-Excerpt([string]$m) { if ($m.Length -gt 120) { $m.Substring(0, 120) + '...' } else { $m } }
+
+$bad = @($events | Where-Object { $_.msg -match 'hardware\s+problems' })
+$okEvents = @($events | Where-Object { $_.msg -match 'no\s+errors' })
+$lines = ($events | ForEach-Object { '{0} | {1} | {2}' -f $_.date, $_.id, (Get-Excerpt $_.msg) }) -join "`n"
 if ($bad.Count -ge 1) {
     $status = 'FAIL'
     $evidence = "$cmdTag`n$lines"
-    $suggestion = "Windows 内存诊断报过硬件问题（1101×$($bad.Count)）：内存条/插槽/兼容性嫌疑。`n【修复命令，请自己执行】mdsched.exe 再跑一轮复核；多内存条=拔到单条轮测定位坏条；确认坏=送修/换条。`n【回滚】不适用（只读检测+复测）"
-} else {
+    $suggestion = "Windows 内存诊断检出硬件问题（检出 $($bad.Count) 条，日期见证据）：内存条/插槽/兼容性嫌疑。`n【修复命令，请自己执行】mdsched.exe 再跑一轮复核；多内存条=拔到单条轮测定位坏条；确认坏=送修/换条。`n【回滚】不适用（只读检测+复测）"
+} elseif ($okEvents.Count -ge 1) {
     $status = 'PASS'
     $evidence = "$cmdTag`n$lines"
     $suggestion = ''
+} else {
+    [PSCustomObject]@{
+        name = 'hw_memdiag_history'; status = 'SKIP'
+        evidence = "$cmdTag`n$lines`n结论原文无法判读（不含已知结论短语）——诚实跳过不硬判，人工看一眼 mdsched 结果页"
+        suggestion = ''
+        detail = [PSCustomObject]@{ reason = 'unrecognized-result'; events = $events; badCount = 0 }
+    } | ConvertTo-Json -Depth 5
+    return
 }
 [PSCustomObject]@{
     name = 'hw_memdiag_history'; status = $status; evidence = $evidence; suggestion = $suggestion

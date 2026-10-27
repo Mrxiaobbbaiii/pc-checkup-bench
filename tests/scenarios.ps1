@@ -231,7 +231,7 @@ $global:DiagScenarios += @(
            hw_disk_errors     = $mockDiskErrorClean
            hw_battery_wear    = "Designed | 48000`nFullCharged | 43200"
            hw_thermal         = "TZ_0 | 45.0"
-           hw_memdiag_history = "03-02 | 1102"
+           hw_memdiag_history = "03-02 | 1102 | no errors"
            bs_whea_hardware   = ''
        } }
     @{ name = 'hw_local_case'; tree = 'hardware'; full = $true; expectExit = 2
@@ -242,7 +242,7 @@ $global:DiagScenarios += @(
            hw_disk_errors     = $mockDiskErrorHit
            hw_battery_wear    = "Designed | 48000`nFullCharged | 21600"
            hw_thermal         = "TZ_0 | 85.0"
-           hw_memdiag_history = "03-02 | 1101"
+           hw_memdiag_history = "03-02 | 1101 | hardware problems"
            bs_whea_hardware   = '10-04 | 已更正的硬件错误。'
        } }
 )
@@ -396,7 +396,7 @@ $global:DiagScenarios += @(
            hw_disk_errors     = $mockDiskErrorClean
            hw_battery_wear    = "Designed | 48000`nFullCharged | 43200"
            hw_thermal         = "TZ_0 | 45.0"
-           hw_memdiag_history = "03-02 | 1102"
+           hw_memdiag_history = "03-02 | 1102 | no errors"
            # 性能（full-clean 集）
            pf_boot_duration          = "10-20 | Information | 21000`n10-19 | Information | 19000"
            pf_boot_degradation_events = ''

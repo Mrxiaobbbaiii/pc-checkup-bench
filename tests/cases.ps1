@@ -457,16 +457,26 @@ TZ_0 | 45.0
 TZ_0 | -5.0
 '@ },
 
-    # ---------- 20. hw_memdiag_history ----------
+    # ---------- 20. hw_memdiag_history（1027 口径修正：消息优先，ID 仅展示） ----------
     @{ check = 'hw_memdiag_history'; note = '诊断报硬件问题1101'
-       expectStatus = 'FAIL'; expectEvidenceKeyword = '1101'; expectSuggestionKeyword = 'mdsched'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = 'hardware problems'; expectSuggestionKeyword = 'mdsched'
        mock = @'
-03-02 | 1101
+03-02 | 1101 | hardware problems
 '@ },
     @{ check = 'hw_memdiag_history'; note = '诊断无问题1102'
-       expectStatus = 'PASS'; expectEvidenceKeyword = '1102'
+       expectStatus = 'PASS'; expectEvidenceKeyword = 'no errors'
        mock = @'
-03-02 | 1102
+03-02 | 1102 | no errors
+'@ },
+    @{ check = 'hw_memdiag_history'; note = '1101结论文本no errors(消息优先正例)'
+       expectStatus = 'PASS'; expectEvidenceKeyword = 'no errors'
+       mock = @'
+03-02 | 1101 | no errors
+'@ },
+    @{ check = 'hw_memdiag_history'; note = '1101乱码文本(不可判读负例)'
+       expectStatus = 'SKIP'; expectEvidenceKeyword = '无法判读'
+       mock = @'
+03-02 | 1101 | 乱码文本
 '@ },
     @{ check = 'hw_memdiag_history'; note = '从未跑过诊断(常态)'
        expectStatus = 'SKIP'; expectEvidenceKeyword = '没查过'
