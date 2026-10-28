@@ -4,7 +4,7 @@ diag build.ps1 v1.8.3 —— 发群一键出包（v1.1.0 封装片 2026-10-23；
 规则：ui/bg.jpg 与 ui/bg-light.jpg（1025 起为程序生成图，无版权限制）随包分发；reports/ 只带「报告在这里.txt」占位
      （真实报告 diag-*、repair-log.json、rollback/ 一律不入包）；其余全收（含 brand.png/favicon.png）。
 用法：powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
-产物：<仓库根>\diag-lite-v1.8.3.zip（.gitignore *.zip 已挡入库）；打完自印条目清单，字节抽验由验证脚本另行执行。
+产物：<仓库根>\diag-lite-v1.8.4.zip（.gitignore *.zip 已挡入库）；打完自印条目清单，字节抽验由验证脚本另行执行。
 #>
 param([switch]$Setup)
 
@@ -33,8 +33,9 @@ if ($Setup) {
     ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
     if (-not $iscc) { throw 'Inno Setup (6 or 7) not found. Install it from jrsoftware.org (default options) first, then rerun: powershell -File build.ps1 -Setup' }
 
-    # 守卫 2：diag-lite staging 新鲜（keyfile 与源逐字节同，防把旧引擎打进安装器）
-    foreach ($rel in @('server.ps1', 'engine/run.ps1', 'ui/index.html', 'ui/app.js', 'ui/style.css', 'ui/i18n/zh-CN.js', 'ui/i18n/en-US.js')) {
+    # 守卫 2：diag-lite staging 新鲜（keyfile 与源逐字节同，防把旧引擎打进安装器）。
+    # 1028 审查补 repair 域三键：v1.8 起关键同步件（recon 侦察/coverage 注册表）在 repair 域，漏守卫=旧件可混进安装器
+    foreach ($rel in @('server.ps1', 'engine/run.ps1', 'ui/index.html', 'ui/app.js', 'ui/style.css', 'ui/i18n/zh-CN.js', 'ui/i18n/en-US.js', 'repair/repair.ps1', 'repair/recon/report_recon.ps1', 'repair/coverage.json')) {
         $srcHash = (Get-FileHash -LiteralPath (Join-Path $sroot ($rel -replace '/', '\')) -Algorithm SHA256).Hash
         $liteHash = (Get-FileHash -LiteralPath (Join-Path $sroot (('diag-lite/' + $rel) -replace '/', '\')) -Algorithm SHA256).Hash
         if ($srcHash -ne $liteHash) { throw "diag-lite staging is stale: $rel differs from source. Sync diag-lite first, then rerun -Setup." }
@@ -103,7 +104,7 @@ if ($Setup) {
 
 $root = $PSScriptRoot
 $src = Join-Path $root 'diag-lite'
-$outZip = Join-Path $root 'diag-lite-v1.8.3.zip'
+$outZip = Join-Path $root 'diag-lite-v1.8.4.zip'
 $placeholder = 'reports/报告在这里.txt'
 
 # ---- 守卫：打包面关键件在位，残缺即停 ----
@@ -144,7 +145,7 @@ try {
 $check = [System.IO.Compression.ZipFile]::OpenRead($outZip)
 try {
     $total = ($check.Entries | Measure-Object -Property Length -Sum).Sum
-    Write-Host "=== diag-lite-v1.8.3.zip: $($check.Entries.Count) entries, $total bytes uncompressed ==="
+    Write-Host "=== diag-lite-v1.8.4.zip: $($check.Entries.Count) entries, $total bytes uncompressed ==="
     foreach ($e in $check.Entries) { Write-Host ("  {0}  ({1} bytes)" -f $e.FullName, $e.Length) }
 } finally {
     $check.Dispose()

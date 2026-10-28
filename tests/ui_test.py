@@ -144,6 +144,8 @@ def main():
     os.makedirs(dr_reports, exist_ok=True)
     open(os.path.join(dr_reports, 'diag-network-20260101-000001.json'), 'w', encoding='utf-8').write(json.dumps(rep_old, ensure_ascii=False))
     open(os.path.join(dr_reports, 'diag-network-20260102-000002.json'), 'w', encoding='utf-8').write(json.dumps(rep_new, ensure_ascii=False))
+    # A9e 夹具：同名 html 一并预置（server hasHtml 断言的前提；v1.8.4 恢复态完整报告按钮修复的回归锚）
+    open(os.path.join(dr_reports, 'diag-network-20260102-000002.html'), 'w', encoding='utf-8').write('<html><body>report</body></html>')
 
     # 2) headless Edge
     dbg = 19333
@@ -176,7 +178,7 @@ def main():
         check('A1 五棵单树卡', cdp.eval("document.querySelectorAll('.check-item').length") >= 5,
               str(cdp.eval("document.querySelectorAll('.check-item').length")))
         check('A2 开始体检按钮在', cdp.eval("!!document.querySelector('#btn-run')"))
-        check('A3 版本串 v1.8.3', 'v1.8.3' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
+        check('A3 版本串 v1.8.4', 'v1.8.4' in str(cdp.eval("document.querySelector('.ver-chip')?.textContent || document.body.innerText")))
         check('A4 只读承诺文案', '只看、不动你电脑的任何设置' in str(cdp.eval('document.body.innerText')))
         # 首次启动引导：全新 profile（localStorage 空）→三步引导卡可见
         check('A5 首次启动引导卡在', cdp.eval("!!document.querySelector('#first-guide') && !document.querySelector('#first-guide').classList.contains('hidden')"))
@@ -211,6 +213,10 @@ def main():
         # 本沙箱 list[0]=E 段预塞件无 suggestion，cnt 空=正确行为，不锁计数锁渲染）
         a9d_n = cdp.eval("document.querySelectorAll('#repair-list *').length")
         check('A9d 修复中心随快照渲染就绪', a9d_n > 0, str(a9d_n))
+        # A9e（v1.8.4 修）：恢复态「完整报告」按钮可用——旧实现前端在 json 列表里找 html 恒 false=按钮恒禁用；
+        # 现走 server /api/reports/list 的 hasHtml 字段。夹具已预置 list[0] 同名 html，此处必须 disabled=False
+        a9e_disabled = cdp.eval("document.querySelector('#btn-browser').disabled")
+        check('A9e 恢复态完整报告按钮可用', a9e_disabled is False, str(a9e_disabled))
 
         # ---- A10-A16 v1.7.1 体验修批（进度条双图层 / ui\custom 静态层 / 运行选项行 / 组合提示） ----
         # 静态通路 custom 层优先：临时写 ui\custom\bg.jpg 哨兵 → /bg.jpg 应回哨兵 → 删除后回落包内 JPEG
@@ -311,7 +317,7 @@ def main():
         time.sleep(2.5)
         hist_txt = str(cdp.eval("document.querySelector('#view-history')?.innerText || ''"))
         hist_items = cdp.eval("document.querySelectorAll('.hist-item').length")
-        check('E1 历史列表4份(预塞2+跑批1+v1.8.3快照夹具1)', hist_items == 4, str(hist_items) + ' :: ' + hist_txt[:160])
+        check('E1 历史列表4份(预塞2+跑批1+v1.8.4快照夹具1)', hist_items == 4, str(hist_items) + ' :: ' + hist_txt[:160])
         check('E2 趋势区渲染', '问题数趋势' in hist_txt)
         cmp_visible = cdp.eval("document.querySelector('#hist-compare-card')?.hidden === false")
         check('E3 对比卡可见(>=2份)', cmp_visible)

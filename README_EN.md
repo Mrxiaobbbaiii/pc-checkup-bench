@@ -4,7 +4,7 @@ English | **[中文](README.md)**
 
 > A free Windows checkup tool: **It only looks. It never touches your settings.** 52 read-only checks cover six categories — Network / Blue Screen / Hardware / Performance / Driver / Security — and for every item it tells you: where the problem is, what the evidence is, how to fix it, and which official Microsoft document the fix is based on.
 
-[![CI](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml) ![GitHub License](https://img.shields.io/badge/license-MIT-green) ![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![Version](https://img.shields.io/badge/version-v1.8.3-orange)
+[![CI](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml) ![GitHub License](https://img.shields.io/badge/license-MIT-green) ![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![Version](https://img.shields.io/badge/version-v1.8.4-orange)
 
 | Checkup Wizard | During a Checkup |
 |---|---|
@@ -39,7 +39,7 @@ English | **[中文](README.md)**
 
 The Security Checkup looks at the two lines of defense against malware: Microsoft Defender antivirus protection (protection switches / services / detections in the last 30 days / scan exclusions) and system hardening (UAC level / firewall / disk encryption / scheduled tasks) — all 8 checks are read-only, and for security settings the tool only shows you the manual path, never changes anything itself.
 
-- 25 repair actions: Green 6 (run for you) / Yellow 9 (run for you after your confirmation) / Red 10 (step-by-step guide only)
+- 36 repair actions: Green 15 (run for you) / Yellow 9 (run for you after your confirmation) / Red 10 (step-by-step guide only) / Recon 2 (read-only lookups, never touch anything)
 - Every fix comes with its **official Microsoft documentation source**, which you can open and check
 - Custom checks are supported: put your own check scripts, checkup trees, and repair guides into the `ext/` folder and they take effect — no repackaging needed
 
@@ -47,7 +47,7 @@ The Security Checkup looks at the two lines of defense against malware: Microsof
 
 ### Option 1: Installer (Recommended)
 
-1. Go to [Releases](../../releases) and download the latest installer `PC-CheckupBench-setup-v1.8.3.exe`
+1. Go to [Releases](../../releases) and download the latest installer `PC-CheckupBench-setup-v1.8.4.exe`
 2. Double-click to run it. The first time, Windows shows a blue prompt saying "Windows protected your PC" — this tool has no paid code-signing certificate, so this is the generic warning for unsigned programs. Click **More info → Run anyway**
 3. Installing needs no administrator rights. It installs into your user folder, and a "PC Checkup Bench" icon appears on the desktop and in the Start menu
 4. What opens is a native window (not a browser page). Closing the window exits completely — no background processes left behind
@@ -57,7 +57,7 @@ The Security Checkup looks at the two lines of defense against malware: Microsof
 
 ### Option 2: Portable Version (No Install Needed)
 
-1. Download `diag-lite-v1.8.3.zip` and extract it anywhere (the desktop is fine)
+1. Download `diag-lite-v1.8.4.zip` and extract it anywhere (the desktop is fine)
 2. Double-click `全面体检（网页版）.bat` to get the windowed interface; or double-click any one of the six checkup `.bat` files to run the console version directly
 3. Requires Windows 10/11 (the built-in Edge browser is enough)
 
@@ -111,7 +111,7 @@ This tool is provided "as is". Checkup results and repair suggestions are for re
 
 ## About How This Project Was Built
 
-This project was built with AI-assisted development (vibe coding with [ZCode](https://zcode.ai) / GLM): from sorting out requirements, solution design, and code implementation to test regression, everything was done in human-machine collaboration, with humans making the final calls and accepting the results. All check logic and test cases (242 assertions × PowerShell 5.1 / 7 dual versions, 35 UI automation tests) are public with the source code. Review is welcome.
+This project was built with AI-assisted development (vibe coding with [ZCode](https://zcode.ai) / GLM): from sorting out requirements, solution design, and code implementation to test regression, everything was done in human-machine collaboration, with humans making the final calls and accepting the results. All check logic and test cases (318 assertions × PowerShell 5.1 / 7 dual versions, 70 UI automation tests) are public with the source code. Review is welcome.
 
 ## Run from Source
 
@@ -130,11 +130,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Setup
 ## Directory Structure
 
 ```
-├─ engine/ checks/ trees/   # check engine, 52 check scripts, definitions of the six checkup trees
+├─ engine/ checks/ trees/   # check engine, 50 check scripts (52 check slots across the six trees, two shared across trees), definitions of the six checkup trees
 ├─ repair/                  # repair actions (green/yellow/red tiers, with official documentation sources)
 ├─ ui/                      # UI (HTML/CSS/JS, zero dependencies, zero CDN, works offline)
 ├─ server.ps1               # local server (starts the UI and dispatches the engine)
 ├─ host/                    # native window shell (C#, WebView2)
 ├─ ext/                     # extensions: custom checks/trees/repair guides
-└─ tests/                   # 242 assertions + UI automation regression
+└─ tests/                   # 318 assertions + UI automation regression
 ```

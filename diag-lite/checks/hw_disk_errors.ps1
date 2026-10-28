@@ -29,11 +29,22 @@ if ($MockRaw -ne '' -or $MockFile -ne '') {
         }
     }
 } else {
+    # 153（IO 重试）的 Provider 恒为 disk，Ntfs 不发 153——同一查询里带 ProviderName='Ntfs' 时 153 恒空=漏报（1028 审查实锤）；
+    # 拆两段按各自 Provider 查，任一段「无事件」=合法空态，真查询错误才 SKIP
     try {
-        $evts = @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = 'Ntfs'; Id = @(55, 98, 153); StartTime = (Get-Date).AddDays(-30) } -MaxEvents 300 -ErrorAction Stop)
+        $evts = @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = 'Ntfs'; Id = @(55, 98); StartTime = (Get-Date).AddDays(-30) } -MaxEvents 300 -ErrorAction Stop)
     } catch {
         $m = $_.Exception.Message
         if ($m -match 'No events|找不到') { $evts = @() } else { $queryError = $true; $errText = $m }
+    }
+    if (-not $queryError) {
+        try {
+            $evts += @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = 'disk'; Id = 153; StartTime = (Get-Date).AddDays(-30) } -MaxEvents 300 -ErrorAction Stop)
+        } catch {
+            $m = $_.Exception.Message
+            if ($m -notmatch 'No events|找不到') { $queryError = $true; $errText = $m }
+        }
+        $evts = @($evts | Sort-Object TimeCreated -Descending)   # 两段拼接后按时间重排，$recent 才真是最新 4 条
     }
     if (-not $queryError) {
         foreach ($e in $evts) {

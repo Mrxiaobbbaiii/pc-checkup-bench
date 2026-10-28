@@ -495,6 +495,14 @@ window.I18N_EN = {
     },
     notes: {
       um_title: 'PC Checkup Bench updated to {v}',
+      v1_8_4: [
+        'Fixed the "Full report" button in reopen-without-rerunning: it no longer stays disabled when your last snapshot is restored',
+        'Fixed plain-language hints in the Device-Manager check: yellow-triangle devices now show common error code meanings (Code 10 = cannot start, etc.)',
+        'Fixed a missed detection in the file-system-error check (long-term disk write lag, event 153)',
+      ],
+      v1_8_3: [
+        'Reopen without rerunning: your last checkup is restored automatically in Results and Repair Center (with a "snapshot — not a live run" banner on top); run a new checkup to refresh',
+      ],
       v1_5_0: [
         'The interface now supports Chinese / English: pick a language in the "Appearance" menu (top right), applies everywhere instantly',
       ],

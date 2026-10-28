@@ -5,7 +5,7 @@
 ; 编译：ISCC installer\diag-setup.iss → build\PC-CheckupBench-setup-v1.8.3.exe
 
 #define MyAppName "电脑体检台"
-#define MyAppVersion "1.8.3"
+#define MyAppVersion "1.8.4"
 #define MyAppExeName "host.exe"
 
 [Setup]
@@ -20,7 +20,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 OutputDir=..\build
-OutputBaseFilename=PC-CheckupBench-setup-v1.8.3
+OutputBaseFilename=PC-CheckupBench-setup-v1.8.4
 SetupIconFile=..\host\app.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/max

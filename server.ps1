@@ -42,7 +42,7 @@ elseif ($root -like '*\WindowsApps\*') {
 $engineScript = Join-Path $root 'engine\run.ps1'
 $uiDir = Join-Path $root 'ui'
 $reportsDir = Join-Path $dataRoot 'reports'
-$webVersion = 'v1.8.3'
+$webVersion = 'v1.8.4'
 $diagPs = (Get-Process -Id $PID).Path
 
 # ---------- 子进程 stdout 排水器（C# 空回调：scriptblock delegate 无 runspace 回调线程会炸进程；v0.6 已验机制照搬）
@@ -438,10 +438,15 @@ function Invoke-Route($ctx) {
             return
         }
         if ($path -eq '/api/reports/list') {
-            # 历史对比：报告列表（文件名+时间，降序）；详情走既有 /reports/<file> 下发
+            # 历史对比：报告列表（文件名+时间，降序）；详情走既有 /reports/<file> 下发。
+            # hasHtml（v1.8.4 修）：快照恢复链路需知同名 .html 是否在——app.js 原在 json 列表里找 html 恒 false，
+            # 恢复态「完整报告」按钮恒禁用（1028 审查实锤）
             $list = @(Get-ChildItem -LiteralPath $reportsDir -Filter 'diag-*.json' -File -ErrorAction SilentlyContinue |
                 Sort-Object LastWriteTime -Descending |
-                ForEach-Object { [ordered]@{ file = $_.Name; mtime = $_.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss') } })
+                ForEach-Object {
+                    $htmlName = $_.Name -replace '\.json$', '.html'
+                    [ordered]@{ file = $_.Name; mtime = $_.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss'); hasHtml = (Test-Path -LiteralPath (Join-Path $reportsDir $htmlName)) }
+                })
             Send-Json $res @{ reports = $list }
             return
         }

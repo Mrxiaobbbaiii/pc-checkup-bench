@@ -903,6 +903,11 @@ NO-CMDLET
 USB 大容量存储设备 | 43
 Intel(R) Wi-Fi 6 AX201 | 0
 '@ },
+    @{ check = 'dv_device_errors'; note = 'Code10(人话映射=无法启动)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '无法启动'; expectSuggestionKeyword = '设备管理器'
+       mock = @'
+Realtek PCIe GbE 控制器 | 10
+'@ },
     @{ check = 'dv_device_errors'; note = '仅 22+45 软码(非故障)'
        expectStatus = 'PASS'; expectEvidenceKeyword = '非故障'
        mock = @'

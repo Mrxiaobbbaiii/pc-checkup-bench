@@ -4,7 +4,7 @@
 
 > 一个免费的 Windows 体检工具：**只看、不动你电脑的任何设置**。52 项只读检查把「网络 / 蓝屏 / 硬件 / 性能 / 驱动 / 安全」六类问题查清楚，每一项都给出：问题在哪、证据是什么、怎么修、修的依据是微软哪篇官方文档。
 
-[![CI](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml) ![GitHub License](https://img.shields.io/badge/license-MIT-green) ![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![版本](https://img.shields.io/badge/version-v1.8.3-orange)
+[![CI](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Mrxiaobbbaiii/pc-checkup-bench/actions/workflows/ci.yml) ![GitHub License](https://img.shields.io/badge/license-MIT-green) ![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![版本](https://img.shields.io/badge/version-v1.8.4-orange)
 
 | 体检向导 | 跑批中 |
 |---|---|
@@ -39,7 +39,7 @@
 
 「安全体检」查的是防中毒的两道防线：微软 Defender 杀毒防护（防护开关 / 服务 / 近 30 天检出史 / 查杀排除项）和系统加固（UAC 档位 / 防火墙 / 磁盘加密 / 计划任务）——8 项全部只读，安全设置只给人工核对路径，工具永不代改。
 
-- 修复动作 25 个：绿色 6（可代跑）/ 黄色 9（确认后代跑）/ 红色 10（只给分步指南）
+- 修复动作 36 个：绿色 15（可代跑）/ 黄色 9（确认后代跑）/ 红色 10（只给分步指南）/ 侦察 2（只读代查，不动系统）
 - 每个修复办法都附**微软官方文档出处**，可点开核对
 - 支持 ext 扩展口子：自己的检查脚本、体检树、修复指南放进 `ext/` 文件夹即可生效，不用重新打包
 
@@ -47,7 +47,7 @@
 
 ### 方式一：安装包（推荐）
 
-1. 到 [Releases](../../releases) 下载最新的 `PC-CheckupBench-setup-v1.8.3.exe`
+1. 到 [Releases](../../releases) 下载最新的 `PC-CheckupBench-setup-v1.8.4.exe`
 2. 双击运行。第一次会弹 Windows 蓝色提示「已保护你的电脑」——本工具没有购买代码签名证书，这是对无签名程序的通用提醒。点 **「更多信息」→「仍要运行」** 即可
 3. 安装不需要管理员权限，装到你的用户目录，桌面和开始菜单会出现「电脑体检台」图标
 4. 打开的是原生窗口（不是浏览器页面），关窗即完全退出，不留后台进程
@@ -57,7 +57,7 @@
 
 ### 方式二：绿色版（免安装）
 
-1. 下载 `diag-lite-v1.8.3.zip`，解压到任意位置（桌面也行）
+1. 下载 `diag-lite-v1.8.4.zip`，解压到任意位置（桌面也行）
 2. 双击「全面体检（网页版）.bat」出窗口界面；或双击六类体检任一 `.bat` 直接跑黑窗口版
 3. 需要 Windows 10/11（自带 Edge 浏览器即可）
 
@@ -113,7 +113,7 @@
 
 ## 关于开发方式
 
-本项目由 AI 辅助开发（vibe coding with [ZCode](https://zcode.ai) / GLM）：从需求梳理、方案设计、代码实现到测试回归，全程人机协作完成，人类负责拍板与验收。全部检查逻辑、测试用例（242 项断言 × PowerShell 5.1 / 7 双版本、UI 自动化 35 项）随源码公开，欢迎审查。
+本项目由 AI 辅助开发（vibe coding with [ZCode](https://zcode.ai) / GLM）：从需求梳理、方案设计、代码实现到测试回归，全程人机协作完成，人类负责拍板与验收。全部检查逻辑、测试用例（318 项断言 × PowerShell 5.1 / 7 双版本、UI 自动化 70 项）随源码公开，欢迎审查。
 
 ## 从源码运行
 
@@ -132,11 +132,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Setup
 ## 目录结构
 
 ```
-├─ engine/ checks/ trees/   # 检查引擎、52 项检查脚本、六棵体检树定义
+├─ engine/ checks/ trees/   # 检查引擎、50 个检查脚本（六树 52 个检查位，含两项跨树复用）、六棵体检树定义
 ├─ repair/                  # 修复动作（绿/黄/红三档，含官方文档出处）
 ├─ ui/                      # 界面（HTML/CSS/JS，零依赖零 CDN，断网可用）
 ├─ server.ps1               # 本地服务（起界面+调度引擎）
 ├─ host/                    # 原生窗口壳（C#，WebView2）
 ├─ ext/                     # 扩展口子：自定义检查/树/修复指南
-└─ tests/                   # 242 项断言 + UI 自动化回归
+└─ tests/                   # 318 项断言 + UI 自动化回归
 ```

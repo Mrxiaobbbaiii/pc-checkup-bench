@@ -9,7 +9,7 @@
    —— 页眉合并为「外观」菜单；字号四档；键盘焦点可见；红级指南可整段复制。
    只读承诺、绿/黄/红三级语义、五段修复结果、server/engine 接口全部保持 v1.0.1 原样。 */
 
-const APP_VERSION = 'v1.8.3';
+const APP_VERSION = 'v1.8.4';
 
 /* v1.1.0 ext 口子：ui/custom.css 存在则加载（免重打包换肤）；不存在=404 静默跳过，控制台零报错 */
 fetch('custom.css', { cache: 'no-store' })
@@ -412,7 +412,9 @@ const RELEASE_NOTES = null; /* 更新说明文案真源=语言包 groups.notes�
   try {
     hasTraces = !!(localStorage.getItem('diag-guided') || localStorage.getItem('diag-last-run') || localStorage.getItem('diag-theme2'));
   } catch (e) {}
-  const notes = (t('groups.notes.v1_5_0') || []);
+  // 当版词条键 v1.8.3→v1_8_3；缺当版词条=不弹（诚实），不回退旧版内容（v1_5_0 错版教训 1028 审查）
+  const noteKey = 'groups.notes.v' + APP_VERSION.replace('v', '').replace(/\./g, '_');
+  const notes = (i18nGet(LANG !== 'zh-CN' ? (window.I18N_EN || {}) : (window.I18N_ZH || {}), noteKey) || i18nGet(window.I18N_ZH || {}, noteKey));
   try { localStorage.setItem('diag-seen-ver', APP_VERSION); } catch (e) {}
   if (!hasTraces || !Array.isArray(notes) || !notes.length) return;
   $('#um-title').textContent = tf('groups.notes.um_title', { v: APP_VERSION });
@@ -883,7 +885,7 @@ async function startRun(opts) {
 function enterRunningUi(treeArg) {
   const defs = treeArg === 'all' ? [] : String(treeArg).split(',').map((id) => S.meta.trees.find((x) => x.id === id)).filter(Boolean);
   const name = treeArg === 'all'
-    ? t('chrome.all_name').replace(/（.*/, '')
+    ? t('chrome.all_name').replace(/[（(].*/, '')
     : (defs.length > 1 ? defs.map((d) => treeName(d)).join('+') : (defs.length === 1 ? treeName(defs[0]) : treeArg));
   $('#log-box').innerHTML = '';
   $('#progress-fill').style.width = '0%';
@@ -1088,8 +1090,7 @@ async function restoreLastSnapshot() {
     let anyFail = false;
     (rep.trees || []).forEach((t) => (t.layers || []).forEach((l) => (l.checks || []).forEach((c) => { if (c.status === 'FAIL') anyFail = true; })));
     S.reportPayload = { report: rep, exit: anyFail ? 2 : 0, restored: true };
-    const htmlName = list[0].file.replace(/\.json$/i, '.html');
-    S.htmlUrl = (list.some((x) => x.file === htmlName)) ? '/reports/' + encodeURIComponent(htmlName) : '';
+    S.htmlUrl = list[0].hasHtml ? '/reports/' + encodeURIComponent(list[0].file.replace(/\.json$/i, '.html')) : '';
     buildResultTree();
     buildRepairList();
     renderRestoreBanner();

@@ -68,7 +68,7 @@ $cmdTag = '[Win32_PnPEntity ConfigManagerErrorCode≠0]'
 if ($errs.Count -ge 1) {
     $status = 'FAIL'
     $eLines = ($errs | ForEach-Object {
-        $h = if ($codeHuman.ContainsKey([string]$_.code)) { $codeHuman[[string]$_.code] } else { '详见设备管理器属性页' }
+        $h = if ($codeHuman.ContainsKey([int]$_.code)) { $codeHuman[[int]$_.code] } else { '详见设备管理器属性页' }
         'Code {0}: {1}（{2}）' -f $_.code, $_.name, $h
     }) -join "`n"
     $evidence = "$cmdTag`n共 $($errs.Count) 台设备在报错:`n$eLines"
@@ -95,7 +95,7 @@ if ($errs.Count -ge 1) {
     name = 'dv_device_errors'; status = $status; evidence = $evidence; suggestion = $suggestion
     detail = [PSCustomObject]@{
         total = $devs.Count
-        errors = @($errs | ForEach-Object { [PSCustomObject]@{ name = $_.name; code = $_.code; human = $(if ($codeHuman.ContainsKey([string]$_.code)) { $codeHuman[[string]$_.code] } else { '详见设备管理器属性页' }) } })
+        errors = @($errs | ForEach-Object { [PSCustomObject]@{ name = $_.name; code = $_.code; human = $(if ($codeHuman.ContainsKey([int]$_.code)) { $codeHuman[[int]$_.code] } else { '详见设备管理器属性页' }) } })
         soft = @($soft | ForEach-Object { [PSCustomObject]@{ name = $_.name; code = $_.code } })
     }
 } | ConvertTo-Json -Depth 6
