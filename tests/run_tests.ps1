@@ -430,6 +430,25 @@ foreach ($ic in $global:DiagI18nCases) {
     else { Add-Result 'i18n' $ic.name '' $true }
 }
 
+# ---------- ⑦b 版本串一致性静态校验（P2-7 防再漏：index.html 两份硬编码兜底串与 APP_VERSION 同步） ----------
+# index.html 状态栏 ver-chip 是 JS 加载失败时的兜底显示，bump 清单漏改即露旧版本；
+# 断言主仓/diag-lite 两份 index.html 均含「电脑体检台 <APP_VERSION>」。
+$appVer = ''
+$verOk = $true; $verWhy = @()
+$appJsRaw = Get-Content -LiteralPath (Join-Path $root 'ui/app.js') -Raw -Encoding UTF8
+if ($appJsRaw -match "APP_VERSION\s*=\s*'([^']+)'") { $appVer = $Matches[1] }
+else { $verOk = $false; $verWhy += 'APP_VERSION not found in ui/app.js' }
+if ($appVer) {
+    foreach ($idx in @('ui/index.html', 'diag-lite/ui/index.html')) {
+        $htmlRaw = Get-Content -LiteralPath (Join-Path $root $idx) -Raw -Encoding UTF8
+        if ($htmlRaw -notmatch ('电脑体检台 ' + [regex]::Escape($appVer))) {
+            $verOk = $false; $verWhy += ($idx + ' ver-chip missing ' + $appVer)
+        }
+    }
+}
+if ($verOk) { Add-Result 'version' 'index_html_ver_chip' ('app=' + $appVer) $true }
+else { Add-Result 'version' 'index_html_ver_chip' ('app=' + $appVer) $false ($verWhy -join '; ') }
+
 # ---------- ⑧ 修复卡 en 映射静态对齐（1026 方案 B·M3：node 断言 33 键双侧字段对齐+warn 语义零） ----------
 # en-US.js actions 与 repair/actions/*.json（执行层真源，只读）按 actField/actSteps/actSource
 # 真实消费语义对齐：键集双向/六字段非空/steps 逐键长度+desc/how 对齐/sources 对齐/CJK 零残留/

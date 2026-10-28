@@ -568,6 +568,19 @@ if ($isYellow) {
             $pkgNote = '回滚包生成失败：' + $_.Exception.Message
             $failStage = 'rollback_pkg'
         }
+        # 回滚包目录自裁（1028 P3）：此前只增不清——engine 侧 reports 50 份裁剪只删 diag-*，
+        # rollback\ 子目录不在其列；uninstall 侧另有「保最新 3 份」清理但仅卸载时跑一次，
+        # 长期在装机不限。故这里在每次黄级回滚包落盘后自裁，保最新 20 个动作目录（按修改时间）。
+        # 裁剪失败不阻断修复主流程（维护性动作，静默跳过）。
+        try {
+            $rbRoot = Join-Path $reportsDir 'rollback'
+            if (Test-Path -LiteralPath $rbRoot) {
+                $rbDirs = @(Get-ChildItem -LiteralPath $rbRoot -Directory | Sort-Object LastWriteTime -Descending)
+                if ($rbDirs.Count -gt 20) {
+                    $rbDirs | Select-Object -Skip 20 | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+                }
+            }
+        } catch { }
     }
 }
 

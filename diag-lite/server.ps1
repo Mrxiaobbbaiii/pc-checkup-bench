@@ -472,9 +472,9 @@ function Invoke-Route($ctx) {
             } else {
                 $valid = (@($menuOrder) -contains $treeArg)
             }
-            if (-not $valid) { Send-Json $res @{ ok = $false; error = '没认出这个体检项目' } 400; return }
-            if ($script:state -eq 'running') { Send-Json $res @{ ok = $false; error = '正在检查中，请等这轮结束' } 409; return }
-            if ($script:repairState -eq 'running') { Send-Json $res @{ ok = $false; error = '正在修复中，请等它结束再体检' } 409; return }
+            if (-not $valid) { Send-Json $res @{ ok = $false; error = '没认出这个体检项目 (Unknown checkup project)' } 400; return }
+            if ($script:state -eq 'running') { Send-Json $res @{ ok = $false; error = '正在检查中，请等这轮结束 (A checkup is running — wait for it to finish)' } 409; return }
+            if ($script:repairState -eq 'running') { Send-Json $res @{ ok = $false; error = '正在修复中，请等它结束再体检 (A repair is running — wait for it to finish before checking)' } 409; return }
             $r = Start-Engine $treeArg $full
             if (-not $r.ok) { Send-Json $res @{ ok = $false; error = $r.error } 500; return }
             Send-Json $res @{ ok = $true }
@@ -493,13 +493,13 @@ function Invoke-Route($ctx) {
                 try { & taskkill.exe /PID $script:proc.Id /T /F 2>&1 | Out-Null } catch { }
                 Send-Json $res @{ ok = $true }
             } else {
-                Send-Json $res @{ ok = $false; error = '现在没有在查' }
+                Send-Json $res @{ ok = $false; error = '现在没有在查 (No checkup is running)' }
             }
             return
         }
         if ($path -eq '/api/report') {
             if ($script:jsonReport -eq '' -or -not (Test-Path -LiteralPath $script:jsonReport)) {
-                Send-Json $res @{ error = '还没有报告（查完才有）' }
+                Send-Json $res @{ error = '还没有报告（查完才有）(No report yet — available after a checkup)' }
                 return
             }
             try {
@@ -507,7 +507,7 @@ function Invoke-Route($ctx) {
                 $htmlUrl = '/reports/' + [System.IO.Path]::GetFileName($script:htmlReport)
                 Send-Json $res ([ordered]@{ report = $report; htmlUrl = $htmlUrl; exit = $script:doneExit })
             } catch {
-                Send-Json $res @{ error = '报告读取失败' }
+                Send-Json $res @{ error = '报告读取失败 (Failed to read the report)' }
             }
             return
         }
@@ -557,18 +557,18 @@ function Invoke-Route($ctx) {
             $wantRp = ($j.restore_point -eq $true)
             $skipRp = ($j.skip_restore_point -eq $true)
             $def = @($repairDefs | Where-Object { [string]$_.id -eq $rid })[0]
-            if (-not $def) { Send-Json $res @{ ok = $false; error = '没认出这个修复动作' } 400; return }
+            if (-not $def) { Send-Json $res @{ ok = $false; error = '没认出这个修复动作 (Unknown repair action)' } 400; return }
             if ([string]$def.level -eq 'red') {
                 # 红级只出向导数据、永不代跑（design 铁律；红级动作入库=纯指南卡（C 片起））
                 Send-Json $res ([ordered]@{
-                    ok = $false; error = '这一级不会自动执行——下面是可以自己照着做的步骤'
+                    ok = $false; error = '这一级不会自动执行——下面是可以自己照着做的步骤 (This level never runs automatically — follow the steps below yourself)'
                     guide = [ordered]@{ name = [string]$def.name; level = [string]$def.level; desc = [string]$def.desc; affect = [string]$def.affect; undo = [string]$def.undo; steps = @($def.steps); rollback_note = [string]$def.rollback_note }
                 })
                 return
             }
-            if ($script:state -eq 'running') { Send-Json $res @{ ok = $false; error = '正在检查中，请等这轮结束再修复' } 409; return }
-            if ($script:repairState -eq 'running') { Send-Json $res @{ ok = $false; error = '正在修复中，请等它结束' } 409; return }
-            if (-not (Test-Path -LiteralPath $repairScript)) { Send-Json $res @{ ok = $false; error = '修复程序文件缺失' } 500; return }
+            if ($script:state -eq 'running') { Send-Json $res @{ ok = $false; error = '正在检查中，请等这轮结束再修复 (A checkup is running — wait for it to finish before fixing)' } 409; return }
+            if ($script:repairState -eq 'running') { Send-Json $res @{ ok = $false; error = '正在修复中，请等它结束 (A repair is running — wait for it to finish)' } 409; return }
+            if (-not (Test-Path -LiteralPath $repairScript)) { Send-Json $res @{ ok = $false; error = '修复程序文件缺失 (Repair program file is missing)' } 500; return }
             $rstamp = Get-Date -Format 'yyyyMMdd-HHmmss'
             $script:repairOutFile = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-web-repair-$PID-$rstamp.json")
             $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $repairScript, '-ActionId', $rid, '-OutFile', $script:repairOutFile)
@@ -588,7 +588,7 @@ function Invoke-Route($ctx) {
             $psi.RedirectStandardError = $true
             if ($psi.PSObject.Properties['StandardOutputEncoding']) { $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8 }
             if ($psi.PSObject.Properties['StandardErrorEncoding']) { $psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8 }
-            try { $script:repairProc = [System.Diagnostics.Process]::Start($psi) } catch { Send-Json $res @{ ok = $false; error = '修复程序启动失败：' + $_.Exception.Message } 500; return }
+            try { $script:repairProc = [System.Diagnostics.Process]::Start($psi) } catch { Send-Json $res @{ ok = $false; error = '修复程序启动失败 (Failed to start repair program): ' + $_.Exception.Message } 500; return }
             [DiagDrain]::Wire($script:repairProc, $script:repairErrLog)
             $script:repairState = 'running'
             $script:repairId = $rid

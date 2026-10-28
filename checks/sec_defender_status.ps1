@@ -3,7 +3,7 @@
 检查项：sec_defender_status —— Defender 防护开关与病毒库新鲜度（层：defender）
 命令：Get-MpComputerStatus（只读）
 判定（安全树规格 v1.6 第一节 1）：
-  查询异常→SKIP(query-error)；AMRunningMode=Passive Mode/SxS Mode→SKIP(third-party-av，第三方杀软接管属正常态)；
+  查询异常→SKIP(query-error)；AMRunningMode=Passive Mode/SxS Mode/Passive Mode (Signature Mismatch)→SKIP(third-party-av，第三方杀软接管或病毒库失配被动态属正常态)；
   AntivirusEnabled=False 或 RealTimeProtectionEnabled=False→FAIL；病毒库年龄>7 天→FAIL（工程线：安全智能每日多次发布，7 天未更=明显滞后）；
   3<年龄≤7→PASS 附注「建议尽快手动更新」；年龄≤3 且开关全开→PASS
 出处：https://learn.microsoft.com/en-us/powershell/module/defender/get-mpcomputerstatus
@@ -52,7 +52,7 @@ $ageLine = if ($age -ge 0) { "病毒库年龄: $age 天（最近更新: $last）
 $head = "$cmdTag`n运行模式: $mode`n杀毒防护: $av | 实时保护: $rtp`n$ageLine"
 $detail = [PSCustomObject]@{ mode = $mode; antivirus = $av; realtime = $rtp; sigAgeDays = $age; sigLastUpdated = $last }
 
-if ($mode -in @('Passive Mode', 'SxS Mode')) {
+if ($mode -in @('Passive Mode', 'SxS Mode', 'Passive Mode (Signature Mismatch)')) {
     $d = [PSCustomObject]@{ reason = 'third-party-av'; mode = $mode; antivirus = $av; realtime = $rtp; sigAgeDays = $age; sigLastUpdated = $last }
     Out-Result 'SKIP' "$head`n结论：检测到第三方杀软接管（运行模式: $mode）——Defender 让位属正常态，本项开关读数不判定" '' $d
     return

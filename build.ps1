@@ -62,7 +62,7 @@ if ($Setup) {
     # （1024 修复：此前靠 host-out 里的一次性手工副本，clean 重建即断链；现在构建自足）
     Copy-Item (Join-Path $hostDir 'third_party\Microsoft.Web.WebView2.Core.dll') $hostOut -Force
     Copy-Item (Join-Path $hostDir 'third_party\Microsoft.Web.WebView2.WinForms.dll') $hostOut -Force
-    # staging 先清空再组——只加不减式 Copy 会把已剔除件（gui 等）残留打进新包
+    # staging 先清空再组——只加不减式 Copy 会把已剔除件残留打进新包
     if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $staging | Out-Null
     Copy-Item (Join-Path $hostOut '*') $staging -Force

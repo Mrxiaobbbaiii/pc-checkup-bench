@@ -456,6 +456,12 @@ TZ_0 | 45.0
        mock = @'
 TZ_0 | -5.0
 '@ },
+    @{ check = 'hw_thermal'; note = '真假混合按真值判(1028逐热区过滤)'
+       expectStatus = 'FAIL'; expectEvidenceKeyword = '过热'; expectSuggestionKeyword = '清灰'
+       mock = @'
+TZ_0 | -5.0
+TZ_1 | 88.0
+'@ },
 
     # ---------- 20. hw_memdiag_history（1027 口径修正：消息优先，ID 仅展示） ----------
     @{ check = 'hw_memdiag_history'; note = '诊断报硬件问题1101'

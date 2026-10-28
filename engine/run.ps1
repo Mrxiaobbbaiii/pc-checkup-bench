@@ -119,6 +119,18 @@ function Invoke-Check {
     if (-not (Wait-Job $job -Timeout $TimeoutSec)) {
         Stop-Job $job -Force -ErrorAction SilentlyContinue
         Remove-Job $job -Force -ErrorAction SilentlyContinue
+        # 孙进程清理（1028 P3）：Stop-Job 只停得掉 job 自身（子 powershell）；检查脚本是 job 里
+        # 再 & 起来的孙进程，超时后可能成孤儿继续跑。按「命令行含该检查脚本绝对路径」画像杀残留
+        # （路径唯一=不会误伤无关进程；正常路径零改动，只在超时分支做）；杀前写一行日志。
+        try {
+            $scriptFull = [System.IO.Path]::GetFullPath($script)
+            $stragglers = @(Get-CimInstance Win32_Process -Filter "Name='powershell.exe' OR Name='pwsh.exe'" -ErrorAction SilentlyContinue |
+                Where-Object { $_.CommandLine -and $_.CommandLine.Contains($scriptFull) -and ($_.ProcessId -ne $PID) })
+            foreach ($sp in $stragglers) {
+                Write-Output ("[超时清理] 发现残留检查进程 PID={0}（命令行含 {1}），强制结束" -f $sp.ProcessId, $CheckName)
+                & taskkill.exe /PID $sp.ProcessId /T /F 2>&1 | Out-Null
+            }
+        } catch { }
         return [PSCustomObject]@{ name = $CheckName; status = 'SKIP'; evidence = "check timed out after ${TimeoutSec}s"; suggestion = ''; detail = @{ reason = 'timeout' } }
     }
     $outText = (Receive-Job $job) | Out-String
@@ -130,6 +142,19 @@ function Invoke-Check {
         return ($outText | ConvertFrom-Json)
     } catch {
         return [PSCustomObject]@{ name = $CheckName; status = 'SKIP'; evidence = "unparsable output: " + (($outText.Trim() -split "`r?`n") | Select-Object -First 3); suggestion = ''; detail = @{ reason = 'bad-json' } }
+    }
+}
+
+# ---------- 树文件层重名校验（1028 P3 fail-closed）----------
+# 层序还原与报告渲染按 layer.name 匹配（Where-Object name -eq），同树层重名会静默错乱
+# （重复行/错序还看不出来）——加载即校验，重名=引擎自身错误口径 exit 3，拒跑。
+function Assert-NoDupLayerNames {
+    param($TreeData, [string]$TreeLabel)
+    $names = @(@($TreeData.layers) | ForEach-Object { [string]$_.name })
+    $dups = @($names | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { $_.Name })
+    if ($dups.Count -gt 0) {
+        Write-Error ("tree '$TreeLabel' has duplicate layer names: " + ($dups -join ', '))
+        exit 3
     }
 }
 
@@ -515,6 +540,7 @@ if ($TreeName -eq 'all' -or $TreeName -match ',') {
         $tf = Join-Path $root "trees/$t.yaml"
         if (-not (Test-Path $tf)) { Write-Error "tree not found: $tf"; exit 3 }
         $treeDatas[$t] = Get-Content $tf -Raw -Encoding UTF8 | ConvertFrom-Json
+        Assert-NoDupLayerNames $treeDatas[$t] $t
     }
     $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $hostName = $env:COMPUTERNAME
@@ -588,6 +614,7 @@ if (Test-Path $treeFile) {
     Write-Error "tree not found: $treeFile"; exit 3
 }
 $tree = Get-Content $treeFile -Raw -Encoding UTF8 | ConvertFrom-Json
+Assert-NoDupLayerNames $tree $TreeName
 
 $meta = Get-TreeMeta $tree
 $verdictTitle = $meta.VerdictTitle

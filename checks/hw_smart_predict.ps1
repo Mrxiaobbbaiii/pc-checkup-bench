@@ -2,7 +2,7 @@
 <#
 检查项：hw_smart_predict —— SMART 预警与可靠性计数器（层：storage）
 命令：Get-PhysicalDisk | Get-StorageReliabilityCounter（Wear/ReadErrorsUncorrected/Temperature，K→℃）＋ root\wmi MSStorageDriver_FailurePredictStatus（PredictFailure）；全只读
-判定（design 第十节 2）：PredictFailure=true / ReadErrorsUncorrected>0 / Wear>10 / 盘温>60℃ 任一→FAIL；全部计数器 null→SKIP（家用盘常见，诚实缺口）；root\wmi 被拒（非管理员常 Access denied）→SKIP 附注「管理员身份可复核」；否则 PASS
+判定（design 第十节 2）：PredictFailure=true / ReadErrorsUncorrected>0 / Wear>10 / 盘温>60℃ 任一→FAIL；全部计数器 null→SKIP（家用盘常见，诚实缺口）；root\wmi 被拒（非管理员常 Access denied）→SKIP 附注「管理员身份可复核」；root\wmi 无该类（厂商驱动不提供直报）→SKIP 附注「这条通路看不到」；否则 PASS
 mock 契约：逐行 `盘名 | wear | errUnc | tempC | predictFailure`（数值可为 null）；特殊行 `ACCESS-DENIED`；空=SKIP
 #>
 param([string]$MockRaw = '', [string]$MockFile = '')
@@ -10,7 +10,7 @@ if ($MockFile -ne '' -and $MockRaw -eq '') { $MockRaw = Get-Content -LiteralPath
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 
-$rows = @(); $denied = $false
+$rows = @(); $denied = $false; $wmiNoClass = $false
 if ($MockRaw -ne '' -or $MockFile -ne '') {
     foreach ($ln in ($MockRaw -split "`r?`n" | Where-Object { $_.Trim() -ne '' })) {
         if ($ln -match 'ACCESS-DENIED') { $denied = $true; continue }
@@ -42,16 +42,30 @@ if ($MockRaw -ne '' -or $MockFile -ne '') {
         foreach ($s in @(Get-CimInstance -Namespace root\wmi -ClassName MSStorageDriver_FailurePredictStatus -ErrorAction Stop)) {
             if ($s.PredictFailure) { $rows += [PSCustomObject]@{ name = ($s.InstanceName -split '\\')[-1]; wear = 'null'; errUnc = 'null'; tempC = 'null'; predict = 'true' } }
         }
-    } catch { $denied = $true }
+    } catch {
+        # 细分（1028 P3）：「类不存在」＝该机 WMI 没有 SMART 直报提供类（厂商驱动未提供，非权限问题）；
+        # 「拒绝访问」＝权限不够。两者都只影响 root\wmi 直报线，StorageReliabilityCounter 线不受影响。
+        $msg = [string]$_.Exception.Message
+        if ($msg -match '类不存在|无效的类|Invalid class|0x80041010|not found') { $wmiNoClass = $true }
+        else { $denied = $true }
+    }
 }
 
 $cmdTag = '[Get-StorageReliabilityCounter + root\wmi FailurePredictStatus]'
 $allNull = ($rows.Count -eq 0) -or (@($rows | Where-Object { $_.wear -ne 'null' -or $_.errUnc -ne 'null' -or $_.tempC -ne 'null' -or $_.predict -ne 'null' }).Count -eq 0)
-if ($allNull -and -not $denied) {
+if ($allNull -and -not $denied -and -not $wmiNoClass) {
     [PSCustomObject]@{
         name = 'hw_smart_predict'; status = 'SKIP'
         evidence = "$cmdTag`n全部计数器 null（家用盘不向 Windows 暴露 SMART 明细=常见）——不是「无预警」，是看不到"
         suggestion = ''; detail = [PSCustomObject]@{ reason = 'counters-null' }
+    } | ConvertTo-Json -Depth 5
+    return
+}
+if ($wmiNoClass -and $allNull) {
+    [PSCustomObject]@{
+        name = 'hw_smart_predict'; status = 'SKIP'
+        evidence = "$cmdTag`nroot\wmi 没有 MSStorageDriver_FailurePredictStatus 类（该机驱动不提供 SMART 直报，常见）——不是「无预警」，是这条通路看不到"
+        suggestion = ''; detail = [PSCustomObject]@{ reason = 'wmi-no-class' }
     } | ConvertTo-Json -Depth 5
     return
 }
@@ -72,7 +86,8 @@ foreach ($r in $rows) {
     elseif ($r.tempC -ne 'null' -and [double]$r.tempC -gt 60) { $findings += '{0}：盘温 {1}℃（超 60℃）' -f $r.name, $r.tempC }
 }
 $lines = ($rows | ForEach-Object { '{0} | wear={1} | errUnc={2} | {3}℃ | predict={4}' -f $_.name, $_.wear, $_.errUnc, $_.tempC, $_.predict }) -join "`n"
-if ($denied) { $lines += "`n(部分探测被拒，非管理员；可用管理员身份复核)" }
+if ($wmiNoClass) { $lines += "`n(root\wmi 无 SMART 直报类，PredictFailure 线看不到；可用 CrystalDiskInfo 复核)" }
+elseif ($denied) { $lines += "`n(部分探测被拒，非管理员；可用管理员身份复核)" }
 if ($findings.Count -ge 1) {
     $status = 'FAIL'
     $evidence = "$cmdTag`n$lines`n结论：`n" + ($findings -join "`n")

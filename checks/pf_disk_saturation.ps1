@@ -2,7 +2,7 @@
 <#
 检查项：pf_disk_saturation —— 磁盘 IO 堵塞（「磁盘 100%」现场，层：runtime）
 命令：Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk（排除 _Total，取 CurrentDiskQueueLength/AvgDiskSecPerTransfer）间隔 2 秒双采样（单次快照误报高——瞬时 IO 高峰人人有，只读）
-判定：两次采样系统盘队列均 >2→FAIL（队列>2=性能监视经典工程线，微软无单一明文阈值页）；仅一次 >2→PASS 附注「瞬时高峰，未见持续」；均 ≤2→PASS 附队列值；查询失败/空→SKIP（精简系统常见=诚实缺口）
+判定：两次采样系统盘队列均 >2→FAIL（队列>2=性能监视经典工程线，微软无单一明文阈值页）；仅一次 >2→PASS 附注「瞬时高峰，未见持续」；均 ≤2→PASS 附队列值；查询失败/空→SKIP（精简系统常见=诚实缺口）；第 2 次采样失败→SKIP「两次采样不完整」+第 1 次读数进 evidence（1028 纠正：不再拿第一次冒充自比）
 AvgDiskSecPerTransfer 官方 SQL I/O 排障文以 15ms 为延迟提示线→只附毫秒读数，不单独立 FAIL 判据
 mock 契约：===SAMPLE=== 分隔两段（第1/2次采样），每段逐行 `盘实例 | 队列 | 平均响应秒`（系统盘行盘实例含 C:）；空=SKIP
 #>
@@ -52,7 +52,17 @@ if ($MockRaw -ne '' -or $MockFile -ne '') {
     }
     Start-Sleep -Seconds 2
     $s2 = Get-DiskSnapshot
-    if ($null -eq $s2) { $s2 = $s1 }
+    if ($null -eq $s2) {
+        # 1028 P3 侧偏纠正（拍板点名）：旧实现拿第一次采样冒充第二次（自比恒 PASS）；
+        # 现改诚实 SKIP，第一次读数照实进 evidence
+        $firstLines = @((Parse-Sample $s1) | ForEach-Object { '{0} | 队列={1} | 平均响应={2}ms' -f $_.inst, $_.queue, [math]::Round($_.avgSec * 1000) })
+        [PSCustomObject]@{
+            name = 'pf_disk_saturation'; status = 'SKIP'
+            evidence = "[Win32_PerfFormattedData_PerfDisk_PhysicalDisk 双采样]`n两次采样不完整（第 2 次查询失败）——不是「IO 健康」，是查不到`n第 1 次读数：`n" + ($firstLines -join "`n")
+            suggestion = ''; detail = [PSCustomObject]@{ reason = 'second-sample-failed' }
+        } | ConvertTo-Json -Depth 5
+        return
+    }
     $samples = @((Parse-Sample $s1), (Parse-Sample $s2))
 }
 
