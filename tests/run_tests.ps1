@@ -27,6 +27,17 @@ function Add-Result { param($Cat, $Name, $Note, $Ok, $Why = '')
     Write-Host ("[{0}] {1} :: {2} {3}" -f $mark, $Name, $Note, $(if (-not $Ok) { "-- $Why" } else { '' }))
 }
 
+# 引擎会写 stderr 的场景禁用 2>&1/2> 共享路径（本脚本 EAP=Stop 下升终止误报 crash，1031 实测）
+# 需要 stderr 分文件捕获时一律用 Invoke-EngineCapture
+function Invoke-EngineCapture {
+    # Start-Process 直写文件是唯一稳路：stderr 不过错误流、ExitCode 直读（PS5.1/pwsh 双版本实测）
+    # 坑①：PS5.1 不给含空格的 ArgumentList 元素自动加引号 → -File 路径须由调用方手工裹引号（('"{0}"' -f $path)）
+    # 坑②（禁回退原因）：2>&1/2> 原生 stderr 重定向在本脚本 EAP=Stop 下会把引擎 stderr 首条错误记录升为终止，误报 engine crashed
+    param([string]$PsExe, [string[]]$ArgList, [string]$ErrFile, [string]$OutFile)
+    $proc = Start-Process -FilePath $PsExe -ArgumentList $ArgList -RedirectStandardError $ErrFile -RedirectStandardOutput $OutFile -WindowStyle Hidden -Wait -PassThru
+    return $proc.ExitCode
+}
+
 # ---------- ① 单检查项用例 ----------
 $global:DiagCaseIdx = 1
 foreach ($case in $global:DiagCases) {
@@ -116,8 +127,7 @@ foreach ($scen in $global:DiagScenarios) {
 # ---------- ②b 引擎错误退出码契约（1031：树不存在=exit 3 回归锚；stderr 用 Start-Process 直写文件，避开本脚本 EAP=Stop 下原生 stderr 重定向被升终止误判 crash） ----------
 $exit3ErrFile = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-exit3-stderr-" + $PID + '.txt')
 $exit3OutFile = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-exit3-stdout-" + $PID + '.txt')
-$exit3Proc = Start-Process -FilePath $diagPs -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f (Join-Path $root 'engine/run.ps1')), '-TreeName', '__notexist__', '-NoSaveReport') -RedirectStandardError $exit3ErrFile -RedirectStandardOutput $exit3OutFile -WindowStyle Hidden -Wait -PassThru
-$exit3Got = $exit3Proc.ExitCode
+$exit3Got = Invoke-EngineCapture -PsExe $diagPs -ArgList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f (Join-Path $root 'engine/run.ps1')), '-TreeName', '__notexist__', '-NoSaveReport') -ErrFile $exit3ErrFile -OutFile $exit3OutFile
 $exit3Err = (Get-Content $exit3ErrFile -Raw -ErrorAction SilentlyContinue)
 Remove-Item $exit3ErrFile -Force -ErrorAction SilentlyContinue
 Remove-Item $exit3OutFile -Force -ErrorAction SilentlyContinue
@@ -247,7 +257,8 @@ foreach ($xc in $global:DiagExtCases) {
         New-Item -ItemType Directory -Path (Split-Path $dst -Parent) -Force | Out-Null
         [System.IO.File]::WriteAllText($dst, $xc.extFiles[$rel], (New-Object System.Text.UTF8Encoding($true)))
     }
-    $engineArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $tmpRoot 'engine/run.ps1'), '-TreeName', $xc.tree, '-NoSaveReport', '-NoMenu')
+    # -File 路径手工裹引号：PS5.1 的 Start-Process 不给含空格元素自动加引号（坑①，见 Invoke-EngineCapture 注释）
+    $engineArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f (Join-Path $tmpRoot 'engine/run.ps1')), '-TreeName', $xc.tree, '-NoSaveReport', '-NoMenu')
     if ($xc.useMock) {
         # mock 空目录契约：engine mock 模式下缺 mock 文件的检查=SKIP（missing-mock）
         $mockDir = Join-Path $tmpRoot 'mocks'
@@ -256,24 +267,21 @@ foreach ($xc in $global:DiagExtCases) {
         $engineArgs += @('-MockDir', $mockDir)
     }
     $errFile = Join-Path $tmpRoot 'stderr.tmp'
+    $outFile = Join-Path $tmpRoot 'stdout.tmp'
     $engineOut = ''; $errText = ''; $exitCode = -1
     try {
-        # native stderr 重定向在 EAP=Stop 下会把 stderr 首行变成终止错误（同 v1.0.1 DNS 检查坑）：
-        # 外层降 Continue + finally 恢复，2> 才是纯文件重定向
-        $prevEap = $ErrorActionPreference
-        $ErrorActionPreference = 'Continue'
-        try {
-            $engineOut = (& $diagPs @engineArgs 2> $errFile | Out-String)
-            $exitCode = $LASTEXITCODE
-        } finally {
-            $ErrorActionPreference = $prevEap
-        }
-        $errText = Get-Content $errFile -Raw -ErrorAction SilentlyContinue
+        # 引擎会写 stderr（[ext] 加载提示/内置冲突警告）：stderr/stdout 直写文件经 Invoke-EngineCapture，
+        # 避开本脚本 EAP=Stop 下 2>&1/2> 升终止误报 crash（同 v1.0.1 DNS 检查坑），不再需要临时降 EAP
+        $exitCode = Invoke-EngineCapture -PsExe $diagPs -ArgList $engineArgs -ErrFile $errFile -OutFile $outFile
+        # engine 自设 [Console]::OutputEncoding=UTF8（engine/run.ps1:34），直写文件即 UTF-8，与原管道解码等价
+        $engineOut = Get-Content $outFile -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+        $errText = Get-Content $errFile -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
     } catch {
         Add-Result 'ext' $xc.name '' $false ("engine crashed: $($_.Exception.Message)")
         continue
     } finally {
         Remove-Item $errFile -Force -ErrorAction SilentlyContinue
+        Remove-Item $outFile -Force -ErrorAction SilentlyContinue
     }
     $bad = @()
     if ($exitCode -ne $xc.expectExit) { $bad += "exitcode expect $($xc.expectExit) got $exitCode" }
