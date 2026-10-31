@@ -113,6 +113,20 @@ foreach ($scen in $global:DiagScenarios) {
     else { Add-Result 'scenario' $scen.name '' $true }
 }
 
+# ---------- ②b 引擎错误退出码契约（1031：树不存在=exit 3 回归锚；stderr 用 Start-Process 直写文件，避开本脚本 EAP=Stop 下原生 stderr 重定向被升终止误判 crash） ----------
+$exit3ErrFile = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-exit3-stderr-" + $PID + '.txt')
+$exit3OutFile = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-exit3-stdout-" + $PID + '.txt')
+$exit3Proc = Start-Process -FilePath $diagPs -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f (Join-Path $root 'engine/run.ps1')), '-TreeName', '__notexist__', '-NoSaveReport') -RedirectStandardError $exit3ErrFile -RedirectStandardOutput $exit3OutFile -WindowStyle Hidden -Wait -PassThru
+$exit3Got = $exit3Proc.ExitCode
+$exit3Err = (Get-Content $exit3ErrFile -Raw -ErrorAction SilentlyContinue)
+Remove-Item $exit3ErrFile -Force -ErrorAction SilentlyContinue
+Remove-Item $exit3OutFile -Force -ErrorAction SilentlyContinue
+$exit3Bad = @()
+if ($exit3Got -ne 3) { $exit3Bad += "exit expect 3 got $exit3Got" }
+if (-not $exit3Err -or $exit3Err -notmatch 'tree not found') { $exit3Bad += 'stderr missing keyword: tree not found' }
+if ($exit3Bad.Count -gt 0) { Add-Result 'engine-exit' 'tree_not_found_exit3' '' $false ($exit3Bad -join '; ') }
+else { Add-Result 'engine-exit' 'tree_not_found_exit3' 'exit=3 且 stderr 含 tree not found' $true }
+
 # ---------- ③ 输出层用例（-ProgressFile/-JsonReport；临时仓跑 engine，主仓 reports 零污染） ----------
 foreach ($bc in $global:DiagBCases) {
     $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("diag-b-" + $bc.name + "-" + $PID)

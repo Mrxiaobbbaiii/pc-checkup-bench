@@ -153,7 +153,7 @@ function Assert-NoDupLayerNames {
     $names = @(@($TreeData.layers) | ForEach-Object { [string]$_.name })
     $dups = @($names | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { $_.Name })
     if ($dups.Count -gt 0) {
-        Write-Error ("tree '$TreeLabel' has duplicate layer names: " + ($dups -join ', '))
+        Write-Error ("tree '$TreeLabel' has duplicate layer names: " + ($dups -join ', ')) -ErrorAction Continue
         exit 3
     }
 }
@@ -528,17 +528,17 @@ if ($TreeName -eq 'all' -or $TreeName -match ',') {
         $mergedTitle = '全面体检报告'
     } else {
         $treesOrder = @($TreeName -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } | Select-Object -Unique)
-        if ($treesOrder.Count -lt 2) { Write-Error "multi-tree mode needs 2+ trees, got: $TreeName"; exit 3 }
+        if ($treesOrder.Count -lt 2) { Write-Error "multi-tree mode needs 2+ trees, got: $TreeName" -ErrorAction Continue; exit 3 }
         foreach ($t in $treesOrder) {
             $tf = Join-Path $root "trees/$t.yaml"
-            if (-not (Test-Path $tf)) { Write-Error "tree not found: $tf"; exit 3 }
+            if (-not (Test-Path $tf)) { Write-Error "tree not found: $tf" -ErrorAction Continue; exit 3 }
         }
         $mergedTitle = '合并体检报告'
     }
     $treeDatas = @{}
     foreach ($t in $treesOrder) {
         $tf = Join-Path $root "trees/$t.yaml"
-        if (-not (Test-Path $tf)) { Write-Error "tree not found: $tf"; exit 3 }
+        if (-not (Test-Path $tf)) { Write-Error "tree not found: $tf" -ErrorAction Continue; exit 3 }
         $treeDatas[$t] = Get-Content $tf -Raw -Encoding UTF8 | ConvertFrom-Json
         Assert-NoDupLayerNames $treeDatas[$t] $t
     }
@@ -611,7 +611,7 @@ if (Test-Path $treeFile) {
     $treeFile = $extTreeFile
     [Console]::Error.WriteLine("[ext] tree '$TreeName' loaded from ext/trees")
 } else {
-    Write-Error "tree not found: $treeFile"; exit 3
+    Write-Error "tree not found: $treeFile" -ErrorAction Continue; exit 3
 }
 $tree = Get-Content $treeFile -Raw -Encoding UTF8 | ConvertFrom-Json
 Assert-NoDupLayerNames $tree $TreeName
